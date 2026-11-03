@@ -645,7 +645,8 @@ def test_public_directory_excludes_private_records_and_sensitive_data(system):
         complaint.details = "الرقم الوطني 12345678901 والهاتف 0912345678 والبريد private@example.com"
         complaint.resolution_report = "تم الحل لصاحب الشكوى محمد ورمزها CMP-SERVICES"
         db.add_all([
-            ComplaintNote(complaint_id=2, author_id=2, note="تحديث عام 0912345678", is_internal=False),
+                ComplaintNote(complaint_id=2, author_id=2, note="تحديث عام 0912345678",
+                              is_internal=False, audience="public"),
             ComplaintNote(complaint_id=2, author_id=2, note="سر الموظف الداخلي", is_internal=True),
         ])
         db.commit()

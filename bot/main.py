@@ -3,13 +3,15 @@ import logging
 import sys
 from aiogram import Bot, Dispatcher
 from aiogram.types import BotCommand
+from aiogram.fsm.storage.memory import SimpleEventIsolation
 from bot.config import BOT_TOKEN
-from bot.handlers import complaint_flow
+from bot.handlers import complaint_flow, evidence
 
 async def main():
     bot = Bot(token=BOT_TOKEN)
-    dp = Dispatcher()
+    dp = Dispatcher(events_isolation=SimpleEventIsolation())
     
+    dp.include_router(evidence.router)
     dp.include_router(complaint_flow.router)
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
     

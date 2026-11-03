@@ -99,6 +99,22 @@ def authorize_complaint(employee: Employee, complaint):
         raise HTTPException(403, "لا تملك صلاحية الوصول إلى هذه الشكوى")
 
 
+def authorize_owner(request: Request, db: Session, complaint):
+    """A secret tracking grant never grants the citizen account or its history."""
+    if is_bot(request):
+        require_bot_owner(request, db, complaint.citizen_id)
+    elif not (owns_citizen(request, complaint.citizen_id) or
+              complaint.id in request.session.get("tracked_complaints", [])):
+        raise HTTPException(403, "يلزم رمز المتابعة السري الخاص بهذه الشكوى")
+
+
+def authorize_reader(request: Request, db: Session, complaint):
+    if request.session.get("employee_id") and not is_bot(request):
+        authorize_complaint(current_employee(request, db), complaint)
+    else:
+        authorize_owner(request, db, complaint)
+
+
 def check_login_rate(request: Request):
     key = request.client.host if request.client else "unknown"
     now = time.monotonic()

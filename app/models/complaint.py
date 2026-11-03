@@ -1,5 +1,5 @@
 from enum import Enum
-from sqlalchemy import Column, BigInteger, Integer, String, Float, Text, DateTime, ForeignKey, Enum as SQLEnum, Boolean
+from sqlalchemy import Column, BigInteger, Integer, String, Float, Text, DateTime, ForeignKey, Enum as SQLEnum, Boolean, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.base import Base
@@ -43,6 +43,7 @@ class Complaint(Base):
 
     citizen = relationship("Citizen", back_populates="complaints")
     notes = relationship("ComplaintNote", back_populates="complaint", cascade="all, delete-orphan")
+    evidence_requests = relationship("EvidenceRequest", cascade="all, delete-orphan", order_by="EvidenceRequest.id")
     public_reports = relationship("PublicComplaintReport", cascade="all, delete-orphan")
     public_reviews = relationship("PublicComplaintReview", cascade="all, delete-orphan")
 
@@ -87,9 +88,50 @@ class ComplaintNote(Base):
     author_id = Column(BigInteger, ForeignKey("employees.id"), nullable=False)
     note = Column(Text, nullable=False)
     is_internal = Column(Boolean, default=True, nullable=False)
+    audience = Column(String(20), nullable=False, default="private", server_default="private")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     complaint = relationship("Complaint", back_populates="notes")
     author = relationship("Employee", back_populates="notes")
     notification_status = Column(String(30), nullable=False, default="not_requested", server_default="not_requested")
     notification_error = Column(Text, nullable=True)
+
+
+class EvidenceRequest(Base):
+    __tablename__ = "evidence_requests"
+    __table_args__ = (UniqueConstraint("complaint_id", "submission_key"),)
+    id = Column(Integer, primary_key=True)
+    complaint_id = Column(Integer, ForeignKey("complaints.id"), nullable=False, index=True)
+    author_id = Column(BigInteger, ForeignKey("employees.id"), nullable=False)
+    prompt = Column(Text, nullable=False)
+    submission_key = Column(String(80), nullable=False)
+    status = Column(String(20), nullable=False, default="pending")
+    created_at = Column(DateTime, server_default=func.now())
+    notification_status = Column(String(30), nullable=False, default="not_requested")
+    notification_error = Column(Text)
+    notification_attempted_at = Column(Integer, nullable=False, default=0)
+    author = relationship("Employee")
+    replies = relationship("EvidenceReply", cascade="all, delete-orphan", order_by="EvidenceReply.id")
+
+
+class EvidenceReply(Base):
+    __tablename__ = "evidence_replies"
+    # One atomic answer per request. Further questions use a new request.
+    __table_args__ = (UniqueConstraint("request_id"),)
+    id = Column(Integer, primary_key=True)
+    request_id = Column(Integer, ForeignKey("evidence_requests.id"), nullable=False)
+    submission_key = Column(String(80), nullable=False)
+    payload_digest = Column(String(64), nullable=False)
+    text = Column(Text, nullable=False)
+    channel = Column(String(20), nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+    attachments = relationship("EvidenceFile", cascade="all, delete-orphan", order_by="EvidenceFile.id")
+
+
+class EvidenceFile(Base):
+    __tablename__ = "evidence_files"
+    id = Column(Integer, primary_key=True)
+    reply_id = Column(Integer, ForeignKey("evidence_replies.id"), nullable=False)
+    file_path = Column(String(255), nullable=False)
+    name = Column(String(120), nullable=False)
+    file_type = Column(String(50), nullable=False)

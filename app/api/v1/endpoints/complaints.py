@@ -4,7 +4,7 @@ from fastapi import APIRouter, Body, Depends, File, HTTPException, Request, Uplo
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session, selectinload
 
-from app.core.security import authorize_complaint, current_employee, is_bot, owns_citizen, require_bot, require_bot_owner
+from app.core.security import authorize_complaint, current_employee, is_bot, owns_citizen, require_bot, require_bot_owner, check_recovery_rate
 from app.db.session import get_db
 from app.models.complaint import Attachment, Complaint, ComplaintNote, StatusEnum, PublicComplaintReview
 from app.schemas.public_review import ReviewInput
@@ -28,6 +28,7 @@ def find_complaint(db, complaint_id):
 def note_data(note, staff=False):
     data = {
         "id": note.id, "note": note.note, "is_internal": note.is_internal,
+        "audience": "internal" if note.is_internal else note.audience,
         "created_at": note.created_at,
     }
     if staff:
@@ -41,6 +42,7 @@ def complaint_data(db, complaint, staff=False):
     notes = sorted(complaint.notes, key=lambda n: n.id)
     visible = notes if staff else [n for n in notes if not n.is_internal]
     public_notes = [n for n in notes if not n.is_internal]
+    from app.services.evidence import request_data
     data = {
         "id": complaint.id, "tracking_code": complaint.tracking_code,
         "directorate_id": complaint.directorate_id, "title": complaint.title,
@@ -53,6 +55,7 @@ def complaint_data(db, complaint, staff=False):
         "notes": [note_data(n, staff) for n in visible],
         "admin_notes": public_notes[-1].note if public_notes else "",
         "attachments": [],
+        "evidence_requests": [request_data(r, staff) for r in complaint.evidence_requests],
     }
     if staff:
         citizen = complaint.citizen
@@ -124,10 +127,14 @@ def list_complaints(employee=Depends(current_employee), db: Session = Depends(ge
 
 
 @router.get("/track/{tracking_code}")
-def track(tracking_code: str, db: Session = Depends(get_db)):
+def track(tracking_code: str, request: Request, db: Session = Depends(get_db)):
+    check_recovery_rate(request)
     complaint = db.query(Complaint).filter_by(tracking_code=tracking_code.strip().upper()).first()
     if not complaint:
         raise HTTPException(404, "رمز التتبع غير موجود")
+    request.session["tracked_complaints"] = (
+        [i for i in request.session.get("tracked_complaints", []) if i != complaint.id] + [complaint.id]
+    )[-10:]
     return complaint_data(db, complaint)
 
 
@@ -228,8 +235,11 @@ async def add_note(complaint_id: int, data: NoteCreate,
     authorize_complaint(employee, complaint)
     if not data.note.strip():
         raise HTTPException(422, "الملاحظة لا يمكن أن تكون فارغة")
+    audience = data.audience or ("internal" if data.is_internal else "private")
+    if audience == "public" and not complaint.is_public:
+        raise HTTPException(409, "لا يمكن نشر تحديث عام على شكوى خاصة")
     note = ComplaintNote(complaint_id=complaint_id, author_id=employee.id,
-                         note=data.note.strip(), is_internal=data.is_internal)
+                         note=data.note.strip(), is_internal=audience == "internal", audience=audience)
     db.add(note)
     db.commit()
     notification = await notify_note(db, complaint, note)

@@ -1,6 +1,7 @@
 import { api } from "./api.js";
 import { renderOwnerReview } from "./public-review.js";
 import { entityLabel, priorityLabels, statusLabels } from "./complaints.js";
+import { renderEvidence } from "./evidence.js";
 
 function text(id, value) { document.getElementById(id).textContent = value ?? ""; }
 function renderNotes(notes = []) {
@@ -45,6 +46,13 @@ export async function searchComplaint() {
       files.append(item);
     });
     renderNotes(complaint.notes || []);
+    let evidence = document.getElementById("v-evidence-root");
+    if (!evidence) {
+      evidence = document.createElement("div");
+      evidence.id = "v-evidence-root";
+      document.querySelector("#view-card .p-6").append(evidence);
+    }
+    renderEvidence(complaint, evidence, false);
     let review = document.getElementById("v-public-review");
     if (!review) {
       review = document.createElement("section"); review.id = "v-public-review";

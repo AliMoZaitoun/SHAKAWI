@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
+from typing import Literal
 from app.models.complaint import PriorityEnum, StatusEnum
 
 
@@ -39,3 +40,4 @@ class ProcessingUpdate(BaseModel):
 class NoteCreate(BaseModel):
     note: str = Field(min_length=1, max_length=2000)
     is_internal: bool = False
+    audience: Optional[Literal["internal", "private", "public"]] = None

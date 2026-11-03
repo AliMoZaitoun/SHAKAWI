@@ -73,27 +73,80 @@ Login attempts are rate-limited in-process for this single-worker MVP.
 
 ## Notes and Telegram
 
-Public notes are stored in `complaint_notes` with their real employee author.
+Notes are stored in `complaint_notes` with their real employee author and explicit
+`internal`, `private`, or `public` audience. Legacy non-internal notes migrate as
+private: they remain visible to their owner but are not publication consent.
+Only explicitly public notes on public complaints enter the public serializer.
 The complaint update and new note commit together **before** notifying Telegram.
 Notification delivery is checked using both HTTP status and Telegram's `ok`
 response. A failure does not erase the note or falsely report successful delivery.
-Internal notes are excluded from public tracking and never sent.
+Internal notes are excluded from citizen tracking and never sent.
 
 Notification outcomes: `sent`, `failed`, `not_linked`, `not_configured`, and
-`not_requested`. Failed public notes can be retried without creating another note.
+`not_requested`. Failed citizen-visible notes can be retried without creating another note.
 
 A website-only citizen does not automatically have a Telegram chat ID.
 The bot requires the sender's own Telegram contact during initial registration.
 Returning bot users must use the Telegram account already linked to their record.
 Matching personal details alone never authorizes linking an existing record to a
 new Telegram account or claiming an existing citizen record from a fresh browser.
-A separate verified ownership/recovery flow is required for lost browser sessions
-and linking website-only records; no such verification service is configured yet.
+The existing recovery-key and Telegram approval/linking flows provide explicit
+ownership proofs; personal details alone never restore access.
 New browser registrations receive a signed, versioned session capability and can
 submit complaints or upload identity documents only for the record they created.
 Only authenticated bot requests can submit Telegram IDs. The browser cannot submit
 arbitrary Telegram IDs. The bot uses `X-Bot-Token` on its private API requests.
 `API_BASE_URL` defaults to the runner's internal port 5000.
+
+## Private evidence requests and replies
+
+Authorized staff create requests at `POST /api/v1/complaints/{id}/evidence`.
+The request is committed before notification and records the author, date and
+notification result. Retry uses `/{request_id}/retry`, with a durable 30-second
+claim/cooldown and no duplicate request creation. Already-sent notifications are
+not resent; answered requests cannot be notified again. External delivery is
+best effort: a process crash after Telegram accepts but before recording success
+can cause a repeated notification, not repeated complaint data.
+
+Secret tracking grants a bounded, complaint-specific signed-session capability.
+It does not grant citizen identity, recovery access or other complaint history.
+The existing unpredictable secret tracking code is the complaint credential,
+not the public numeric complaint id or national id. Registered account ownership
+and server-verified Telegram ownership are also supported. Staff readers and
+downloads always enforce department scope; the governor can access all.
+
+Citizen answers use multipart `POST /api/v1/complaints/{id}/evidence/{request_id}/reply`
+with `text`, `submission_key` and optional repeated `files` fields. Text or files
+are required. One atomic answer per request preserves a clear audit trail;
+staff can create another request for another round. Stable submission keys and
+content digests confirm retries after a lost response without duplicate answers.
+Requests and answers never change complaint status, progress or public consent.
+
+Evidence permits up to five JPEG, PNG, WebP or PDF files, each at most 10 MiB.
+The server decodes images/parses PDFs, rejects mismatched types/extensions,
+unsafe names, and active PDF features it detects. This is not malware scanning.
+Files use random paths under private `uploads/evidence/`; authorized attachment
+downloads use `application/octet-stream`, attachment disposition and `nosniff`.
+No public view or analytics response contains evidence or private notes.
+The database, original uploads and evidence directory need coordinated backups.
+
+The evidence bot router runs before complaint creation handlers, uses private
+chats only, checks the update sender's current binding on each API operation,
+and serializes events per conversation. `/send` saves the complete reply,
+`/cancel` pauses without sending, and `/discard` explicitly drops the draft.
+Paused drafts resume only for the same request and sender. Drafts are temporary
+in-memory data and do not survive a bot restart; only a confirmed API save is
+durable. A network-uncertain send locks content for an identical retry.
+If Telegram is unavailable/unlinked, website tracking and replies still work;
+the UI asks citizens to check their tracking page periodically.
+
+Evidence API and bot simulations are in `tests/test_evidence.py`.
+`PYTHONPATH=. python tests/browser_flow.py` additionally tests staff request,
+mobile guest reply, partial-invalid-file rejection, lost-response retry,
+private file download and public non-disclosure, using synthetic data only.
+Real Telegram delivery has not been tested: it requires a newly configured
+secure token and an explicitly consenting test account. Never use real citizens
+for automated tests or start a second polling process.
 
 Any credential previously hardcoded in the imported source or `.env` should be
 revoked at its provider. Removing it from current code does not revoke it or

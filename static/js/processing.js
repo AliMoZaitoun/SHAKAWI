@@ -2,6 +2,7 @@ import { complaintDownloadUrl } from "./api.js";
 import { complaints, loadComplaints, updateComplaintStatus, retryNotification, statusLabels, priorityLabels, entityLabel } from "./complaints.js";
 import { logoutUser } from "./auth.js";
 import { renderStaffReview } from "./public-review.js";
+import { renderEvidence } from "./evidence.js";
 
 const byId = (id) => document.getElementById(id);
 let previousStatus = null;
@@ -16,7 +17,10 @@ function renderHistory(complaint) {
   const root = byId("p-notes-history"); root.replaceChildren();
   (complaint.notes || []).forEach((note) => {
     const item = document.createElement("div"); item.className = "record-note";
-    const title = document.createElement("strong"); title.textContent = note.is_internal ? "ملاحظة داخلية" : "ملاحظة عامة";
+    const title = document.createElement("strong");
+    title.textContent = note.is_internal || note.audience === "internal"
+      ? "ملاحظة داخلية"
+      : note.audience === "public" ? "ملاحظة عامة" : "ملاحظة خاصة";
     const content = document.createElement("p"); content.textContent = note.note || "";
     const time = document.createElement("time"); time.textContent = `${note.author_name || ""}${note.created_at ? ` · ${new Date(note.created_at).toLocaleString("ar")}` : ""}`;
     item.append(title, content, time); root.append(item);
@@ -103,6 +107,24 @@ export function loadComplaintForProcessing() {
   byId("p-employee-note").value = "";
   byId("p-report").value = complaint.resolution_report || "";
   renderHistory(complaint); toggleResolutionFields();
+  const legacyNote = byId("p-employee-note");
+  const legacyLabel = document.querySelector('label[for="p-employee-note"]');
+  if (legacyLabel) legacyLabel.classList.add("hidden");
+  legacyNote.classList.add("hidden");
+  if (legacyNote.nextElementSibling) legacyNote.nextElementSibling.classList.add("hidden");
+  let evidenceRoot = byId("p-evidence-root");
+  if (!evidenceRoot) {
+    evidenceRoot = document.createElement("div");
+    evidenceRoot.id = "p-evidence-root";
+    byId("p-status").closest(".grid").before(evidenceRoot);
+  }
+  renderEvidence(complaint, evidenceRoot, true, {
+    onNotesChanged: async () => {
+      await loadComplaints();
+      const updated = complaints.find((item) => String(item.id) === String(complaint.id));
+      renderHistory(updated || complaint);
+    }
+  });
   let review = byId("p-public-review");
   if (!review) {
     review = document.createElement("section"); review.id = "p-public-review";
@@ -116,18 +138,15 @@ export function loadComplaintForProcessing() {
 export async function saveComplaintProcessing() {
   const id = byId("process-select-id").value;
   if (!id) return window.showNotice("اختر شكوى أولاً.", "error");
-  const note = byId("p-employee-note").value.trim();
   const status = byId("p-status").value;
   const button = byId("save-processing"); button.disabled = true;
   const payload = {
-    ...(note ? { admin_notes: note } : {}),
     resolution_report: byId("p-report").value.trim(),
     progress: Number(byId("p-progress").value),
     priority: byId("p-priority").value
   };
   try {
     const result = await updateComplaintStatus(id, status, payload);
-    byId("p-employee-note").value = "";
     const notify = result.notification;
     const notifyText = notify?.message || (notify?.status ? `حالة الإشعار: ${notify.status}` : "");
     window.showNotice([result.message, notifyText].filter(Boolean).join(" — ") || "تم حفظ التحديث.", notify?.status === "failed" ? "info" : "success");

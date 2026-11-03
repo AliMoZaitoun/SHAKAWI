@@ -87,6 +87,62 @@ def run():
                     expect(page.locator("#complaints-table-body")).not_to_contain_text("شكوى خاصة للمحافظة")
                     expect(page.locator("#complaints-table-body")).to_contain_text("بلاغات: 1")
                     page.get_by_role("button", name="معالجة الشكوى", exact=True).click()
+                    # Staff evidence request, followed by a guest reply in a new
+                    # browser context with no account, login or Telegram link.
+                    page.get_by_test_id("evidence-prompt").fill("يرجى إرفاق صورة للموقع مع توضيح")
+                    page.get_by_test_id("evidence-request-submit").click()
+                    expect(page.get_by_test_id("staff-evidence")).to_contain_text("بانتظار رد المواطن")
+                    expect(page.get_by_test_id("staff-evidence")).to_contain_text("غير مرتبط بتيليغرام")
+                    guest_context = browser.new_context(viewport={"width": 390, "height": 844})
+                    guest = guest_context.new_page()
+                    guest.on("pageerror", lambda error: errors.append(str(error)))
+                    guest.goto("http://127.0.0.1:8008/")
+                    guest.locator("#tab-view").click()
+                    guest.locator("#search-code-input").fill("CMP-BROWSER-PUBLIC")
+                    guest.locator("#track-button").click()
+                    expect(guest.get_by_test_id("citizen-evidence")).to_contain_text("يرجى إرفاق صورة")
+                    guest.get_by_test_id("evidence-reply-text").fill("هذا توضيح خاص لا ينشر للعموم")
+                    # Genuine PNG plus one mismatched file: all-or-none rejection,
+                    # retaining the text and showing the failed filename.
+                    from PIL import Image
+                    import io
+                    image = io.BytesIO()
+                    Image.new("RGB", (4, 4), "white").save(image, "PNG")
+                    guest.get_by_test_id("evidence-reply-files").set_input_files([
+                        {"name": "site.png", "mimeType": "image/png", "buffer": image.getvalue()},
+                        {"name": "fake.png", "mimeType": "image/png", "buffer": b"<html>not a PNG</html>"},
+                    ])
+                    guest.get_by_test_id("evidence-reply-submit").click()
+                    expect(guest.get_by_test_id("evidence-reply-status")).to_contain_text("fake.png")
+                    expect(guest.get_by_test_id("evidence-reply-text")).to_have_value("هذا توضيح خاص لا ينشر للعموم")
+                    guest.get_by_role("button", name="إزالة الملف fake.png").click()
+                    guest.screenshot(path=str(output / "evidence-guest-mobile.png"), full_page=True)
+                    # Save on the server, then drop the response. Retrying the
+                    # same answer and key must confirm the original single reply.
+                    def lose_reply_response(route):
+                        response = route.fetch()
+                        assert response.status == 200
+                        route.abort("failed")
+                    guest.route("**/evidence/*/reply", lose_reply_response, times=1)
+                    guest.get_by_test_id("evidence-reply-submit").click()
+                    expect(guest.get_by_test_id("evidence-reply-status")).to_contain_text("تعذر تأكيد")
+                    expect(guest.get_by_test_id("evidence-reply-text")).to_have_value("هذا توضيح خاص لا ينشر للعموم")
+                    guest.get_by_test_id("evidence-reply-submit").click()
+                    expect(guest.get_by_test_id("evidence-reply-submit")).to_have_text("تم استلام الرد")
+                    expect(guest.locator(".evidence-timeline")).to_contain_text("site.png")
+                    private_file = guest.locator(".evidence-timeline a").get_attribute("href")
+                    assert guest.request.get(private_file).status == 200
+                    assert page.request.get("http://127.0.0.1:8008/api/v1/complaints/public/1").json()["notes"] == []
+                    public_body = page.request.get("http://127.0.0.1:8008/api/v1/complaints/public/1").text()
+                    assert "هذا توضيح خاص" not in public_body and "site.png" not in public_body
+                    guest_context.close()
+                    page.reload()
+                    page.locator("#tab-process").click()
+                    page.locator("#process-select-id").select_option("1")
+                    expect(page.get_by_test_id("staff-evidence")).to_contain_text("هذا توضيح خاص")
+                    expect(page.get_by_test_id("staff-evidence")).to_contain_text("تم استلام الرد")
+                    expect(page.locator("#p-progress")).to_have_value("100")
+                    page.screenshot(path=str(output / "evidence-staff-desktop.png"), full_page=True)
                     expect(page.locator("#p-public-review")).to_contain_text("معلومات طرف ثالث تحتاج مراجعة")
                     page.locator("#review-decision-reason").fill("إخفاء مؤقت لحماية خصوصية الطرف الآخر")
                     page.get_by_role("button", name="حفظ قرار المراجعة", exact=True).click()

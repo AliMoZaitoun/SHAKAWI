@@ -39,5 +39,6 @@ def public_complaint(complaint):
         "created_at": complaint.created_at,
         "resolution_report": "" if hidden else public_text(complaint.resolution_report, complaint),
         "notes": [] if hidden else [{"note": public_text(note.note, complaint), "created_at": note.created_at}
-                  for note in sorted(complaint.notes, key=lambda n: n.id) if not note.is_internal],
+                  for note in sorted(complaint.notes, key=lambda n: n.id)
+                  if not note.is_internal and note.audience == "public"],
     }

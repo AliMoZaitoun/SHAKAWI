@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.api.v1.endpoints import analytics, auth, citizens, complaints, public, recovery
+from app.api.v1.endpoints import analytics, auth, citizens, complaints, public, recovery, evidence
 from app.db.base import Base
 from app.db.migrations import migrate
 from app.db.session import SessionLocal, engine
@@ -54,6 +54,7 @@ app.include_router(recovery.router, prefix="/api/v1/citizens/recovery", tags=["O
 app.include_router(public.router, prefix="/api/v1/complaints/public", tags=["Public transparency"])
 app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["Staff analytics"])
 app.include_router(complaints.router, prefix="/api/v1/complaints", tags=["Complaints"])
+app.include_router(evidence.router, prefix="/api/v1", tags=["Private evidence"])
 app.mount("/static", StaticFiles(directory="static", check_dir=False), name="static")
 
 

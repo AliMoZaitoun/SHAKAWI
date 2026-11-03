@@ -11,6 +11,7 @@ def migrate(engine):
             "public_text_hidden": "BOOLEAN NOT NULL DEFAULT FALSE",
         },
         "complaint_notes": {
+            "audience": "VARCHAR(20) NOT NULL DEFAULT 'private'",
             "notification_status": "VARCHAR(30) NOT NULL DEFAULT 'not_requested'",
             "notification_error": "TEXT",
         },
@@ -29,3 +30,5 @@ def migrate(engine):
         # Normalize inconsistent legacy values without inventing completion dates.
         conn.execute(text("UPDATE complaints SET progress = 100 WHERE status = 'RESOLVED' AND progress <> 100"))
         conn.execute(text("UPDATE complaints SET progress = 0 WHERE status <> 'RESOLVED' AND progress >= 100"))
+        if "is_internal" in {c["name"] for c in inspector.get_columns("complaint_notes")}:
+            conn.execute(text("UPDATE complaint_notes SET audience = 'internal' WHERE is_internal = 1"))

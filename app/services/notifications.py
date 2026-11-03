@@ -13,7 +13,7 @@ MESSAGES = {
 }
 
 
-async def notify(citizen, code, text):
+async def notify(citizen, code, text, reply_markup=None):
     status = "not_linked"
     if citizen and citizen.telegram_id:
         token = os.environ.get("BOT_TOKEN")
@@ -26,7 +26,8 @@ async def notify(citizen, code, text):
                         f"https://api.telegram.org/bot{token}/sendMessage",
                         json={"chat_id": citizen.telegram_id,
                               "text": f"تحديث الشكوى {escape(code)}\n{escape(text)}",
-                              "parse_mode": "HTML"},
+                               "parse_mode": "HTML",
+                               **({"reply_markup": reply_markup} if reply_markup else {})},
                     ) as response:
                         payload = await response.json()
                         status = "sent" if response.status == 200 and isinstance(payload, dict) and payload.get("ok") is True else "failed"
