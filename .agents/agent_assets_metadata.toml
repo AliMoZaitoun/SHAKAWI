@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "ntYbsbCFq6P9C2hbd9Oy6"
+uri = "file://generated-artifacts/exports/shakwa-current-code-20261103-051320.zip"
+type = "unspecified"
+title = "نسخة احتياطية من الكود الحالي — قبل مزامنة GitHub"
+description = "الكود الحالي مع ملف تحقق للبصمات. تستبعد تاريخ Git وملفات .env وقواعد البيانات وصور الهويات والمرفقات. لم تُحذف أو تُغيّر البيانات الأصلية في المشروع."
+logical_id = "7c198a85-8e11-4a5f-985d-d3e7d43cd675"
+content_hash = "sha256:65f4f3e8347dc2e75a18dd5ba768a6c952f880d2b0632ebd968f9e2a3b8438f1"
+size = 121662
+mtime_ms = 1793682800250
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:ccc5b614-ea0f-4fcb-a550-899be80f2b10/7c198a85-8e11-4a5f-985d-d3e7d43cd675/48c83d1c-64b1-41e0-9598-f358588a0969"
+storage_version_token = "1793682808354994"
+content_type = "application/octet-stream"
