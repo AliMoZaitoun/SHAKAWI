@@ -1,3 +1,3 @@
 - [Complaint access rules](complaint-access.md) — المحافظة تدير كل الشكاوى، والخدمات تدير شكاوى قسمها فقط.
 - [Complaint transparency](complaint-transparency.md) — عامة/خاصة مستقلة عن التصنيف؛ الشكاوى العامة للناس، والتحليل للموظفين.
-- [Citizen account linking](citizen-account-linking.md) — الموقع والبوت قناتان لتقديم الشكاوى ضمن حساب مواطن موحد؛ وسيلة تأكيد الدخول لم تُحسم.
+- [Citizen account linking](citizen-account-linking.md) — تسجيل الويب مستقل عن تيليغرام؛ الربط لاحقًا اختياري لتوحيد حساب المواطن وشكاواه.
