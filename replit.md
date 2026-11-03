@@ -212,3 +212,17 @@ Dependency installation uses the existing project-local `.pythonlibs` prefix,
 not the immutable Nix interpreter environment or a virtual environment.
 After reconciliation, verify a new runtime endpoint; if Python still serves old
 routes while static files are updated, restart the existing managed workflow.
+
+### Saving a citizen recovery key
+
+After a successful web submission, the visible tracking tab offers an optional
+recovery-key save panel. It explains the difference from the single-complaint
+tracking code. Only a trusted citizen session can issue the account-wide key.
+Issuance is explicit, never automatic; replacing an existing key requires
+confirmation. Copy and text-file download are user-initiated, and the secret
+remains in the current page only, not browser storage or URLs. The existing
+submission-tab recovery section remains available for later access.
+
+`PYTHONPATH=. python tests/browser_recovery.py` now checks real form submission,
+visible post-submission issuance, download, cancelled and confirmed replacement,
+secret cleanup, single-use recovery, and mobile layout on a temporary database.

@@ -3,6 +3,7 @@
 Run: PYTHONPATH=. python tests/browser_recovery.py
 Telegram's external transport is replaced by authenticated backend calls.
 """
+import base64
 import os
 from pathlib import Path
 import shutil
@@ -44,21 +45,60 @@ def run():
                     errors = []
                     page.on("pageerror", lambda error: errors.append(str(error)))
                     page.goto("http://127.0.0.1:8008/")
-                    response = context.request.post("http://127.0.0.1:8008/api/v1/citizens/", data={
-                        "first_name": "مالك", "last_name": "تجريبي", "phone": "0998765432",
-                        "national_id": "98765432101"})
-                    assert response.ok
-                    citizen_id = response.json()["id"]
-                    assert context.request.post("http://127.0.0.1:8008/api/v1/complaints/", data={
-                        "citizen_id": citizen_id, "directorate_id": 2,
-                        "title": "شكوى اختبار الاستعادة", "details": "تفاصيل شكوى مخصصة للاختبار",
-                        "category": "طرق", "is_public": False}).ok
-                    page.reload()
-                    page.locator("#citizen-access summary").click()
+                    key_requests = []
+                    page.on("request", lambda request: key_requests.append(True)
+                            if request.method == "POST" and request.url.endswith("/recovery/key") else None)
+                    page.locator("#c-first-name").fill("مالك")
+                    page.locator("#c-last-name").fill("تجريبي")
+                    page.locator("#c-phone").fill("0998765432")
+                    page.locator("#c-national-id").fill("98765432101")
+                    page.locator("#c-id-card").set_input_files({
+                        "name": "synthetic-identity.png", "mimeType": "image/png",
+                        "buffer": base64.b64decode(
+                            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0l"
+                            "EQVR42mP8/x8AAwMCAO+aXioAAAAASUVORK5CYII="),
+                    })
+                    page.locator('[onclick="goToStep2()"]').click()
+                    page.locator("#comp-title").fill("شكوى اختبار الاستعادة")
+                    page.locator("#comp-details").fill("تفاصيل شكوى مخصصة للاختبار")
+                    page.locator("#comp-entity").select_option("2")
+                    page.locator("#comp-type").select_option("طرق")
+                    with page.expect_response("**/id-image/") as identity_response:
+                        page.locator("#submit-complaint").click()
+                    identity_path = root / identity_response.value.json()["file_path"]
+                    expect(page.locator("#sec-view")).to_be_visible()
+                    owner_response = context.request.get(
+                        "http://127.0.0.1:8008/api/v1/citizens/recovery/me")
+                    assert owner_response.ok
+                    citizen_id = owner_response.json()["citizen"]["id"]
+                    assert owner_response.json()["has_recovery_key"] is False
+                    assert not key_requests, "Submission must not silently issue or rotate an account key"
+                    expect(page.locator("#post-submit-recovery")).to_be_visible()
+                    expect(page.locator("#post-submit-recovery")).to_contain_text("رمز متابعة الشكوى")
+                    page.locator("#post-submit-issue-recovery-key").click()
+                    expect(page.locator("#post-submit-recovery-key")).not_to_be_empty()
+                    key = page.locator("#post-submit-recovery-key").inner_text()
+                    assert len(key_requests) == 1
+                    with page.expect_download() as download:
+                        page.locator("#download-post-submit-recovery-key").click()
+                    assert Path(download.value.path()).read_text().strip() == key
+                    page.once("dialog", lambda dialog: dialog.dismiss())
+                    page.locator("#post-submit-issue-recovery-key").click()
+                    assert len(key_requests) == 1, "Cancelling replacement must preserve the existing key"
+                    expect(page.locator("#post-submit-recovery-key")).to_have_text(key)
+                    assert page.locator("body").evaluate("(el) => el.scrollWidth <= innerWidth")
+                    page.screenshot(path=str(output / "post-submit-mobile.png"), full_page=True,
+                                    mask=[page.locator("#post-submit-recovery-key")])
+                    page.locator("#open-citizen-access").click()
                     expect(page.locator("#owner-access")).to_be_visible()
+                    page.once("dialog", lambda dialog: dialog.accept())
                     page.locator("#issue-recovery-key").click()
                     expect(page.locator("#new-recovery-key")).not_to_be_empty()
+                    assert len(key_requests) == 2
+                    expect(page.locator("#post-submit-recovery-key")).to_be_empty()
+                    assert page.locator("#new-recovery-key").inner_text() != key
                     key = page.locator("#new-recovery-key").inner_text()
+                    assert page.evaluate("([key]) => !location.href.includes(key) && !JSON.stringify(localStorage).includes(key) && !JSON.stringify(sessionStorage).includes(key)", [key])
                     page.locator("#link-consent").check()
                     page.locator("#issue-telegram-link").click()
                     expect(page.locator("#link-command")).to_contain_text("/link ")
@@ -74,6 +114,7 @@ def run():
                     page.locator("#recovery-key").fill(key)
                     page.locator("#restore-key-form button").click()
                     expect(page.locator("#owner-access")).to_be_visible()
+                    expect(page.locator("#new-recovery-key")).to_be_empty()
                     expect(page.locator("#citizen-complaints")).to_contain_text("شكوى اختبار الاستعادة")
                     page.locator("#citizen-complaints button").click()
                     expect(page.locator("#sec-view")).to_be_visible()
@@ -97,10 +138,13 @@ def run():
                     page.screenshot(path=str(output / "recovered-mobile.png"), full_page=True)
                     assert not errors, errors
                     browser.close()
-                print("Recovery browser checks passed: key recovery, Telegram consent and recovery, complaint access, mobile layout.")
+                print("Recovery browser checks passed: real submission, visible key save/download, replacement consent, no auto-issuance or web storage, key recovery, Telegram consent and recovery, mobile layout.")
             finally:
                 server.terminate()
                 server.wait(timeout=10)
+                # Delete only the synthetic upload made by this isolated test.
+                if "identity_path" in locals() and identity_path.parent.resolve() == (root / "uploads").resolve():
+                    identity_path.unlink(missing_ok=True)
 
 
 if __name__ == "__main__":

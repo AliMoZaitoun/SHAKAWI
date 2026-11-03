@@ -182,10 +182,12 @@ window.submitComplaintForm = async () => {
     }
     const trackingCode = submission.complaint.tracking_code || "";
     resetForm();
-    document.getElementById("citizen-access").open = true;
     document.getElementById("search-code-input").value = trackingCode;
+    document.getElementById("post-submit-recovery").classList.remove("hidden");
     window.showNotice(`تم حفظ الشكوى ومرفقاتها. رمز المتابعة: ${trackingCode}`, "success");
     window.switchTab("view");
+    try { await refreshCitizenAccess(); }
+    catch (error) { window.showNotice(`تم حفظ الشكوى، لكن تعذر التحقق من صلاحية إصدار مفتاح الاستعادة: ${error.message}`, "error"); }
     if (document.getElementById("search-code-input").value) await searchComplaint();
   } catch (error) {
     const code = submission.complaint?.tracking_code

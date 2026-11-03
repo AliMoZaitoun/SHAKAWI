@@ -126,6 +126,11 @@
           <p>أنت في جلسة موثوقة. احفظ مفتاح استعادة خارج المتصفح قبل فقدان الجلسة. إصدار مفتاح جديد يلغي السابق.</p>
           <button id="issue-recovery-key" class="border rounded px-4 py-2" type="button">إصدار مفتاح استعادة خاص</button>
           <output id="new-recovery-key" class="block break-all select-all" dir="ltr"></output>
+          <div id="owner-key-save-actions" class="hidden flex flex-wrap gap-2">
+            <button id="copy-owner-recovery-key" class="border rounded px-4 py-2" type="button">نسخ المفتاح</button>
+            <button id="download-owner-recovery-key" class="border rounded px-4 py-2" type="button">تنزيل المفتاح</button>
+          </div>
+          <p class="text-sm">هذا مفتاح استعادة الوصول إلى حساب المواطن، وليس رمز متابعة شكوى. يُستخدم مرة واحدة بعد فقدان الوصول؛ احفظه في مكان خاص وآمن ولا تشاركه.</p>
           <label class="block"><input id="link-consent" type="checkbox"> أوافق على ربط تيليغرام أو استبدال الحساب المرتبط باستخدام جلستي الموثوقة.</label>
           <button id="issue-telegram-link" class="border rounded px-4 py-2" type="button">إنشاء إذن ربط تيليغرام</button>
           <code id="link-command" class="block break-all" dir="ltr"></code>
@@ -286,6 +291,18 @@
       </div>
     </section>
     <section id="sec-view" class="tab-content hidden">
+      <aside id="post-submit-recovery" class="hidden max-w-3xl mx-auto mb-6 rounded-xl border border-amber-300 bg-amber-50 p-5" aria-live="polite">
+        <h2 class="font-bold text-brand-dark">احتفظ بطريقة آمنة لاستعادة الوصول</h2>
+        <p class="mt-2 text-sm">رمز متابعة الشكوى يعرّف هذه الشكوى فقط. مفتاح الاستعادة يتيح استعادة الوصول إلى شكاواك عند فقدان الجلسة، ويُستخدم مرة واحدة؛ احفظه خارج المتصفح في مكان خاص ولا تشاركه. إصدار المفتاح اختياري ولا ينشئ حسابًا.</p>
+        <p id="post-submit-key-eligibility" class="mt-3 text-sm"></p>
+        <button id="post-submit-issue-recovery-key" class="hidden mt-3 border rounded px-4 py-2 font-semibold" type="button">إصدار مفتاح استعادة وحفظه</button>
+        <output id="post-submit-recovery-key" class="hidden mt-3 block break-all rounded border bg-white p-3 font-mono select-all" dir="ltr"></output>
+        <div id="post-submit-key-save-actions" class="hidden mt-2 flex flex-wrap gap-2">
+          <button id="copy-post-submit-recovery-key" class="border rounded px-4 py-2" type="button">نسخ المفتاح</button>
+          <button id="download-post-submit-recovery-key" class="border rounded px-4 py-2" type="button">تنزيل المفتاح</button>
+        </div>
+        <button id="open-citizen-access" class="mt-3 text-sm underline font-semibold" type="button">للمواطن ذي الجلسة الموثوقة: فتح استعادة الوصول وإدارة المفتاح</button>
+      </aside>
       <div class="max-w-3xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
         <div class="text-center max-w-md mx-auto mb-8">
           <h2 class="text-xl font-bold text-brand-dark">استعلام ومتابعة حالة شكوى</h2>
