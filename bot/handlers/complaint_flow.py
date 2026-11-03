@@ -1,4 +1,5 @@
 import random
+import secrets
 import aiohttp
 from html import escape
 from aiogram import Router, F
@@ -10,6 +11,100 @@ from bot.config import API_BASE_URL, API_HEADERS
 from bot.locales import get_txt
 
 router = Router()
+
+def actor_headers(event):
+    # Telegram identity comes from the authenticated update, never from FSM data.
+    return {**API_HEADERS, "X-Telegram-Id": str(event.from_user.id)}
+
+
+async def current_citizen(event, state):
+    """FSM data is a draft/cache, not an authorization capability."""
+    data = await state.get_data()
+    try:
+        async with aiohttp.ClientSession(headers=actor_headers(event)) as session:
+            async with session.get(
+                f"{API_BASE_URL}/citizens/telegram/{event.from_user.id}"
+            ) as response:
+                citizen = await response.json() if response.status == 200 else None
+    except (aiohttp.ClientError, TimeoutError, ValueError):
+        citizen = None
+    if not citizen or (data.get("citizen_id") and data["citizen_id"] != citizen["id"]):
+        await state.clear()
+        target = getattr(event, "message", event)
+        await target.answer("تعذر إثبات الربط الحالي. استخدم /start أو استعد الوصول من الموقع.")
+        return None
+    await state.update_data(citizen_id=citizen["id"])
+    return citizen["id"]
+
+@router.message(F.text == "/myid")
+async def show_telegram_id(message: Message):
+    if message.chat.type == "private":
+        await message.answer(f"معرّف حسابك الرقمي: {message.from_user.id}")
+
+@router.message(F.text.startswith("/recover ") | F.text.startswith("/link "))
+async def ownership_command(message: Message, state: FSMContext):
+    if message.chat.type != "private":
+        await message.answer("استعادة الوصول والربط متاحان في المحادثة الخاصة مع البوت فقط.")
+        return
+    command, token = message.text.strip().split(maxsplit=1)
+    if command not in {"/recover", "/link"} or not 32 <= len(token) <= 100:
+        await message.answer("الطلب غير صالح. أنشئ طلبًا جديدًا من الموقع.")
+        return
+    nonce = secrets.token_hex(8)
+    await state.update_data(ownership_token=token, ownership_action=command,
+                            ownership_nonce=nonce)
+    text = (
+        "هل بدأت طلب استعادة في الموقع؟ الموافقة ستسمح لذلك المتصفح بالوصول إلى شكاواك. "
+        "لا توافق على طلب أرسله لك شخص آخر."
+        if command == "/recover" else
+        "هل أنشأت رمز الربط بنفسك من جلستك الموثوقة في الموقع؟ "
+        "الموافقة ستربط سجل المواطن بهذا الحساب وتستبدل حساب تيليغرام السابق إن وجد."
+    )
+    await message.answer(text, reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="أوافق", callback_data=f"ownership_yes_{nonce}"),
+         InlineKeyboardButton(text="رفض", callback_data=f"ownership_no_{nonce}")]
+    ]))
+
+
+@router.callback_query(F.data.startswith("ownership_"))
+async def ownership_confirmation(callback: CallbackQuery, state: FSMContext):
+    if not callback.message or callback.message.chat.type != "private":
+        await callback.answer("استخدم المحادثة الخاصة.", show_alert=True)
+        return
+    data = await state.get_data()
+    nonce = callback.data.rsplit("_", 1)[-1]
+    if nonce != data.get("ownership_nonce"):
+        await callback.answer("انتهى هذا الطلب. ابدأ من الموقع مجددًا.", show_alert=True)
+        return
+    await state.update_data(ownership_nonce=None)
+    if callback.data.startswith("ownership_no_"):
+        await state.update_data(ownership_token=None)
+        await callback.message.edit_text("تم رفض الطلب دون تغيير الوصول أو الربط.")
+        await callback.answer()
+        return
+    action = data.get("ownership_action")
+    path = "approve" if action == "/recover" else "confirm-link"
+    try:
+        async with aiohttp.ClientSession(headers=API_HEADERS) as session:
+            async with session.post(
+                f"{API_BASE_URL}/citizens/recovery/telegram/{path}",
+                json={"token": data["ownership_token"], "telegram_id": callback.from_user.id},
+            ) as response:
+                result = await response.json()
+                if response.status == 200:
+                    if path == "confirm-link":
+                        # Drop stale complaint/identity state from any previous registration.
+                        await state.clear()
+                        await state.update_data(citizen_id=result["id"], lang=data.get("lang", "ar"))
+                    text = ("تم ربط الحساب. استخدم /start لعرض شكاواك."
+                            if path == "confirm-link" else result["message"])
+                else:
+                    text = result.get("detail", "تعذر التحقق. ابدأ طلبًا جديدًا من الموقع.")
+    except (aiohttp.ClientError, TimeoutError, ValueError):
+        text = "تعذر الاتصال. تحقق من حالة الربط في الموقع قبل إعادة المحاولة."
+    await state.update_data(ownership_token=None)
+    await callback.message.edit_text(text)
+    await callback.answer()
 
 @router.message(F.text == "/cancel")
 async def cmd_cancel(message: Message, state: FSMContext):
@@ -63,6 +158,8 @@ async def cmd_start(message: Message, state: FSMContext):
 
 @router.message(F.text == "/new")
 async def cmd_new_complaint_shortcut(message: Message, state: FSMContext):
+    if not await current_citizen(message, state):
+        return
     data = await state.get_data()
     lang = data.get("lang", "ar")
     citizen_id = data.get("citizen_id")
@@ -195,7 +292,7 @@ async def process_id_image(message: Message, state: FSMContext):
         "telegram_id": message.from_user.id
     }
 
-    async with aiohttp.ClientSession(headers=API_HEADERS) as session:
+    async with aiohttp.ClientSession(headers=actor_headers(message)) as session:
         try:
             # 1. إنشاء الحساب في الباك إند
             async with session.post(f"{API_BASE_URL}/citizens/", json=citizen_payload) as response:
@@ -231,6 +328,9 @@ async def process_id_image(message: Message, state: FSMContext):
 
 @router.callback_query(F.data == "action_new_complaint")
 async def action_new_complaint(callback: CallbackQuery, state: FSMContext):
+    if not await current_citizen(callback, state):
+        await callback.answer()
+        return
     data = await state.get_data()
     lang = data.get("lang", "ar")
     await callback.message.edit_text(
@@ -342,6 +442,8 @@ async def process_title(message: Message, state: FSMContext):
 
 @router.message(ComplaintForm.details)
 async def process_details(message: Message, state: FSMContext):
+    if not await current_citizen(message, state):
+        return
     data = await state.get_data()
     lang = data.get("lang", "ar")
     
@@ -361,7 +463,7 @@ async def process_details(message: Message, state: FSMContext):
         "longitude": data.get("longitude")
     }
 
-    async with aiohttp.ClientSession(headers=API_HEADERS) as session:
+    async with aiohttp.ClientSession(headers=actor_headers(message)) as session:
         try:
             async with session.post(f"{API_BASE_URL}/complaints/", json=payload) as response:
                 if response.status == 200:
@@ -396,6 +498,8 @@ async def process_details(message: Message, state: FSMContext):
 
 @router.message(ComplaintForm.waiting_for_attachment, F.photo | F.document)
 async def process_attachment(message: Message, state: FSMContext):
+    if not await current_citizen(message, state):
+        return
     data = await state.get_data()
     lang = data.get("lang", "ar")
     complaint_id = data.get("complaint_id")
@@ -406,7 +510,7 @@ async def process_attachment(message: Message, state: FSMContext):
     file_bytes = file_bytes_io.read()
     filename = file_info.file_path.split("/")[-1] or "attachment.jpg"
     
-    async with aiohttp.ClientSession(headers=API_HEADERS) as session:
+    async with aiohttp.ClientSession(headers=actor_headers(message)) as session:
         form = aiohttp.FormData()
         mime_type = 'image/jpeg' if message.photo else (message.document.mime_type or 'application/octet-stream')
         form.add_field('file', file_bytes, filename=filename, content_type=mime_type)
@@ -498,11 +602,14 @@ async def process_track_code_input(message: Message, state: FSMContext):
 
 @router.callback_query(F.data == "action_my_complaints")
 async def action_my_complaints(callback: CallbackQuery, state: FSMContext):
+    if not await current_citizen(callback, state):
+        await callback.answer()
+        return
     data = await state.get_data()
     lang = data.get("lang", "ar")
     citizen_id = data.get("citizen_id")
     
-    async with aiohttp.ClientSession(headers=API_HEADERS) as session:
+    async with aiohttp.ClientSession(headers=actor_headers(callback)) as session:
         try:
             async with session.get(f"{API_BASE_URL}/complaints/citizen/{citizen_id}") as response:
                 if response.status == 200:
@@ -537,11 +644,14 @@ async def action_my_complaints(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data.startswith("comp_detail_"))
 async def show_complaint_detail(callback: CallbackQuery, state: FSMContext):
+    if not await current_citizen(callback, state):
+        await callback.answer()
+        return
     data = await state.get_data()
     lang = data.get("lang", "ar")
     comp_id = callback.data.split("_")[2]
     
-    async with aiohttp.ClientSession(headers=API_HEADERS) as session:
+    async with aiohttp.ClientSession(headers=actor_headers(callback)) as session:
         try:
             async with session.get(f"{API_BASE_URL}/complaints/{comp_id}") as response:
                 if response.status == 200:
@@ -583,12 +693,14 @@ async def show_complaint_detail(callback: CallbackQuery, state: FSMContext):
 
 @router.message(F.text == "/mystatus")
 async def cmd_mystatus(message: Message, state: FSMContext):
+    if not await current_citizen(message, state):
+        return
     data = await state.get_data()
     lang = data.get("lang", "ar")
     citizen_id = data.get("citizen_id")
     telegram_id = message.from_user.id
 
-    async with aiohttp.ClientSession(headers=API_HEADERS) as session:
+    async with aiohttp.ClientSession(headers=actor_headers(message)) as session:
         if not citizen_id:
             try:
                 async with session.get(f"{API_BASE_URL}/citizens/telegram/{telegram_id}") as citizen_res:

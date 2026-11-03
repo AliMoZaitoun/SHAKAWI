@@ -22,6 +22,227 @@ TEST_PASSWORD = "test-only-not-a-live-password"
 
 
 @pytest.fixture
+def recovery_system(system, monkeypatch):
+    from app.core.security import _attempts
+    _attempts.clear()
+    monkeypatch.setenv("BOT_TOKEN", "test-only-bot-token")
+    return system
+
+
+def recovery_post(client, path, data=None, bot=False):
+    return client.post("/api/v1/citizens/recovery/" + path, json=data or {},
+                       headers={"X-Bot-Token": "test-only-bot-token"} if bot else {})
+
+
+def register_owner(client):
+    return client.post("/api/v1/citizens/", json={
+        "first_name": "مالك", "last_name": "السجل", "phone": "0998765432",
+        "national_id": "98765432101",
+    }).json()["id"]
+
+
+def test_recovery_key_owner_only_rotation_and_single_use(recovery_system):
+    from app.models.recovery import RecoveryKey
+    client, factory = recovery_system
+    assert recovery_post(client, "key").status_code == 403
+    citizen_id = register_owner(client)
+    old_key = recovery_post(client, "key").json()["key"]
+    key = recovery_post(client, "key").json()["key"]
+    with factory() as db:
+        assert db.get(RecoveryKey, citizen_id).digest not in {key, old_key}
+    client.cookies.clear()
+    assert recovery_post(client, "key/restore", {"token": old_key}).status_code == 400
+    assert recovery_post(client, "key/restore", {"token": "x" * 43}).status_code == 400
+    assert client.get(f"/api/v1/complaints/citizen/{citizen_id}").status_code == 403
+    assert recovery_post(client, "key/restore", {"token": key}).json()["id"] == citizen_id
+    assert client.get(f"/api/v1/complaints/citizen/{citizen_id}").status_code == 200
+    client.cookies.clear()
+    assert recovery_post(client, "key/restore", {"token": key}).status_code == 400
+    assert recovery_post(client, "key").status_code == 403
+
+
+def test_telegram_recovery_needs_original_account_and_requesting_browser(recovery_system):
+    client, factory = recovery_system
+    assert recovery_post(client, "telegram/start", {"telegram_id": 123456, "consent": False}).status_code == 400
+    token = recovery_post(client, "telegram/start", {"telegram_id": 123456, "consent": True}).json()["token"]
+    browser_cookies = dict(client.cookies)
+    assert recovery_post(client, "telegram/finish", {"token": token}).status_code == 400
+    assert recovery_post(client, "telegram/approve", {"token": token, "telegram_id": 123456}).status_code == 401
+    assert recovery_post(client, "telegram/approve", {"token": token, "telegram_id": 999}, bot=True).status_code == 400
+    assert recovery_post(client, "telegram/approve", {"token": token, "telegram_id": 123456}, bot=True).status_code == 200
+    client.cookies.clear()
+    assert recovery_post(client, "telegram/finish", {"token": token}).status_code == 400
+    client.cookies.update(browser_cookies)
+    assert recovery_post(client, "telegram/finish", {"token": token}).json()["id"] == 1
+    complaints = client.get("/api/v1/complaints/citizen/1")
+    assert len(complaints.json()) == 2
+    assert client.get("/api/v1/citizens/recovery/me").status_code == 200
+    assert recovery_post(client, "telegram/finish", {"token": token}).status_code == 400
+    assert recovery_post(client, "telegram/approve", {"token": token, "telegram_id": 123456}, bot=True).status_code == 400
+
+
+@pytest.mark.parametrize("purpose", ["recover", "link"])
+def test_ownership_challenge_expiration(recovery_system, purpose):
+    from app.models.recovery import OwnershipChallenge
+    client, factory = recovery_system
+    if purpose == "recover":
+        token = recovery_post(client, "telegram/start", {"telegram_id": 123456, "consent": True}).json()["token"]
+        path = "telegram/approve"
+    else:
+        register_owner(client)
+        token = recovery_post(client, "telegram/link").json()["token"]
+        path = "telegram/confirm-link"
+    with factory() as db:
+        db.query(OwnershipChallenge).update({"expires_at": 0})
+        db.commit()
+    assert recovery_post(client, path, {"token": token, "telegram_id": 123456}, bot=True).status_code == 400
+    assert recovery_post(client, "telegram/finish", {"token": token}).status_code == 400
+
+
+def test_web_record_links_and_replaces_telegram_only_with_owner_grant(recovery_system):
+    client, factory = recovery_system
+    citizen_id = register_owner(client)
+    key = recovery_post(client, "key").json()["key"]
+    token = recovery_post(client, "telegram/link").json()["token"]
+    proof = {"token": token, "telegram_id": 999}
+    assert recovery_post(client, "telegram/confirm-link", proof).status_code == 401
+    assert recovery_post(client, "telegram/confirm-link", proof, bot=True).json()["telegram_id"] == 999
+    assert recovery_post(client, "telegram/confirm-link", proof, bot=True).status_code == 400
+    client.cookies.clear()
+    assert recovery_post(client, "telegram/link").status_code == 403
+    assert recovery_post(client, "key/restore", {"token": key}).status_code == 200
+    token = recovery_post(client, "telegram/link").json()["token"]
+    assert recovery_post(client, "telegram/confirm-link", {"token": token, "telegram_id": 888}, bot=True).status_code == 200
+    with factory() as db:
+        assert db.get(Citizen, citizen_id).telegram_id == 888
+        assert db.get(Citizen, 1).telegram_id == 123456
+
+
+def test_link_conflicts_and_outdated_grants_do_not_change_binding(recovery_system):
+    client, factory = recovery_system
+    citizen_id = register_owner(client)
+    first = recovery_post(client, "telegram/link").json()["token"]
+    latest = recovery_post(client, "telegram/link").json()["token"]
+    assert recovery_post(client, "telegram/confirm-link", {"token": first, "telegram_id": 777}, bot=True).status_code == 400
+    assert recovery_post(client, "telegram/confirm-link", {"token": latest, "telegram_id": 123456}, bot=True).status_code == 409
+    with factory() as db:
+        assert db.get(Citizen, citizen_id).telegram_id is None
+    assert recovery_post(client, "telegram/confirm-link", {"token": latest, "telegram_id": 777}, bot=True).status_code == 200
+
+
+def test_unknown_telegram_and_rate_limit(recovery_system):
+    client, _ = recovery_system
+    result = recovery_post(client, "telegram/start", {"telegram_id": 999, "consent": True})
+    assert result.status_code == 200
+    token = result.json()["token"]
+    assert recovery_post(client, "telegram/approve", {"token": token, "telegram_id": 999}, bot=True).status_code == 400
+    for _ in range(18):
+        assert recovery_post(client, "key/restore", {"token": "x" * 43}).status_code == 400
+    assert recovery_post(client, "key/restore", {"token": "x" * 43}).status_code == 429
+
+
+def test_bot_ownership_requires_private_explicit_confirmation(monkeypatch):
+    from types import SimpleNamespace
+    from bot.handlers.complaint_flow import ownership_command, ownership_confirmation
+    state = SimpleNamespace(update_data=AsyncMock(), get_data=AsyncMock(return_value={
+        "ownership_nonce": "abc", "ownership_action": "/recover", "ownership_token": "x" * 43}))
+    message = SimpleNamespace(chat=SimpleNamespace(type="private"), text="/recover " + "x" * 43,
+                              answer=AsyncMock())
+    asyncio.run(ownership_command(message, state))
+    assert "أوافق" == message.answer.call_args.kwargs["reply_markup"].inline_keyboard[0][0].text
+    callback = SimpleNamespace(message=SimpleNamespace(chat=SimpleNamespace(type="private"), edit_text=AsyncMock()),
+                               data="ownership_no_abc", answer=AsyncMock())
+    # Reject and stale confirmations never make a backend call.
+    import bot.handlers.complaint_flow as flow
+    session = AsyncMock()
+    monkeypatch.setattr(flow.aiohttp, "ClientSession", session)
+    asyncio.run(ownership_confirmation(callback, state))
+    session.assert_not_called()
+    callback.data = "ownership_yes_stale"
+    asyncio.run(ownership_confirmation(callback, state))
+    session.assert_not_called()
+    message.chat.type = "group"
+    state.update_data.reset_mock()
+    asyncio.run(ownership_command(message, state))
+    state.update_data.assert_not_called()
+
+
+def test_replaced_telegram_cannot_use_cached_history_detail_or_pending_submission(recovery_system, monkeypatch):
+    from types import SimpleNamespace
+    import bot.handlers.complaint_flow as flow
+    client, factory = recovery_system
+    token = recovery_post(client, "telegram/start", {"telegram_id": 123456, "consent": True}).json()["token"]
+    assert recovery_post(client, "telegram/approve", {"token": token, "telegram_id": 123456}, bot=True).status_code == 200
+    assert recovery_post(client, "telegram/finish", {"token": token}).status_code == 200
+    link = recovery_post(client, "telegram/link").json()["token"]
+    assert recovery_post(client, "telegram/confirm-link", {"token": link, "telegram_id": 777}, bot=True).status_code == 200
+    old = {"X-Bot-Token": "test-only-bot-token", "X-Telegram-Id": "123456"}
+    new = {**old, "X-Telegram-Id": "777"}
+    # Even bypassing bot-side checks and replaying cached citizen/complaint IDs
+    # cannot bypass the server's current-binding check.
+    assert client.get("/api/v1/complaints/citizen/1", headers=old).status_code == 403
+    assert client.get("/api/v1/complaints/1", headers=old).status_code == 403
+    assert client.post("/api/v1/complaints/", headers=old, json={
+        "citizen_id": 1, "directorate_id": 2, "title": "شكوى من حساب قديم",
+        "details": "يجب منع إرسال المسودة القديمة", "category": "طرق"}).status_code == 403
+    assert client.post("/api/v1/complaints/1/attachments/", headers=old,
+                       files={"file": ("test.txt", b"stale draft", "text/plain")}).status_code == 403
+    assert client.get("/api/v1/complaints/citizen/1", headers=new).status_code == 200
+    assert client.get("/api/v1/complaints/1", headers=new).status_code == 200
+    calls = []
+
+    class Response:
+        def __init__(self, response):
+            self.response = response
+            self.status = response.status_code
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            pass
+
+        async def json(self):
+            return self.response.json()
+
+    class Session:
+        def __init__(self, headers):
+            self.headers = headers
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            pass
+
+        def get(self, url):
+            path = "/api/v1/" + url.split("/api/v1/")[-1]
+            calls.append(path)
+            return Response(client.get(path, headers=self.headers))
+
+    monkeypatch.setattr(flow, "API_HEADERS", {"X-Bot-Token": "test-only-bot-token"})
+    monkeypatch.setattr(flow.aiohttp, "ClientSession", Session)
+    message = SimpleNamespace(from_user=SimpleNamespace(id=123456), answer=AsyncMock())
+    callback = SimpleNamespace(from_user=message.from_user, message=message,
+                               data="comp_detail_1", answer=AsyncMock())
+    for handler, event in [
+        (flow.cmd_mystatus, message), (flow.action_my_complaints, callback),
+        (flow.show_complaint_detail, callback), (flow.process_details, message),
+        (flow.process_attachment, message),
+    ]:
+        state = SimpleNamespace(get_data=AsyncMock(return_value={
+            "citizen_id": 1, "complaint_id": 1, "lang": "ar",
+            "directorate_id": 2, "category": "طرق"}),
+            clear=AsyncMock(), update_data=AsyncMock())
+        asyncio.run(handler(event, state))
+        state.clear.assert_awaited_once()
+        state.update_data.assert_not_called()
+    assert calls == ["/api/v1/citizens/telegram/123456"] * 5
+    with factory() as db:
+        assert db.query(Complaint).count() == 2
+
+
+@pytest.fixture
 def system(monkeypatch, tmp_path):
     engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
     factory = sessionmaker(bind=engine)

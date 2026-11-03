@@ -101,6 +101,39 @@
   <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <div id="notice" class="hidden notice" role="status"></div>
     <section id="sec-submit" class="tab-content">
+      <details class="bg-white rounded-xl border p-5 mb-6" id="citizen-access">
+        <summary class="font-bold cursor-pointer">استعادة الوصول وربط تيليغرام اختياريًا</summary>
+        <p class="text-sm my-3">لا يثبت الاسم أو الرقم الوطني ملكية السجل. استخدم مفتاح استعادة محفوظًا أو وافق من حساب تيليغرام المرتبط أصلًا. إن فقدت كل وسائل الإثبات، راجع الجهة المختصة.</p>
+        <p id="access-state" role="status" class="text-sm my-3"></p>
+        <form id="restore-key-form" class="space-y-3 my-4">
+          <label for="recovery-key">مفتاح الاستعادة الخاص بك</label>
+          <input id="recovery-key" type="password" autocomplete="off" minlength="32" maxlength="100" required class="w-full border rounded p-2" dir="ltr">
+          <button class="border rounded px-4 py-2" type="submit">استعادة بالمفتاح</button>
+          <p class="text-sm">يُستخدم المفتاح مرة واحدة. أدخله هنا فقط ولا ترسله لأي شخص.</p>
+        </form>
+        <form id="restore-telegram-form" class="space-y-3 my-4">
+          <label for="recovery-telegram">المعرّف الرقمي لحساب تيليغرام المرتبط (تجده عبر /myid في البوت)</label>
+          <input id="recovery-telegram" inputmode="numeric" pattern="[1-9][0-9]*" required class="w-full border rounded p-2" dir="ltr">
+          <label class="block"><input id="recovery-consent" type="checkbox" required> أوافق على طلب إثبات الملكية عبر حساب تيليغرام المرتبط.</label>
+          <button class="border rounded px-4 py-2" type="submit">بدء الاستعادة عبر تيليغرام</button>
+        </form>
+        <div id="recovery-pending" class="hidden my-3">
+          <p>أرسل هذا الأمر إلى البوت الرسمي في محادثة خاصة، ثم وافق فقط إن كنت أنت من بدأ الطلب. تنتهي الصلاحية بعد عشر دقائق.</p>
+          <code id="recovery-command" class="block p-3 break-all" dir="ltr"></code>
+          <button id="finish-recovery" class="border rounded px-4 py-2" type="button">أكملت الموافقة، استعد الوصول</button>
+        </div>
+        <div id="owner-access" class="hidden space-y-3 my-4">
+          <p>أنت في جلسة موثوقة. احفظ مفتاح استعادة خارج المتصفح قبل فقدان الجلسة. إصدار مفتاح جديد يلغي السابق.</p>
+          <button id="issue-recovery-key" class="border rounded px-4 py-2" type="button">إصدار مفتاح استعادة خاص</button>
+          <output id="new-recovery-key" class="block break-all select-all" dir="ltr"></output>
+          <label class="block"><input id="link-consent" type="checkbox"> أوافق على ربط تيليغرام أو استبدال الحساب المرتبط باستخدام جلستي الموثوقة.</label>
+          <button id="issue-telegram-link" class="border rounded px-4 py-2" type="button">إنشاء إذن ربط تيليغرام</button>
+          <code id="link-command" class="block break-all" dir="ltr"></code>
+          <p class="text-sm">أرسل أمر الربط إلى البوت الرسمي في محادثة خاصة من الحساب المطلوب، ثم وافق فيه. لا تشارك الإذن؛ ينتهي خلال عشر دقائق ويُستخدم مرة واحدة.</p>
+          <button id="refresh-owner-access" class="border rounded px-4 py-2" type="button">تحديث حالة الربط</button>
+          <div id="citizen-complaints" class="space-y-2"></div>
+        </div>
+      </details>
       <div class="max-w-3xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div class="bg-brand-dark text-white p-6 text-center">
           <h2 class="text-xl font-bold">تقديم شكوى جديدة</h2>

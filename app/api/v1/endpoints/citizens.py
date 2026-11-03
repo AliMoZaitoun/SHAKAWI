@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.security import is_bot, owns_citizen, require_bot
+from app.core.security import is_bot, owns_citizen, require_bot, require_bot_owner
 from app.db.session import get_db
 from app.models.user import Citizen
 from app.schemas.user import CitizenCreate, CitizenResponse
@@ -41,7 +41,8 @@ def create(data: CitizenCreate, request: Request, db: Session = Depends(get_db))
                 409,
                 "هذا السجل موجود مسبقًا. البيانات الشخصية وحدها لا تثبت ملكيته. "
                 "استخدم جلسة التسجيل الأصلية أو حساب تيليغرام المرتبط به، "
-                "أو راجع الجهة المختصة للتحقق من الملكية.",
+                "أو افتح «استعادة الوصول» لاستخدام مفتاح الاستعادة. "
+                "إن لم تملك وسيلة إثبات، راجع الجهة المختصة.",
             )
         # Never disclose or overwrite another citizen's identity via an OR match.
         if (existing.phone != data.phone or existing.national_id != data.national_id
@@ -69,6 +70,8 @@ def create(data: CitizenCreate, request: Request, db: Session = Depends(get_db))
 @router.post("/{citizen_id}/id-image/")
 async def identity_image(citizen_id: int, request: Request, file: UploadFile = File(...),
                          db: Session = Depends(get_db)):
+    if is_bot(request):
+        require_bot_owner(request, db, citizen_id)
     if not is_bot(request) and not owns_citizen(request, citizen_id):
         raise HTTPException(403, "لا تملك صلاحية تعديل هوية هذا المواطن")
     citizen = db.get(Citizen, citizen_id)

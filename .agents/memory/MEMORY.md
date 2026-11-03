@@ -3,3 +3,4 @@
 - [Citizen account linking](citizen-account-linking.md) — تقديم الويب بلا حساب إجباري، بإيصال ورمز سري؛ ربط تيليغرام والحساب لاحقًا اختياري.
 - [Evidence requests](complaint-evidence.md) — طلب أدلة ورد نصّي ومرفقات من الويب أو البوت، حتى للضيف؛ المراسلات خاصة وليست منشورات عامة.
 - [Committee demonstration scope](release-scope.md) — إكمال السيناريو الحالي واختباره قبل عرض اللجنة؛ أولوية للإصلاحات لا لتوسعة الميزات.
+- [Citizen recovery trust](citizen-recovery.md) — وسيلتا الاستعادة المعتمدتان وحدود السجلات القديمة دون إثبات ملكية.

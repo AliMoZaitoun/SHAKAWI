@@ -4,6 +4,7 @@ import { searchComplaint, copyComplaintLink, checkUrlForCode } from "./tracking.
 import { populateProcessDropdown, loadComplaintForProcessing, saveComplaintProcessing, toggleResolutionFields, updateSliderProgress } from "./processing.js";
 import { loadPublicComplaints, changePublicPage, handlePublicHash, initPublicBrowse } from "./public.js";
 import { loadStatistics, initStatistics, clearStatistics } from "./statistics.js";
+import { initRecovery, refreshCitizenAccess } from "./recovery.js";
 
 let pendingSubmission = null;
 let submissionInProgress = false;
@@ -153,6 +154,8 @@ window.submitComplaintForm = async () => {
   try {
     if (!submission.citizen) {
       submission.citizen = await createCitizen(submission.draft.citizen);
+      // Make recovery setup available immediately, even if an upload later fails.
+      refreshCitizenAccess().catch((error) => window.showNotice(error.message, "error"));
     }
     if (!submission.identityUploaded) {
       await uploadCitizenIdentity(submission.citizen.id, submission.draft.identity);
@@ -179,6 +182,7 @@ window.submitComplaintForm = async () => {
     }
     const trackingCode = submission.complaint.tracking_code || "";
     resetForm();
+    document.getElementById("citizen-access").open = true;
     document.getElementById("search-code-input").value = trackingCode;
     window.showNotice(`تم حفظ الشكوى ومرفقاتها. رمز المتابعة: ${trackingCode}`, "success");
     window.switchTab("view");
@@ -275,9 +279,12 @@ document.getElementById("c-national-id").addEventListener("input", (event) => { 
 document.getElementById("search-code-input").addEventListener("keydown", (event) => { if (event.key === "Enter") searchComplaint(); });
 initPublicBrowse();
 initStatistics();
+initRecovery();
 document.getElementById("filter-visibility").addEventListener("change", renderComplaintsTable);
 document.getElementById("stats-directorate").addEventListener("change", () => { if (isStaff()) loadStatistics(); });
 document.addEventListener("DOMContentLoaded", async () => {
+  try { await refreshCitizenAccess(); }
+  catch (error) { window.showNotice(error.message, "error"); }
   try { await loadAuthState(); }
   catch (error) { window.showNotice(`تعذر التحقق من جلسة الموظف: ${error.message}`, "error"); }
   if (location.hash.startsWith("#public")) handlePublicHash();

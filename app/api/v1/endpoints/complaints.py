@@ -4,7 +4,7 @@ from fastapi import APIRouter, Body, Depends, File, HTTPException, Request, Uplo
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session, selectinload
 
-from app.core.security import authorize_complaint, current_employee, is_bot, owns_citizen, require_bot
+from app.core.security import authorize_complaint, current_employee, is_bot, owns_citizen, require_bot, require_bot_owner
 from app.db.session import get_db
 from app.models.complaint import Attachment, Complaint, ComplaintNote, StatusEnum
 from app.models.user import Citizen, UserRole
@@ -70,6 +70,8 @@ def complaint_data(db, complaint, staff=False):
 
 @router.post("/")
 def create_complaint(data: ComplaintCreate, request: Request, db: Session = Depends(get_db)):
+    if is_bot(request):
+        require_bot_owner(request, db, data.citizen_id)
     if not is_bot(request) and not owns_citizen(request, data.citizen_id):
         raise HTTPException(403, "يرجى إدخال بيانات المواطن أولاً")
     if not db.get(Citizen, data.citizen_id):
@@ -94,8 +96,12 @@ def track(tracking_code: str, db: Session = Depends(get_db)):
     return complaint_data(db, complaint)
 
 
-@router.get("/citizen/{citizen_id}", dependencies=[Depends(require_bot)])
-def by_citizen(citizen_id: int, db: Session = Depends(get_db)):
+@router.get("/citizen/{citizen_id}")
+def by_citizen(citizen_id: int, request: Request, db: Session = Depends(get_db)):
+    if is_bot(request):
+        require_bot_owner(request, db, citizen_id)
+    if not is_bot(request) and not owns_citizen(request, citizen_id):
+        raise HTTPException(403, "لا تملك صلاحية الوصول إلى شكاوى هذا المواطن")
     return [complaint_data(db, c) for c in db.query(Complaint).filter_by(citizen_id=citizen_id).all()]
 
 
@@ -116,6 +122,7 @@ def download(attachment_id: int, employee=Depends(current_employee), db: Session
 def get_complaint(complaint_id: int, request: Request, db: Session = Depends(get_db)):
     complaint = find_complaint(db, complaint_id)
     if is_bot(request):
+        require_bot_owner(request, db, complaint.citizen_id)
         return complaint_data(db, complaint)
     employee = current_employee(request, db)
     authorize_complaint(employee, complaint)
@@ -126,6 +133,8 @@ def get_complaint(complaint_id: int, request: Request, db: Session = Depends(get
 async def upload_attachment(complaint_id: int, request: Request, file: UploadFile = File(...),
                             db: Session = Depends(get_db)):
     complaint = find_complaint(db, complaint_id)
+    if is_bot(request):
+        require_bot_owner(request, db, complaint.citizen_id)
     if not is_bot(request) and not owns_citizen(request, complaint.citizen_id):
         employee = current_employee(request, db)
         authorize_complaint(employee, complaint)

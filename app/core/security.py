@@ -10,9 +10,31 @@ from collections import defaultdict, deque
 from fastapi import Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.models.user import Employee, UserRole
+from app.models.user import Citizen, Employee, UserRole
 
 _attempts = defaultdict(deque)
+
+
+def credential_digest(value: str) -> str:
+    return hashlib.sha256(value.encode()).hexdigest()
+
+
+def grant_citizen(request: Request, citizen_id: int):
+    request.session["citizen_id"] = citizen_id
+    request.session["citizen_ownership"] = "registration-v2"
+
+
+def check_recovery_rate(request: Request):
+    # Separate from staff login. Read the socket peer, never a caller-supplied
+    # forwarded address. Credentials also have 256 bits of entropy.
+    key = ("recovery", request.client.host if request.client else "unknown")
+    now = time.monotonic()
+    attempts = _attempts[key]
+    while attempts and now - attempts[0] > 600:
+        attempts.popleft()
+    if len(attempts) >= 20:
+        raise HTTPException(429, "محاولات كثيرة، حاول بعد عشر دقائق")
+    attempts.append(now)
 
 
 def hash_password(password: str) -> str:
@@ -40,6 +62,16 @@ def is_bot(request: Request) -> bool:
 def require_bot(request: Request):
     if not is_bot(request):
         raise HTTPException(401, "هذا المسار مخصص للبوت")
+
+
+def require_bot_owner(request: Request, db: Session, citizen_id: int):
+    require_bot(request)
+    try:
+        telegram_id = int(request.headers.get("X-Telegram-Id", ""))
+    except ValueError:
+        raise HTTPException(403, "يلزم تحديد حساب تيليغرام الحالي")
+    if not db.query(Citizen).filter_by(id=citizen_id, telegram_id=telegram_id).first():
+        raise HTTPException(403, "لم يعد حساب تيليغرام مرتبطًا بهذا السجل")
 
 
 def owns_citizen(request: Request, citizen_id: int) -> bool:
