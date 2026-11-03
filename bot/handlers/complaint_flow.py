@@ -129,7 +129,14 @@ async def action_change_lang(callback: CallbackQuery, state: FSMContext):
 async def process_phone(message: Message, state: FSMContext):
     data = await state.get_data()
     lang = data.get("lang", "ar")
-    phone = message.contact.phone_number if message.contact else message.text
+    if not message.contact or message.contact.user_id != message.from_user.id:
+        await message.answer(
+            "يرجى مشاركة رقم هاتفك عبر زر مشاركة جهة الاتصال، وليس رقم شخص آخر."
+            if lang == "ar" else
+            "Please use the share-contact button to share your own phone number."
+        )
+        return
+    phone = message.contact.phone_number
     await state.update_data(phone=phone)
 
     await message.answer(

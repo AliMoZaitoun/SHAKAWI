@@ -4,7 +4,7 @@ from fastapi import APIRouter, Body, Depends, File, HTTPException, Request, Uplo
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session, selectinload
 
-from app.core.security import authorize_complaint, current_employee, is_bot, require_bot
+from app.core.security import authorize_complaint, current_employee, is_bot, owns_citizen, require_bot
 from app.db.session import get_db
 from app.models.complaint import Attachment, Complaint, ComplaintNote, StatusEnum
 from app.models.user import Citizen, UserRole
@@ -69,7 +69,7 @@ def complaint_data(db, complaint, staff=False):
 
 @router.post("/")
 def create_complaint(data: ComplaintCreate, request: Request, db: Session = Depends(get_db)):
-    if not is_bot(request) and request.session.get("citizen_id") != data.citizen_id:
+    if not is_bot(request) and not owns_citizen(request, data.citizen_id):
         raise HTTPException(403, "يرجى إدخال بيانات المواطن أولاً")
     if not db.get(Citizen, data.citizen_id):
         raise HTTPException(404, "المواطن غير موجود")
@@ -125,7 +125,7 @@ def get_complaint(complaint_id: int, request: Request, db: Session = Depends(get
 async def upload_attachment(complaint_id: int, request: Request, file: UploadFile = File(...),
                             db: Session = Depends(get_db)):
     complaint = find_complaint(db, complaint_id)
-    if not is_bot(request) and request.session.get("citizen_id") != complaint.citizen_id:
+    if not is_bot(request) and not owns_citizen(request, complaint.citizen_id):
         employee = current_employee(request, db)
         authorize_complaint(employee, complaint)
     path = await save_upload(file)

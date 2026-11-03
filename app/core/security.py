@@ -42,6 +42,16 @@ def require_bot(request: Request):
         raise HTTPException(401, "هذا المسار مخصص للبوت")
 
 
+def owns_citizen(request: Request, citizen_id: int) -> bool:
+    # Only newly registered browser sessions get this capability. A replay of
+    # someone else's personal details must never issue it. Versioning also
+    # rejects old cookies issued by the previously permissive registration flow.
+    return (
+        request.session.get("citizen_id") == citizen_id
+        and request.session.get("citizen_ownership") == "registration-v2"
+    )
+
+
 def current_employee(request: Request, db: Session = Depends(get_db)) -> Employee:
     employee = db.get(Employee, request.session.get("employee_id")) if request.session.get("employee_id") else None
     if not employee:

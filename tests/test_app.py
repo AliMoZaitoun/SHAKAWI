@@ -202,6 +202,61 @@ def test_cross_origin_and_bot_routes(system, monkeypatch):
                       headers={"X-Bot-Token": "fake-local-test-token"}).status_code == 200
 
 
+def test_fresh_session_cannot_claim_existing_citizen(system):
+    client, factory = system
+    details = {"first_name": "محمد", "last_name": "أحمد", "phone": "0912345678",
+               "national_id": "12345678901"}
+    # All submitted personal data is correct, but is not an ownership credential.
+    response = client.post("/api/v1/citizens/", json=details)
+    assert response.status_code == 409
+    assert "id" not in response.json()
+    assert "session" not in client.cookies
+    response = client.post("/api/v1/citizens/1/id-image/",
+                           files={"file": ("replacement.jpg", b"replacement", "image/jpeg")})
+    assert response.status_code == 403
+    response = client.post("/api/v1/complaints/", json={
+        "citizen_id": 1, "directorate_id": 2, "title": "شكوى منتحلة",
+        "details": "هذه شكوى باسم شخص آخر", "category": "عامة"
+    })
+    assert response.status_code == 403
+    response = client.post("/api/v1/complaints/1/attachments/",
+                           files={"file": ("replacement.jpg", b"replacement", "image/jpeg")})
+    assert response.status_code == 401
+    with factory() as db:
+        assert db.get(Citizen, 1).identity_card_url is None
+        assert db.query(Complaint).count() == 2
+
+
+def test_browser_ownership_is_session_specific_and_bot_cannot_relink(system, monkeypatch):
+    client, factory = system
+    details = {"first_name": "سليم", "last_name": "حسن", "phone": "0998765432",
+               "national_id": "98765432109"}
+    created = client.post("/api/v1/citizens/", json=details)
+    assert created.status_code == 200
+    citizen_id = created.json()["id"]
+    # Same newly registered session may resume its own unfinished form.
+    assert client.post("/api/v1/citizens/", json=details).status_code == 200
+    client.cookies.clear()
+    assert client.post("/api/v1/citizens/", json=details).status_code == 409
+    assert client.post(f"/api/v1/citizens/{citizen_id}/id-image/",
+                       files={"file": ("id.jpg", b"replacement", "image/jpeg")}).status_code == 403
+    monkeypatch.setenv("BOT_TOKEN", "fake-local-test-token")
+    response = client.post("/api/v1/citizens/", json={**details, "telegram_id": 987654},
+                           headers={"X-Bot-Token": "fake-local-test-token"})
+    assert response.status_code == 409
+    with factory() as db:
+        assert db.get(Citizen, citizen_id).telegram_id is None
+
+
+def test_legacy_citizen_cookie_does_not_grant_ownership():
+    from types import SimpleNamespace
+    from app.core.security import owns_citizen
+    assert not owns_citizen(SimpleNamespace(session={"citizen_id": 1}), 1)
+    assert owns_citizen(SimpleNamespace(session={
+        "citizen_id": 1, "citizen_ownership": "registration-v2"
+    }), 1)
+
+
 def test_additive_migration_preserves_existing_records():
     from app.db.migrations import migrate
     engine = create_engine("sqlite://")

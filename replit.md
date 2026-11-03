@@ -66,8 +66,15 @@ Notification outcomes: `sent`, `failed`, `not_linked`, `not_configured`, and
 `not_requested`. Failed public notes can be retried without creating another note.
 
 A website-only citizen does not automatically have a Telegram chat ID.
-The citizen must start the bot and register matching identity details. Only
-authenticated bot requests can attach a Telegram ID; the browser cannot submit
+The bot requires the sender's own Telegram contact during initial registration.
+Returning bot users must use the Telegram account already linked to their record.
+Matching personal details alone never authorizes linking an existing record to a
+new Telegram account or claiming an existing citizen record from a fresh browser.
+A separate verified ownership/recovery flow is required for lost browser sessions
+and linking website-only records; no such verification service is configured yet.
+New browser registrations receive a signed, versioned session capability and can
+submit complaints or upload identity documents only for the record they created.
+Only authenticated bot requests can submit Telegram IDs. The browser cannot submit
 arbitrary Telegram IDs. The bot uses `X-Bot-Token` on its private API requests.
 `API_BASE_URL` defaults to the runner's internal port 5000.
 
