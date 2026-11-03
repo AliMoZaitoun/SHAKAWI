@@ -28,6 +28,7 @@ class Complaint(Base):
     details = Column(Text, nullable=False)
     category = Column(String(50), nullable=False, index=True)
     is_public = Column(Boolean, nullable=False, default=False, server_default="0", index=True)
+    public_text_hidden = Column(Boolean, nullable=False, default=False, server_default="0")
     
     priority = Column(SQLEnum(PriorityEnum), default=PriorityEnum.MEDIUM, nullable=False)
     status = Column(SQLEnum(StatusEnum), default=StatusEnum.PENDING, nullable=False)
@@ -42,6 +43,31 @@ class Complaint(Base):
 
     citizen = relationship("Citizen", back_populates="complaints")
     notes = relationship("ComplaintNote", back_populates="complaint", cascade="all, delete-orphan")
+    public_reports = relationship("PublicComplaintReport", cascade="all, delete-orphan")
+    public_reviews = relationship("PublicComplaintReview", cascade="all, delete-orphan")
+
+
+class PublicComplaintReport(Base):
+    __tablename__ = "public_complaint_reports"
+
+    id = Column(Integer, primary_key=True)
+    complaint_id = Column(Integer, ForeignKey("complaints.id"), nullable=False, index=True)
+    reason = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    review_id = Column(Integer, ForeignKey("public_complaint_reviews.id"), nullable=True)
+
+
+class PublicComplaintReview(Base):
+    __tablename__ = "public_complaint_reviews"
+
+    id = Column(Integer, primary_key=True)
+    complaint_id = Column(Integer, ForeignKey("complaints.id"), nullable=False, index=True)
+    author_id = Column(BigInteger, ForeignKey("employees.id"), nullable=False)
+    action = Column(String(20), nullable=False)
+    reason = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    notification_status = Column(String(30), nullable=False, default="not_requested")
+    author = relationship("Employee")
 
 class Attachment(Base):
     __tablename__ = "attachments"

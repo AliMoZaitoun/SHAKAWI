@@ -1,6 +1,7 @@
 import { complaintDownloadUrl } from "./api.js";
 import { complaints, loadComplaints, updateComplaintStatus, retryNotification, statusLabels, priorityLabels, entityLabel } from "./complaints.js";
 import { logoutUser } from "./auth.js";
+import { renderStaffReview } from "./public-review.js";
 
 const byId = (id) => document.getElementById(id);
 let previousStatus = null;
@@ -58,7 +59,8 @@ export function toggleResolutionFields() {
 }
 export function populateProcessDropdown(selectedId = null) {
   const select = byId("process-select-id"); select.replaceChildren();
-  const active = complaints.filter((item) => item.status !== "RESOLVED");
+  const active = complaints.filter((item) => item.status !== "RESOLVED" ||
+    item.public_review?.hidden || item.public_review?.reports?.some((r) => !r.review_id));
   if (selectedId && !active.some((item) => String(item.id) === String(selectedId))) {
     const previous = complaints.find((item) => String(item.id) === String(selectedId));
     if (previous) active.unshift(previous);
@@ -70,7 +72,8 @@ export function populateProcessDropdown(selectedId = null) {
   byId("processing-card").classList.remove("opacity-50");
   active.forEach((item) => {
     const opt = document.createElement("option"); opt.value = item.id;
-    opt.textContent = `[${item.tracking_code || item.id}] ${item.title || ""} (${statusLabels[item.status] || item.status})`;
+    const pending = (item.public_review?.reports || []).filter((r) => !r.review_id).length;
+    opt.textContent = `[${item.tracking_code || item.id}] ${item.title || ""} (${statusLabels[item.status] || item.status})${pending ? ` — بلاغات: ${pending}` : ""}${item.public_review?.hidden ? " — نصوص مخفية" : ""}`;
     select.append(opt);
   });
   if (selectedId) select.value = selectedId;
@@ -100,6 +103,15 @@ export function loadComplaintForProcessing() {
   byId("p-employee-note").value = "";
   byId("p-report").value = complaint.resolution_report || "";
   renderHistory(complaint); toggleResolutionFields();
+  let review = byId("p-public-review");
+  if (!review) {
+    review = document.createElement("section"); review.id = "p-public-review";
+    review.className = "record-note mt-4";
+    byId("p-notes-history").after(review);
+  }
+  renderStaffReview(complaint, review, async (selected) => {
+    await loadComplaints(); populateProcessDropdown(selected);
+  });
 }
 export async function saveComplaintProcessing() {
   const id = byId("process-select-id").value;

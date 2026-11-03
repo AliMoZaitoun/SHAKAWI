@@ -1,11 +1,37 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session, selectinload
 
 from app.db.session import get_db
-from app.models.complaint import Complaint, StatusEnum
+from app.models.complaint import Complaint, StatusEnum, PublicComplaintReport
+from app.core.security import _attempts
+import time
 from app.services.public_complaints import public_complaint
+from app.schemas.public_review import ReportInput
 
 router = APIRouter()
+
+
+@router.post("/{complaint_id}/reports", status_code=201)
+def report_public_text(complaint_id: int, data: ReportInput, request: Request,
+                       db: Session = Depends(get_db)):
+    complaint = db.query(Complaint).filter(
+        Complaint.id == complaint_id, Complaint.is_public.is_(True)
+    ).first()
+    if not complaint:
+        raise HTTPException(404, "الشكوى العامة غير موجودة")
+    # Reporting never hides a complaint automatically. Limit unauthenticated
+    # writes using the socket peer, not caller-controlled forwarded headers.
+    key = ("public-report", request.client.host if request.client else "unknown")
+    attempts = _attempts[key]
+    now = time.monotonic()
+    while attempts and now - attempts[0] > 600:
+        attempts.popleft()
+    if len(attempts) >= 10:
+        raise HTTPException(429, "بلاغات كثيرة، حاول بعد عشر دقائق")
+    attempts.append(now)
+    db.add(PublicComplaintReport(complaint_id=complaint_id, reason=data.reason))
+    db.commit()
+    return {"message": "تم استلام البلاغ للمراجعة. لا يؤدي البلاغ وحده إلى إخفاء النصوص."}
 
 
 @router.get("")

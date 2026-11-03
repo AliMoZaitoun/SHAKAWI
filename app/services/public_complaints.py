@@ -25,17 +25,19 @@ def public_text(text, complaint):
 def public_complaint(complaint):
     # Personal details, coordinates, tracking codes, attachments and authors are
     # excluded even if new fields are later added to the ORM or staff response.
+    hidden = complaint.public_text_hidden
     return {
         "id": complaint.id,
-        "title": public_text(complaint.title, complaint),
-        "details": public_text(complaint.details, complaint),
-        "category": public_text(complaint.category, complaint),
+        "public_text_hidden": hidden,
+        "title": "نصوص الشكوى مخفية مؤقتًا للمراجعة" if hidden else public_text(complaint.title, complaint),
+        "details": "" if hidden else public_text(complaint.details, complaint),
+        "category": "" if hidden else public_text(complaint.category, complaint),
         "directorate_id": complaint.directorate_id,
         "status": complaint.status,
         "priority": complaint.priority,
         "progress": complaint.progress,
         "created_at": complaint.created_at,
-        "resolution_report": public_text(complaint.resolution_report, complaint),
-        "notes": [{"note": public_text(note.note, complaint), "created_at": note.created_at}
+        "resolution_report": "" if hidden else public_text(complaint.resolution_report, complaint),
+        "notes": [] if hidden else [{"note": public_text(note.note, complaint), "created_at": note.created_at}
                   for note in sorted(complaint.notes, key=lambda n: n.id) if not note.is_internal],
     }

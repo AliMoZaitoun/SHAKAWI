@@ -6,7 +6,9 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.core.security import authorize_complaint, current_employee, is_bot, owns_citizen, require_bot, require_bot_owner
 from app.db.session import get_db
-from app.models.complaint import Attachment, Complaint, ComplaintNote, StatusEnum
+from app.models.complaint import Attachment, Complaint, ComplaintNote, StatusEnum, PublicComplaintReview
+from app.schemas.public_review import ReviewInput
+from app.services.public_review import ACTION_LABELS, review_data
 from app.models.user import Citizen, UserRole
 from app.schemas.complaint import ComplaintCreate, NoteCreate, ProcessingUpdate
 from app.services.complaint_service import ComplaintService
@@ -44,6 +46,7 @@ def complaint_data(db, complaint, staff=False):
         "directorate_id": complaint.directorate_id, "title": complaint.title,
         "details": complaint.details, "category": complaint.category,
         "is_public": complaint.is_public,
+        "public_review": review_data(complaint, staff),
         "priority": complaint.priority, "status": complaint.status,
         "created_at": complaint.created_at, "updated_at": complaint.updated_at,
         "progress": complaint.progress, "resolution_report": complaint.resolution_report,
@@ -66,6 +69,38 @@ def complaint_data(db, complaint, staff=False):
                 "file_url": f"/api/v1/complaints/attachments/{item.id}/download",
             })
     return data
+
+
+@router.post("/{complaint_id}/public-review")
+async def review_public_text(complaint_id: int, data: ReviewInput,
+                             employee=Depends(current_employee), db: Session = Depends(get_db)):
+    complaint = find_complaint(db, complaint_id)
+    authorize_complaint(employee, complaint)
+    if not complaint.is_public:
+        raise HTTPException(409, "الشكوى خاصة؛ لا يمكن نشرها أو مراجعة نصوصها العامة")
+    if data.action == "hide":
+        if complaint.public_text_hidden:
+            raise HTTPException(409, "النصوص مخفية بالفعل")
+        complaint.public_text_hidden = True
+    elif data.action == "restore":
+        if not complaint.public_text_hidden:
+            raise HTTPException(409, "النصوص ظاهرة بالفعل")
+        complaint.public_text_hidden = False
+    review = PublicComplaintReview(complaint_id=complaint.id, author_id=employee.id,
+                                   action=data.action, reason=data.reason)
+    db.add(review)
+    db.flush()
+    for report in complaint.public_reports:
+        if report.review_id is None:
+            report.review_id = review.id
+    # Preserve the decision even if Telegram is unavailable. The owner also
+    # sees the durable notice through secret tracking and their complaint list.
+    db.commit()
+    result = await notify(complaint.citizen, complaint.tracking_code,
+                          ACTION_LABELS[data.action] + "\nالسبب: " + data.reason)
+    review.notification_status = result["status"]
+    db.commit()
+    return {"message": "تم حفظ قرار المراجعة", "notification": result}
 
 
 @router.post("/")

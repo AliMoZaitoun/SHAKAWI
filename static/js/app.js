@@ -217,7 +217,9 @@ function renderComplaintsTable() {
   if (!filtered.length) { const row = tbody.insertRow(); const cell = row.insertCell(); cell.colSpan = 9; cell.className = "text-center py-8 text-gray-400"; cell.textContent = "لا توجد شكاوى مطابقة للفلترة الحالية."; return; }
   filtered.forEach((item) => {
     const row = tbody.insertRow(); row.className = "hover:bg-gray-50";
-    const values = [item.tracking_code || item.id,item.title,`${item.citizen?.first_name || ""} ${item.citizen?.last_name || ""}`.trim(),item.category || "—",item.is_public ? "منشورة للعامة" : "خاصة",priorityLabels[item.priority] || item.priority || "—",statusLabels[item.status] || item.status || "—",`${Number(item.progress) || 0}%`];
+    const pendingReports = (item.public_review?.reports || []).filter((r) => !r.review_id).length;
+    const visibility = item.is_public ? (item.public_review?.hidden ? "عامة — نصوص مخفية" : "منشورة للعامة") : "خاصة";
+    const values = [item.tracking_code || item.id,item.title,`${item.citizen?.first_name || ""} ${item.citizen?.last_name || ""}`.trim(),item.category || "—",`${visibility}${pendingReports ? ` — بلاغات: ${pendingReports}` : ""}`,priorityLabels[item.priority] || item.priority || "—",statusLabels[item.status] || item.status || "—",`${Number(item.progress) || 0}%`];
     values.forEach((value) => { const cell = row.insertCell(); cell.className = "p-3"; cell.textContent = value; });
     const action = row.insertCell(); action.className = "p-3 text-center";
     const button = document.createElement("button"); button.className = "bg-brand-accent text-white text-xs font-bold px-3 py-1.5 rounded"; button.textContent = "معالجة الشكوى";

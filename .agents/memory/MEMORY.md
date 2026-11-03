@@ -5,3 +5,4 @@
 - [Committee demonstration scope](release-scope.md) — إكمال السيناريو الحالي واختباره قبل عرض اللجنة؛ أولوية للإصلاحات لا لتوسعة الميزات.
 - [Citizen recovery trust](citizen-recovery.md) — وسيلتا الاستعادة المعتمدتان وحدود السجلات القديمة دون إثبات ملكية.
 - [Runtime reconciliation](runtime-reconciliation.md) — نجاح تهيئة الدمج لا يضمن تحديث عملية Python؛ تحقّق من المسارات الجديدة بالخادم الجاري.
+- [Public text review](public-text-review.md) — نشر فوري باختيار المواطن ومراجعة البلاغات؛ لا موافقة مسبقة ولا إخفاء تلقائي بمجرد الإبلاغ.

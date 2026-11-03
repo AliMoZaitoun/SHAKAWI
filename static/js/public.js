@@ -1,4 +1,5 @@
 import { api } from "./api.js";
+import { reportForm } from "./public-review.js";
 
 const byId = (id) => document.getElementById(id);
 const statusLabels = { PENDING: "جديدة", IN_PROGRESS: "جاري العمل", RESOLVED: "تمت المعالجة", REJECTED: "مرفوضة" };
@@ -166,7 +167,12 @@ function renderDetail(item) {
     root.classList.add("hidden");
   });
   actions.append(share, close);
-  root.append(notesTitle, notes, actions);
+  if (item.public_text_hidden) {
+    const notice = document.createElement("p");
+    notice.textContent = "النصوص مخفية مؤقتًا لحماية الخصوصية. الشكوى ما زالت قيد المتابعة؛ الإخفاء ليس حذفًا أو تغييرًا لحالتها.";
+    root.append(notice);
+  }
+  root.append(notesTitle, notes, reportForm(item.id), actions);
   root.classList.remove("hidden");
   root.scrollIntoView({ behavior: "smooth", block: "start" });
 }

@@ -495,7 +495,141 @@ def test_additive_migration_preserves_existing_records():
     assert "notification_status" in {c["name"] for c in inspect(engine).get_columns("complaint_notes")}
     with engine.connect() as connection:
         assert connection.execute(text("SELECT is_public FROM complaints")).scalar() == 0
+        assert connection.execute(text("SELECT public_text_hidden FROM complaints")).scalar() == 0
     engine.dispose()
+
+
+@pytest.fixture
+def public_review_system(system):
+    from app.core.security import _attempts
+    _attempts.clear()
+    client, factory = system
+    with factory() as db:
+        db.get(Complaint, 2).is_public = True
+        db.commit()
+    return client, factory
+
+
+def test_public_reports_are_private_and_do_not_hide_automatically(public_review_system):
+    from app.models.complaint import PublicComplaintReport
+    client, factory = public_review_system
+    reason = "اسم شخص ثالث ومعلوماته الحساسة"
+    assert client.post("/api/v1/complaints/public/1/reports", json={"reason": reason}).status_code == 404
+    assert client.post("/api/v1/complaints/public/999/reports", json={"reason": reason}).status_code == 404
+    response = client.post("/api/v1/complaints/public/2/reports", json={"reason": reason})
+    assert response.status_code == 201
+    detail = client.get("/api/v1/complaints/public/2")
+    assert detail.json()["public_text_hidden"] is False
+    assert reason not in detail.text
+    assert reason not in client.get("/api/v1/complaints/public").text
+    with factory() as db:
+        assert db.query(PublicComplaintReport).one().reason == reason
+    login(client, "services")
+    report = client.get("/api/v1/complaints/2").json()["public_review"]["reports"][0]
+    assert report["reason"] == reason and report["review_id"] is None
+    # Even the secret-tracking holder does not get third-party report details.
+    assert reason not in client.get("/api/v1/complaints/track/CMP-SERVICES").text
+
+
+@pytest.mark.parametrize("reason", ["", "     ", "قص", "x" * 2001])
+def test_report_and_review_validate_reasons(public_review_system, reason):
+    client, factory = public_review_system
+    assert client.post("/api/v1/complaints/public/2/reports", json={"reason": reason}).status_code == 422
+    login(client, "services")
+    assert client.post("/api/v1/complaints/2/public-review",
+                       json={"action": "hide", "reason": reason}).status_code == 422
+    with factory() as db:
+        assert db.get(Complaint, 2).public_text_hidden is False
+
+
+def test_public_review_enforces_staff_scope_and_never_publishes_private(public_review_system):
+    client, factory = public_review_system
+    payload = {"action": "hide", "reason": "حماية خصوصية شخص آخر"}
+    assert client.post("/api/v1/complaints/2/public-review", json=payload).status_code == 401
+    login(client, "services")
+    assert client.post("/api/v1/complaints/1/public-review", json=payload).status_code == 403
+    assert client.post("/api/v1/complaints/2/public-review", json=payload).status_code == 200
+    login(client, "governor")
+    for action in ("hide", "restore", "dismiss"):
+        assert client.post("/api/v1/complaints/1/public-review",
+                           json={**payload, "action": action}).status_code == 409
+    assert client.get("/api/v1/complaints/public/1").status_code == 404
+    with factory() as db:
+        db.get(Complaint, 1).is_public = True
+        db.commit()
+    assert client.post("/api/v1/complaints/1/public-review", json=payload).status_code == 200
+    assert client.post("/api/v1/complaints/2/public-review",
+                       json={**payload, "action": "restore"}).status_code == 200
+
+
+def test_hiding_all_free_text_preserves_originals_audit_and_owner_notice(public_review_system, monkeypatch):
+    from app.models.complaint import PublicComplaintReport, PublicComplaintReview
+    client, factory = public_review_system
+    sent = AsyncMock(return_value={"status": "failed", "message": "تعذر الإرسال"})
+    monkeypatch.setattr("app.api.v1.endpoints.complaints.notify", sent)
+    with factory() as db:
+        complaint = db.get(Complaint, 2)
+        complaint.title = "اسم طرف ثالث في العنوان"
+        complaint.details = "معلومات حساسة في التفاصيل"
+        complaint.category = "اسم في التصنيف"
+        complaint.resolution_report = "اسم في تقرير الحل"
+        db.add(ComplaintNote(complaint_id=2, author_id=2, note="اسم في الملاحظة", is_internal=False))
+        db.commit()
+    client.post("/api/v1/complaints/public/2/reports", json={"reason": "بلاغ عن اسم طرف ثالث"})
+    login(client, "services")
+    reason = "سبب خاص للحجب لحماية طرف ثالث"
+    payload = {"action": "hide", "reason": reason}
+    response = client.post("/api/v1/complaints/2/public-review", json=payload)
+    assert response.status_code == 200 and response.json()["notification"]["status"] == "failed"
+    assert reason in sent.call_args.args[2]
+    for path in ("/api/v1/complaints/public/2", "/api/v1/complaints/public"):
+        raw = client.get(path).text
+        for secret in ("طرف ثالث", "معلومات حساسة", "اسم في", reason, "author_id", "reports", "notification_status"):
+            assert secret not in raw
+    detail = client.get("/api/v1/complaints/public/2").json()
+    assert detail["public_text_hidden"] and detail["notes"] == []
+    assert detail["status"] == "PENDING"
+    owner = client.get("/api/v1/complaints/track/CMP-SERVICES").json()
+    assert owner["details"] == "معلومات حساسة في التفاصيل"
+    assert owner["public_review"]["hidden"] is True
+    assert owner["public_review"]["history"][0]["reason"] == reason
+    assert "author_id" not in owner["public_review"]["history"][0]
+    assert client.post("/api/v1/complaints/2/public-review", json=payload).status_code == 409
+    with factory() as db:
+        review = db.query(PublicComplaintReview).one()
+        assert review.author_id == 2 and review.reason == reason and review.created_at
+        assert review.notification_status == "failed"
+        assert db.query(PublicComplaintReport).one().review_id == review.id
+        assert db.get(Complaint, 2).is_public is True
+        assert db.query(ComplaintNote).count() == 1  # no public moderation note
+    # An objection remains private and doesn't automatically restore the text.
+    assert client.post("/api/v1/complaints/public/2/reports",
+                       json={"reason": "اعتراض على إخفاء النص وطلب مراجعته"}).status_code == 201
+    assert client.get("/api/v1/complaints/public/2").json()["public_text_hidden"]
+    dismiss = client.post("/api/v1/complaints/2/public-review",
+                          json={"action": "dismiss", "reason": "تمت مراجعة الاعتراض مع إبقاء الإخفاء"})
+    assert dismiss.status_code == 200
+    assert client.get("/api/v1/complaints/public/2").json()["public_text_hidden"]
+    restore = client.post("/api/v1/complaints/2/public-review",
+                          json={"action": "restore", "reason": "تم التحقق من سلامة النصوص والموافقة على إظهارها"})
+    assert restore.status_code == 200
+    assert client.get("/api/v1/complaints/public/2").json()["title"] == "اسم طرف ثالث في العنوان"
+    with factory() as db:
+        assert db.query(PublicComplaintReview).count() == 3
+        assert all(row.review_id for row in db.query(PublicComplaintReport).all())
+        assert db.get(Complaint, 2).public_text_hidden is False
+
+
+def test_report_rate_limit_and_unknown_review_action(public_review_system):
+    client, factory = public_review_system
+    for _ in range(10):
+        assert client.post("/api/v1/complaints/public/2/reports",
+                           json={"reason": "طلب مراجعة النص"}).status_code == 201
+    assert client.post("/api/v1/complaints/public/2/reports",
+                       json={"reason": "طلب مراجعة النص"}).status_code == 429
+    login(client, "services")
+    assert client.post("/api/v1/complaints/2/public-review",
+                       json={"action": "publish", "reason": "طلب نشر شكوى"}).status_code == 422
 
 
 def test_public_directory_excludes_private_records_and_sensitive_data(system):

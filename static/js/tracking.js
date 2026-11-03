@@ -1,4 +1,5 @@
 import { api } from "./api.js";
+import { renderOwnerReview } from "./public-review.js";
 import { entityLabel, priorityLabels, statusLabels } from "./complaints.js";
 
 function text(id, value) { document.getElementById(id).textContent = value ?? ""; }
@@ -44,6 +45,12 @@ export async function searchComplaint() {
       files.append(item);
     });
     renderNotes(complaint.notes || []);
+    let review = document.getElementById("v-public-review");
+    if (!review) {
+      review = document.createElement("section"); review.id = "v-public-review";
+      review.className = "record-note mt-4"; card.append(review);
+    }
+    renderOwnerReview(complaint, review);
     const report = complaint.resolution_report || "";
     text("v-report", report);
     document.getElementById("v-resolution-box").classList.toggle("hidden", status !== "RESOLVED" || !report);

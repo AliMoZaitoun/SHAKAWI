@@ -8,6 +8,7 @@ def migrate(engine):
             "progress": "INTEGER NOT NULL DEFAULT 0",
             "resolution_report": "TEXT NOT NULL DEFAULT ''",
             "is_public": "BOOLEAN NOT NULL DEFAULT FALSE",
+            "public_text_hidden": "BOOLEAN NOT NULL DEFAULT FALSE",
         },
         "complaint_notes": {
             "notification_status": "VARCHAR(30) NOT NULL DEFAULT 'not_requested'",
