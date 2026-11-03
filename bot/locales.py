@@ -1,0 +1,162 @@
+# bot/locales.py
+
+TEXTS = {
+    "ar": {
+        "welcome_back": "أهلاً بك مجدداً يا <b>{name}</b> 👋\nأنت مسجل بالفعل في منصة الشكاوى الحكومية.",
+        "btn_new_complaint": "📝 تقديم شكوى جديدة",
+        "btn_my_complaints": "📂 شكاوي السابقة",
+        "btn_change_lang": "🌐 تغيير اللغة / Change Language",
+        "welcome_new": "مرحباً بك في منصة الشكاوى الحكومية التفاعلية 🏛️\nيرجى مشاركة رقم هاتفك للبدء:",
+        "btn_share_phone": "📱 مشاركة رقم الهاتف",
+        "ask_first_name": "يرجى إدخال <b>الاسم الأول</b>:",
+        "ask_last_name": "أدخل <b>الاسم الأخير</b>:",
+        "ask_national_id": "أدخل <b>الرقم الوطني</b> الخاص بك:",
+        "ask_directorate": "اختر <b>الجهة أو المديرية</b> المشتكى عليها:",
+        "ask_category": "اختر <b>نوع الشكوى</b>:",
+        "ask_location": "📍 اختر طريقة تحديد موقع المشكلة:",
+        "btn_share_geo": "📍 مشاركة موقعي الحالي",
+        "btn_manual_address": "✍️ كتابة العنوان يدوياً",
+        "ask_manual_address": "اكتب <b>عنوان المشكلة أو تفاصيل المكان</b> يدوياً:",
+        "ask_title": "اكتب <b>عنواناً مختصراً</b> للشكوى (أكثر من 5 أحرف):",
+        "ask_details": "اكتب <b>تفاصيل الشكوى</b> بشكل كامل وواضح:",
+        "complaint_created": "✅ <b>تم تسجيل الشكوى بنجاح!</b>\n🔹 كود التتبع: <code>{code}</code>",
+        "ask_attachment": "📷 هل تريد إرفاق <b>صورة أو مستند</b> يدعم شكواك؟",
+        "btn_skip_attachment": "⏭️ تخطي المرفقات",
+        "attachment_saved": "📎 <b>تم حفظ المرفق بنجاح!</b>\nكود التتبع: <code>{code}</code>",
+        "skip_attachment_msg": "👍 تم إتمام الشكوى بنجاح بدون مرفقات.\n🔹 كود التتبع: <code>{code}</code>",
+        "my_complaints_title": "📂 <b>قائمة شكاويك المسجلة:</b>\nاختر شكوى لعرض تفاصيلها:",
+        "no_complaints": "📂 ليس لديك أي شكاوى مسجلة حتى الآن.",
+        "lang_selected": "✅ تم اختيار اللغة العربية بنجاح.",
+
+        "dir_gov": "🏛️ المحافظة (الإدارة العليا)",
+        "dir_services": "🛠️ قسم الخدمات والبلديات",
+
+        "cat_roads": "🛣️ شق وتعبيد الطرق",
+        "cat_construction": "🏗️ مخالفات البناء والترخيص",
+        "cat_digging": "🕳️ الحفر وتخريب الشوارع",
+        "cat_opening_roads": "🚜 فتح وتوسيع الطرق",
+        "cat_other": "📌 أخرى",
+
+        "ask_id_image": "🪪 ممتاز. الآن يرجى إرسال <b>صورة عن بطاقتك الشخصية (الهوية)</b> للتحقق والتوثيق الرسمي:",
+        "id_success": "🎉 <b>تم توثيق وتأكيد حسابك بنجاح بواسطة الهوية الشخصية!</b>\nأهلاً بك في المنصة الحكومية الرسمية.",
+        "reg_error": "❌ حدث خطأ في التسجيل. تأكد من البيانات أو أرسل /start مجدداً.",
+        "conn_error": "❌ تعذر الاتصال بالخادم: {error}",
+
+        "cancel_success": "❌ <b>تم إلغاء العملية الحالية بنجاح.</b>\nيمكنك البدء من جديد عبر: /start",
+        "ask_track_code": "🔍 <b>يرجى إدخال كود التتبع الخاص بشكواك:</b>\nمثال: <code>CMP-YVJ-5103</code>",
+        "track_usage": "🔍 يرجى كتابة كود التتبع بعد الأمر هكذا:\n<code>/track CMP-XXXX-XXXX</code>",
+        "track_not_found": "❌ عذراً، لم يتم العثور على أي شكوى بهذا الكود. تأكد من صحته.",
+
+        "complaint_details_title": "📋 <b>تفاصيل الشكوى:</b>",
+        "comp_title_label": "🔹 <b>العنوان:</b>",
+        "comp_cat_label": "📌 <b>التصنيف:</b>",
+        "comp_status_label": "📊 <b>الحالة:</b>",
+        "comp_priority_label": "⚡ <b>الأولوية:</b>",
+        "comp_code_label": "🔑 <b>كود التتبع:</b>",
+        "comp_details_label": "📝 <b>التفاصيل:</b>",
+        "admin_note_label": "📝 <b>ملاحظة الموظف:</b>",
+        "resolution_report_label": "✅ <b>تقرير المعالجة النهائي:</b>",
+
+        "status_pending": "أرسلت",
+        "status_in_progress": "جاري العمل",
+        "status_resolved": "تمت المعالجة",
+        "status_rejected": "مرفوضة",
+        "admin_note_label": "📝 <b>ملاحظة الموظف:</b>",
+        "resolution_report_label": "✅ <b>تقرير المعالجة النهائي:</b>",
+        "notification_title": "🔔 <b>تحديث على حالة شكواك</b> (<code>{code}</code>)\n\nتم تغيير الحالة إلى: <b>{status}</b>",
+
+        "priority_low": "منخفضة 🟢",
+        "priority_medium": "متوسطة 🟡",
+        "priority_high": "عالية 🔴",
+
+        "unknown_command": "عذراً، لم أفهم هذا الأمر. استخدم /start للبدء من جديد.",
+        "please_start_first": "⚠️ يرجى استخدام أمر /start أولاً لتسجيل حسابك.",
+
+        "attachment_saved_more": "✅ تم حفظ المرفق بنجاح.\n\n📎 هل تريد إرسال مرفق آخر أم نكتفي بهذا القدر؟",
+        "btn_add_more": "➕ إرسال مرفق آخر",
+        "btn_finish_upload": "✅ إنهاء وإنشاء الشكوى",
+        "final_complaint_done": "🎉 تم إنهاء الشكوى بنجاح!\n🔹 كود التتبع: <code>{code}</code>",
+    },
+    "en": {
+        "welcome_back": "Welcome back, <b>{name}</b> 👋\nYou are registered in the Government Complaints Platform.",
+        "btn_new_complaint": "📝 Submit New Complaint",
+        "btn_my_complaints": "📂 My Complaints",
+        "btn_change_lang": "🌐 Change Language / تغيير اللغة",
+        "welcome_new": "Welcome to the Interactive Government Complaints Platform 🏛️\nPlease share your phone number to start:",
+        "btn_share_phone": "📱 Share Phone Number",
+        "ask_first_name": "Please enter your <b>First Name</b>:",
+        "ask_last_name": "Enter your <b>Last Name</b>:",
+        "ask_national_id": "Enter your <b>National ID</b>:",
+        "ask_directorate": "Select the <b>Directorate</b>:",
+        "ask_category": "Select the <b>Complaint Category</b>:",
+        "ask_location": "📍 Choose how to specify the location:",
+        "btn_share_geo": "📍 Share Current Location",
+        "btn_manual_address": "✍️ Enter Address Manually",
+        "ask_manual_address": "Type the <b>location details or address</b> manually:",
+        "ask_title": "Write a <b>short title</b> for the complaint (5+ chars):",
+        "ask_details": "Write the <b>full details</b> of your complaint:",
+        "complaint_created": "✅ <b>Complaint registered successfully!</b>\n🔹 Tracking Code: <code>{code}</code>",
+        "ask_attachment": "📷 Would you like to attach a <b>photo or document</b>?",
+        "btn_skip_attachment": "⏭️ Skip Attachment",
+        "attachment_saved": "📎 <b>Attachment uploaded successfully!</b>\nTracking Code: <code>{code}</code>",
+        "skip_attachment_msg": "👍 Complaint completed without attachments.\n🔹 Tracking Code: <code>{code}</code>",
+        "my_complaints_title": "📂 <b>Your Registered Complaints:</b>\nSelect a complaint to view details:",
+        "no_complaints": "📂 You have no registered complaints yet.",
+        "lang_selected": "✅ English language selected successfully.",
+
+        "dir_gov": "🏛️ Governorate (High Administration)",
+        "dir_services": "🛠️ Services & Municipalities Dept",
+
+        "cat_roads": "🛣️ Road Paving & Maintenance",
+        "cat_construction": "🏗️ Construction Violations",
+        "cat_digging": "🕳️ Street Digging & Damage",
+        "cat_opening_roads": "🚜 Opening & Expanding Roads",
+        "cat_other": "📌 Other",
+
+        "ask_id_image": "🪪 Great. Now please send a <b>photo of your National ID card</b> for official verification:",
+        "id_success": "🎉 <b>Your account has been successfully verified via ID card!</b>\nWelcome to the official government platform.",
+        "reg_error": "❌ Registration error. Please check your data or send /start again.",
+        "conn_error": "❌ Connection error: {error}",
+
+        "cancel_success": "❌ <b>Current operation cancelled successfully.</b>\nYou can start over via: /start",
+        "ask_track_code": "🔍 <b>Please enter your complaint tracking code:</b>\nExample: <code>CMP-YVJ-5103</code>",
+        "track_usage": "🔍 Please write the tracking code after the command like this:\n<code>/track CMP-XXXX-XXXX</code>",
+        "track_not_found": "❌ Sorry, no complaint found with this code. Please check it.",
+
+        "complaint_details_title": "📋 <b>Complaint Details:</b>",
+        "comp_title_label": "🔹 <b>Title:</b>",
+        "comp_cat_label": "📌 <b>Category:</b>",
+        "comp_status_label": "📊 <b>Status:</b>",
+        "comp_priority_label": "⚡ <b>Priority:</b>",
+        "comp_code_label": "🔑 <b>Tracking Code:</b>",
+        "comp_details_label": "📝 <b>Details:</b>",
+        "admin_note_label": "📝 <b>Employee Note:</b>",
+        "resolution_report_label": "✅ <b>Resolution Report:</b>",
+
+        "status_pending": "Pending",
+        "status_in_progress": "In Progress",
+        "status_resolved": "Resolved",
+        "status_rejected": "Rejected",
+        "admin_note_label": "📝 <b>Employee Note:</b>",
+        "resolution_report_label": "✅ <b>Resolution Report:</b>",
+        "notification_title": "🔔 <b>Complaint Status Update</b> (<code>{code}</code>)\n\nStatus changed to: <b>{status}</b>",
+
+        "unknown_command": "Sorry, I didn't understand this command. Use /start to start over.",
+
+        "please_start_first": "⚠️ Please use /start first to register your account.",
+
+        "attachment_saved_more": "✅ Attachment saved successfully.\n\n📎 Do you want to send another attachment or finish?",
+        "btn_add_more": "➕ Send another attachment",
+        "btn_finish_upload": "✅ Finish and Complete",
+        "final_complaint_done": "🎉 Complaint completed successfully!\n🔹 Tracking Code: <code>{code}</code>",
+
+        "priority_low": "Low 🟢",
+        "priority_medium": "Medium 🟡",
+        "priority_high": "High 🔴",
+    }
+}
+
+def get_txt(lang: str, key: str, **kwargs) -> str:
+    language = lang if lang in TEXTS else "ar"
+    text = TEXTS[language].get(key, TEXTS["ar"].get(key, ""))
+    return text.format(**kwargs) if kwargs else text
