@@ -2,7 +2,7 @@ modules = ["python-3.12", "nodejs-24"]
 
 [nix]
 channel = "stable-25_05"
-packages = ["libxcrypt"]
+packages = ["gitFull", "libxcrypt", "playwright-driver", "chromium"]
 
 [agent]
 expertMode = true
@@ -34,3 +34,8 @@ outputType = "webview"
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[userenv]
+
+[userenv.development]
+ENABLE_DEMO_ACCOUNTS = "1"

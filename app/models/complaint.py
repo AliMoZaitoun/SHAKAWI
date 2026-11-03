@@ -27,6 +27,7 @@ class Complaint(Base):
     title = Column(String(150), nullable=False)
     details = Column(Text, nullable=False)
     category = Column(String(50), nullable=False, index=True)
+    is_public = Column(Boolean, nullable=False, default=False, server_default="0", index=True)
     
     priority = Column(SQLEnum(PriorityEnum), default=PriorityEnum.MEDIUM, nullable=False)
     status = Column(SQLEnum(StatusEnum), default=StatusEnum.PENDING, nullable=False)

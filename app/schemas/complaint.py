@@ -10,6 +10,7 @@ class ComplaintCreate(BaseModel):
     details: str = Field(min_length=10, max_length=20000)
     category: str = Field(min_length=1, max_length=50)
     priority: PriorityEnum = PriorityEnum.MEDIUM
+    is_public: bool = False
     latitude: Optional[float] = Field(None, ge=-90, le=90)
     longitude: Optional[float] = Field(None, ge=-180, le=180)
 

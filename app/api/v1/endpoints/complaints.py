@@ -43,6 +43,7 @@ def complaint_data(db, complaint, staff=False):
         "id": complaint.id, "tracking_code": complaint.tracking_code,
         "directorate_id": complaint.directorate_id, "title": complaint.title,
         "details": complaint.details, "category": complaint.category,
+        "is_public": complaint.is_public,
         "priority": complaint.priority, "status": complaint.status,
         "created_at": complaint.created_at, "updated_at": complaint.updated_at,
         "progress": complaint.progress, "resolution_report": complaint.resolution_report,
@@ -144,11 +145,15 @@ async def update_status(complaint_id: int, new_status: StatusEnum,
     complaint = find_complaint(db, complaint_id)
     authorize_complaint(employee, complaint)
     old_status = complaint.status
+    if new_status != StatusEnum.RESOLVED and data.progress == 100:
+        raise HTTPException(422, "نسبة 100٪ مخصصة للشكاوى المحلولة فقط")
     complaint.status = new_status
     if data.progress is not None:
         complaint.progress = data.progress
     if new_status == StatusEnum.RESOLVED:
         complaint.progress = 100
+    elif complaint.progress == 100:
+        complaint.progress = 0
     if data.resolution_report is not None:
         complaint.resolution_report = data.resolution_report
     if data.priority is not None:

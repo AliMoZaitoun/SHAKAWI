@@ -25,6 +25,7 @@ class ComplaintService:
             details=complaint_in.details,
             category=complaint_in.category,
             priority=complaint_in.priority,
+            is_public=complaint_in.is_public,
             latitude=complaint_in.latitude,
             longitude=complaint_in.longitude
         )

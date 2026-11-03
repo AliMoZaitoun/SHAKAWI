@@ -1,5 +1,5 @@
 from enum import Enum
-from sqlalchemy import Column, BigInteger, Integer, String, DateTime, ForeignKey, Enum as SQLEnum
+from sqlalchemy import Column, BigInteger, Integer, String, DateTime, ForeignKey, Enum as SQLEnum, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.base import Base
@@ -31,6 +31,8 @@ class Employee(Base):
     username = Column(String(50), unique=True, nullable=False, index=True)
     hashed_password = Column(String(255), nullable=False)
     role = Column(SQLEnum(UserRole), default=UserRole.EMPLOYEE, nullable=False)
+    is_demo = Column(Boolean, nullable=False, default=False, server_default="0")
+    password_version = Column(Integer, nullable=False, default=1, server_default="1")
     directorate_id = Column(BigInteger, nullable=True)  # رقم المديرية التابع لها
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

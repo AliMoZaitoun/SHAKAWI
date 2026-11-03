@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.api.v1.endpoints import auth, citizens, complaints
+from app.api.v1.endpoints import analytics, auth, citizens, complaints, public
 from app.db.base import Base
 from app.db.migrations import migrate
 from app.db.session import SessionLocal, engine
@@ -50,6 +50,8 @@ async def security_headers(request: Request, call_next):
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
 app.include_router(citizens.router, prefix="/api/v1/citizens", tags=["Citizens"])
+app.include_router(public.router, prefix="/api/v1/complaints/public", tags=["Public transparency"])
+app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["Staff analytics"])
 app.include_router(complaints.router, prefix="/api/v1/complaints", tags=["Complaints"])
 app.mount("/static", StaticFiles(directory="static", check_dir=False), name="static")
 

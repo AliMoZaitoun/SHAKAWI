@@ -1,7 +1,9 @@
 import { complaintDownloadUrl } from "./api.js";
 import { complaints, loadComplaints, updateComplaintStatus, retryNotification, statusLabels, priorityLabels, entityLabel } from "./complaints.js";
+import { logoutUser } from "./auth.js";
 
 const byId = (id) => document.getElementById(id);
+let previousStatus = null;
 
 function attachmentLink(file) {
   const link = document.createElement("a");
@@ -39,10 +41,20 @@ export function updateSliderProgress(value) {
 }
 export function toggleResolutionFields() {
   const resolved = byId("p-status").value === "RESOLVED";
-  byId("resolution-fields").classList.toggle("hidden", !resolved);
-  if (resolved && Number(byId("p-progress").value) < 100) {
-    byId("p-progress").value = 100; updateSliderProgress(100);
+  const slider = byId("p-progress");
+  const nextStatus = byId("p-status").value;
+  if (previousStatus === "RESOLVED" && !resolved) {
+    slider.value = "0";
+    updateSliderProgress(0);
   }
+  slider.max = resolved ? "100" : "99";
+  slider.disabled = resolved;
+  if (resolved) {
+    slider.value = "100";
+    updateSliderProgress(100);
+  }
+  previousStatus = nextStatus;
+  byId("resolution-fields").classList.toggle("hidden", !resolved);
 }
 export function populateProcessDropdown(selectedId = null) {
   const select = byId("process-select-id"); select.replaceChildren();
@@ -78,8 +90,12 @@ export function loadComplaintForProcessing() {
   const files = byId("p-attachments-container"); files.replaceChildren();
   (complaint.attachments || []).forEach((file) => files.append(attachmentLink(file)));
   byId("p-status").value = complaint.status || "PENDING";
+  previousStatus = complaint.status || "PENDING";
   byId("p-priority").value = complaint.priority || "MEDIUM";
-  const progress = Math.max(0, Math.min(100, Number(complaint.progress) || 0));
+  const resolved = complaint.status === "RESOLVED";
+  const progress = resolved ? 100 : Math.max(0, Math.min(99, Number(complaint.progress) || 0));
+  byId("p-progress").max = resolved ? "100" : "99";
+  byId("p-progress").disabled = resolved;
   byId("p-progress").value = progress; updateSliderProgress(progress);
   byId("p-employee-note").value = "";
   byId("p-report").value = complaint.resolution_report || "";
@@ -104,6 +120,9 @@ export async function saveComplaintProcessing() {
     const notifyText = notify?.message || (notify?.status ? `حالة الإشعار: ${notify.status}` : "");
     window.showNotice([result.message, notifyText].filter(Boolean).join(" — ") || "تم حفظ التحديث.", notify?.status === "failed" ? "info" : "success");
     await loadComplaints(); populateProcessDropdown(id);
-  } catch (error) { window.showNotice(`لم يتم حفظ التحديث: ${error.message}`, "error"); }
+  } catch (error) {
+    if (error.status === 401) await logoutUser();
+    else window.showNotice(`لم يتم حفظ التحديث: ${error.message}`, "error");
+  }
   finally { button.disabled = false; }
 }

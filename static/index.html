@@ -82,12 +82,18 @@
         <button onclick="switchTab('view')" id="tab-view" class="tab-btn">
           <i class="fa-solid fa-magnifying-glass"></i> استعلام ومتابعة
         </button>
+        <button onclick="switchTab('public')" id="tab-public" class="tab-btn">
+          <i class="fa-solid fa-earth-arabia"></i> الشكاوى العامة
+        </button>
         <span class="border-r border-gray-200 my-2 mx-1"></span>
         <button onclick="switchTab('list')" id="tab-list" class="tab-btn staff-tab">
           <i class="fa-solid fa-list-check"></i> سجل الشكاوى
         </button>
         <button onclick="switchTab('process')" id="tab-process" class="tab-btn staff-tab">
           <i class="fa-solid fa-user-gear"></i> معالجة الشكوى
+        </button>
+        <button onclick="switchTab('statistics')" id="tab-statistics" class="tab-btn staff-tab">
+          <i class="fa-solid fa-table-list"></i> الإحصائيات
         </button>
       </nav>
     </div>
@@ -137,7 +143,7 @@
               <label class="field-label" for="c-phone">
                 رقم الموبايل <span class="required">*</span>
               </label>
-              <input id="c-phone" type="tel" maxlength="10" placeholder="0912345678" dir="ltr" class="field text-left font-mono" required>
+              <input id="c-phone" type="tel" maxlength="10" placeholder="0917654321" dir="ltr" class="field text-left font-mono" required>
               <p id="phone-error" class="text-xs text-red-600 mt-1 hidden">
                 يجب أن يتكون الرقم من 10 أرقام ويبدأ بـ 09.
               </p>
@@ -194,11 +200,19 @@
               <div>
                 <label class="field-label" for="comp-type">نوع الشكوى</label>
                 <select id="comp-type" class="field">
-                  <option value="عامة">عامة</option>
-                  <option value="خاصة">خاصة</option>
+                  <option value="طرق">طرق</option>
+                  <option value="مخالفات بناء">مخالفات بناء</option>
+                  <option value="حفريات">حفريات</option>
+                  <option value="فتح طرق">فتح طرق</option>
+                  <option value="أخرى">أخرى</option>
                 </select>
               </div>
             </div>
+            <label class="privacy-check" for="comp-visibility">
+              <input id="comp-visibility" type="checkbox" class="mt-1">
+              <span><strong class="block">نشر الشكوى للعامة (اختياري)</strong>
+                تبقى الشكوى خاصة افتراضياً. عند النشر، سيظهر العنوان والتفاصيل والتصنيف والجهة والحالة وملاحظات الحل للجميع. لا تكتب أي بيانات شخصية أو معلومات تعريفية في العنوان أو التفاصيل أو الملاحظات العامة.</span>
+            </label>
             <div>
               <label class="field-label" for="comp-attachments">مرفقات الشكوى (صور / مستندات)</label>
               <input id="comp-attachments" type="file" multiple class="file-field">
@@ -215,6 +229,27 @@
             </div>
           </div>
         </div>
+      </div>
+    </section>
+    <section id="sec-public" class="tab-content hidden">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
+        <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
+          <div><h2 class="text-xl font-bold text-brand-dark">الشكاوى المنشورة</h2><p class="text-sm text-gray-500 mt-1">عرض الشكاوى التي اختار أصحابها نشرها، دون بيانات شخصية أو مرفقات.</p></div>
+          <button type="button" id="public-refresh" class="secondary-button" onclick="loadPublicComplaints()">تحديث القائمة</button>
+        </div>
+        <div class="bg-brand-bg p-4 rounded-xl mb-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div><label class="field-label" for="public-category">التصنيف</label><select id="public-category" class="field"><option value="">كل التصنيفات</option><option>طرق</option><option>مخالفات بناء</option><option>حفريات</option><option>فتح طرق</option><option>أخرى</option></select></div>
+          <div><label class="field-label" for="public-status">الحالة</label><select id="public-status" class="field"><option value="">كل الحالات</option><option value="PENDING">جديدة</option><option value="IN_PROGRESS">جاري العمل</option><option value="RESOLVED">تمت المعالجة</option><option value="REJECTED">مرفوضة</option></select></div>
+          <div><label class="field-label" for="public-directorate">الجهة</label><select id="public-directorate" class="field"><option value="">كل الجهات</option><option value="1">المحافظة</option><option value="2">مديرية الخدمات الفنية</option></select></div>
+        </div>
+        <div id="public-state" class="state-panel" role="status" aria-live="polite">جارٍ تحميل الشكاوى المنشورة…</div>
+        <div id="public-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+        <div class="flex items-center justify-between gap-3 mt-6">
+          <button id="public-prev" class="secondary-button" type="button" onclick="changePublicPage(-1)">السابق</button>
+          <span id="public-page-label" class="text-sm text-gray-500" aria-live="polite"></span>
+          <button id="public-next" class="secondary-button" type="button" onclick="changePublicPage(1)">التالي</button>
+        </div>
+        <article id="public-detail" class="hidden public-detail" aria-live="polite"></article>
       </div>
     </section>
     <section id="sec-view" class="tab-content hidden">
@@ -310,7 +345,7 @@
             <label class="field-label" for="filter-priority">الأولوية</label>
             <select id="filter-priority" onchange="renderComplaintsTable()" class="field">
               <option value="الكل">جميع الأولويات</option>
-              <option value="MEDIUM">عادي</option>
+              <option value="LOW">منخفضة</option><option value="MEDIUM">عادي</option><option value="HIGH">عالية</option>
               <option value="URGENT">مستعجل</option>
             </select>
           </div>
@@ -318,9 +353,12 @@
             <label class="field-label" for="filter-type">النوع</label>
             <select id="filter-type" onchange="renderComplaintsTable()" class="field">
               <option value="الكل">جميع الأنواع</option>
-              <option value="عامة">عامة</option>
-              <option value="خاصة">خاصة</option>
+              <option value="طرق">طرق</option><option value="مخالفات بناء">مخالفات بناء</option><option value="حفريات">حفريات</option><option value="فتح طرق">فتح طرق</option><option value="أخرى">أخرى</option>
             </select>
+          </div>
+          <div>
+            <label class="field-label" for="filter-visibility">الخصوصية</label>
+            <select id="filter-visibility" onchange="renderComplaintsTable()" class="field"><option value="الكل">كل الشكاوى</option><option value="public">منشورة للعامة</option><option value="private">خاصة</option></select>
           </div>
         </div>
         <div class="overflow-x-auto">
@@ -331,6 +369,7 @@
                 <th class="p-3">عنوان الشكوى</th>
                 <th class="p-3">مقدم الشكوى</th>
                 <th class="p-3">النوع</th>
+                <th class="p-3">الخصوصية</th>
                 <th class="p-3">الأولوية</th>
                 <th class="p-3">الحالة</th>
                 <th class="p-3">الإنجاز</th>
@@ -342,11 +381,34 @@
         </div>
       </div>
     </section>
+    <section id="sec-statistics" class="tab-content hidden">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
+        <div class="mb-6"><h2 class="text-xl font-bold text-brand-dark">إحصائيات الشكاوى</h2><p class="text-sm text-gray-500 mt-1">بيانات مجمعة ضمن نطاق صلاحية حسابك، محسوبة من الخدمة الإحصائية الرسمية.</p></div>
+        <div class="bg-brand-bg p-4 rounded-xl mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+          <div><label class="field-label" for="stats-start">من تاريخ</label><input id="stats-start" type="date" class="field"></div>
+          <div><label class="field-label" for="stats-end">إلى تاريخ</label><input id="stats-end" type="date" class="field"></div>
+          <div id="stats-directorate-wrap"><label class="field-label" for="stats-directorate">الجهة</label><select id="stats-directorate" class="field"><option value="">كل الجهات</option><option value="1">المحافظة</option><option value="2">مديرية الخدمات الفنية</option></select></div>
+          <button id="stats-load" type="button" onclick="loadStatistics()" class="primary-button sm:col-span-3">تطبيق الفلاتر</button>
+        </div>
+        <div id="stats-state" class="state-panel" role="status" aria-live="polite">اختر الفترة لعرض الإحصائيات.</div>
+        <div id="stats-results" class="hidden space-y-6">
+          <div id="stats-summary" class="grid grid-cols-1 sm:grid-cols-3 gap-3"></div>
+          <p id="stats-scope" class="text-sm text-gray-500"></p>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <section><h3 class="font-bold text-brand-dark mb-2">حسب الحالة</h3><div id="stats-status"></div></section>
+            <section><h3 class="font-bold text-brand-dark mb-2">حسب التصنيف</h3><div id="stats-category"></div></section>
+            <section><h3 class="font-bold text-brand-dark mb-2">حسب الأولوية</h3><div id="stats-priority"></div></section>
+            <section><h3 class="font-bold text-brand-dark mb-2">الاتجاه اليومي</h3><div id="stats-daily"></div></section>
+          </div>
+          <p id="stats-definitions" class="text-xs text-gray-500 border-t pt-4 leading-relaxed"></p>
+        </div>
+      </div>
+    </section>
     <section id="sec-process" class="tab-content hidden">
       <div class="max-w-4xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
         <div class="border-b pb-4 mb-6">
           <h2 class="text-xl font-bold text-brand-dark">لوحة معالجة الشكوى</h2>
-          <p class="text-sm text-gray-500">تحديث الحالة والأولوية ونسبة الإنجاز والتقرير</p>
+              <p class="text-sm text-gray-500">تحديث الحالة والأولوية والإنجاز التقديري والتقرير</p>
         </div>
         <div class="mb-6">
           <label class="field-label" for="process-select-id">اختر الشكوى</label>
@@ -381,24 +443,28 @@
             <div>
               <label class="field-label" for="p-priority">الأولوية</label>
               <select id="p-priority" class="field">
+                <option value="LOW">منخفضة</option>
                 <option value="MEDIUM">عادي</option>
+                <option value="HIGH">عالية</option>
                 <option value="URGENT">مستعجل</option>
               </select>
             </div>
           </div>
           <div class="bg-white p-4 rounded-xl border space-y-2">
             <div class="flex justify-between items-center text-sm font-bold">
-              <label for="p-progress">نسبة المعالجة</label>
+                <label for="p-progress">الإنجاز التقديري الذي يحدده الموظف</label>
               <span id="p-progress-text" class="text-brand-accent font-mono">0%</span>
             </div>
             <input type="range" id="p-progress" min="0" max="100" step="1" value="0" oninput="updateSliderProgress(this.value)" class="custom-slider">
-            <div class="flex justify-between text-[10px] text-gray-400 font-mono">
-              <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
+              <p class="text-xs text-gray-500">الحالة «تمت المعالجة» تثبت الإنجاز عند 100%. الحالات الأخرى من 0 إلى 99%.</p>
+              <div class="flex justify-between text-[10px] text-gray-400 font-mono">
+                <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>99%</span>
             </div>
           </div>
           <div>
             <label class="field-label" for="p-employee-note">ملاحظة عامة جديدة للمواطن (اختياري)</label>
             <textarea id="p-employee-note" rows="2" placeholder="لن تُحفظ الملاحظات إلا عند حفظ التحديث" class="field"></textarea>
+            <p class="text-xs text-gray-500 mt-1">إذا كانت الشكوى منشورة، قد تظهر هذه الملاحظة للعامة. لا تكتب بيانات شخصية أو تعريفية.</p>
             <div id="p-notes-history" class="mt-3 space-y-3"></div>
           </div>
           <div id="resolution-fields" class="hidden space-y-4 pt-4 border-t">
@@ -448,6 +514,15 @@
       </div>
       <p id="login-error" class="text-sm text-red-700 hidden"></p>
       <button class="primary-button w-full" type="submit">تسجيل الدخول</button>
+    </form>
+  </dialog>
+  <dialog id="password-dialog" class="login-dialog">
+    <form id="password-form" class="space-y-4">
+      <div class="flex justify-between items-start"><div><h2 class="text-xl font-bold text-brand-dark">تغيير كلمة المرور</h2><p class="text-sm text-gray-500 mt-1">اختر كلمة مرور من 12 إلى 256 حرفاً.</p></div><button type="button" id="close-password" class="text-gray-500 p-2" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button></div>
+      <div><label class="field-label" for="current-password">كلمة المرور الحالية</label><input id="current-password" type="password" autocomplete="current-password" class="field" required></div>
+      <div><label class="field-label" for="new-password">كلمة المرور الجديدة</label><input id="new-password" type="password" autocomplete="new-password" minlength="12" maxlength="256" class="field" required></div>
+      <p id="password-error" class="text-sm text-red-700 hidden" role="alert"></p>
+      <div class="dialog-actions"><button type="button" id="cancel-password" class="secondary-button">إلغاء</button><button type="submit" class="primary-button">حفظ كلمة المرور</button></div>
     </form>
   </dialog>
   <script type="module" src="/static/js/app.js"></script>

@@ -17,16 +17,36 @@ class LoginInput(BaseModel):
     password: str = Field(min_length=1, max_length=256)
 
 
+class PasswordChange(BaseModel):
+    current_password: str = Field(min_length=1, max_length=256)
+    new_password: str = Field(min_length=12, max_length=256)
+
+
+def is_production():
+    return os.environ.get("REPLIT_DEPLOYMENT") == "1" or os.environ.get("APP_ENV") == "production"
+
+
+def demo_enabled():
+    return os.environ.get("ENABLE_DEMO_ACCOUNTS") == "1" and not is_production()
+
+
 def employee_data(employee):
     return {
         "id": employee.id, "username": employee.username,
         "full_name": employee.full_name, "role": employee.role.value,
         "directorate_id": employee.directorate_id,
+        "is_demo": employee.is_demo, "password_version": employee.password_version,
     }
 
 
 def provision_accounts(db: Session):
     """Create missing accounts only; never overwrite existing passwords at startup."""
+    if is_production():
+        if os.environ.get("ENABLE_DEMO_ACCOUNTS") == "1":
+            raise RuntimeError("Demo accounts must be disabled before production")
+        if any(employee.is_demo or verify_password("123456", employee.hashed_password)
+               for employee in db.query(Employee).all()):
+            raise RuntimeError("Change all temporary demo passwords before production")
     for username, secret_key, role, directorate_id, name in [
         ("governor", "GOVERNOR_PASSWORD", UserRole.GOVERNOR, None, "حساب المحافظة"),
         ("services", "SERVICES_PASSWORD", UserRole.EMPLOYEE, 2, "حساب الخدمات"),
@@ -34,20 +54,26 @@ def provision_accounts(db: Session):
         if db.query(Employee).filter_by(username=username).first():
             continue
         password = os.environ.get(secret_key)
+        is_demo = False
+        if not password and demo_enabled():
+            password = "123456"
+            is_demo = True
         if not password:
             continue
-        if len(password) < 12:
+        if not is_demo and len(password) < 12:
             raise RuntimeError(f"{secret_key} must have at least 12 characters")
         next_id = (db.query(func.max(Employee.id)).scalar() or 0) + 1
         db.add(Employee(id=next_id, username=username, full_name=name,
                         hashed_password=hash_password(password), role=role,
+                         is_demo=is_demo,
                         directorate_id=directorate_id))
         db.commit()
 
 
 @router.get("/config")
 def auth_config(db: Session = Depends(get_db)):
-    return {"configured": db.query(Employee).count() > 0}
+    return {"configured": db.query(Employee).count() > 0,
+            "demo_mode": db.query(Employee).filter_by(is_demo=True).count() > 0}
 
 
 @router.post("/login")
@@ -62,6 +88,7 @@ def login(data: LoginInput, request: Request, db: Session = Depends(get_db)):
         raise HTTPException(401, "اسم المستخدم أو كلمة المرور غير صحيحة")
     request.session.clear()
     request.session["employee_id"] = employee.id
+    request.session["password_version"] = employee.password_version
     return employee_data(employee)
 
 
@@ -74,3 +101,19 @@ def me(employee=Depends(current_employee)):
 def logout(request: Request):
     request.session.clear()
     return {"ok": True}
+
+
+@router.post("/change-password")
+def change_password(data: PasswordChange, request: Request,
+                    employee=Depends(current_employee), db: Session = Depends(get_db)):
+    check_login_rate(request)
+    if not verify_password(data.current_password, employee.hashed_password):
+        raise HTTPException(400, "كلمة المرور الحالية غير صحيحة")
+    if data.current_password == data.new_password:
+        raise HTTPException(422, "اختر كلمة مرور مختلفة")
+    employee.hashed_password = hash_password(data.new_password)
+    employee.is_demo = False
+    employee.password_version += 1
+    db.commit()
+    request.session["password_version"] = employee.password_version
+    return employee_data(employee)

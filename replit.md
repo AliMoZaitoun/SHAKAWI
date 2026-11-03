@@ -44,11 +44,28 @@ Configure these in Replit **Secrets**, never in source, chat, or a committed `.e
 - `SERVICES_PASSWORD`: at least 12 characters, provisions missing `services`.
 - `BOT_TOKEN`: newly rotated Telegram BotFather token.
 
+### Requested temporary development accounts
+
+The user explicitly requested temporary passwords for testing. Development
+configuration sets `ENABLE_DEMO_ACCOUNTS=1` in the development environment only.
+When this flag is on, missing `governor` and `services` accounts are provisioned
+with the requested temporary password `123456`, hashed with scrypt. Existing
+accounts are never reset. Explicit strong password secrets take precedence.
+This is intentionally weak and is not permission to use the app with real data
+or publish it. The UI shows a warning and a **تغيير كلمة المرور** action.
+Changing a password requires the current password and a new password of at least
+12 characters; it invalidates other sessions and retains the current session.
+
+Production startup refuses a demo-enabled flag or any account still marked as
+demo (and checks for the known temporary password hash). Change both passwords
+and disable the demo flag before production. Production is detected by
+`REPLIT_DEPLOYMENT=1` or explicit `APP_ENV=production`.
+
 Restart the workflow after configuring secrets. Startup hashes passwords with
 scrypt and creates missing accounts only; it never silently resets existing
-passwords when environment values change. Password rotation for existing
-accounts requires an explicit administrative procedure; editing a startup secret
-is not a password reset.
+passwords when environment values change. Use the authenticated
+**تغيير كلمة المرور** account action to rotate an existing password; editing a
+startup secret is not a password reset.
 
 Sessions are HttpOnly, expire after eight hours, and use secure cookies in the
 hosted Replit environment. Unsafe requests reject foreign browser origins.
@@ -93,3 +110,39 @@ a citizen who has started the bot.
 
 The inherited Tailwind/font/icon CDN dependencies are retained for this MVP.
 Demo file exports were removed rather than claiming nonexistent downloads.
+
+## Transparency and analytics
+
+`is_public` is an independent opt-in flag, not a complaint category. Existing
+records migrate as private. Website submission defaults to private; the current
+bot explicitly creates private complaints and tells the citizen this.
+The bot and website use matching topic categories for new submissions.
+
+Public browsing uses `/api/v1/complaints/public` with pagination and category,
+status, and directorate filters, and `/api/v1/complaints/public/{id}` for a detail.
+Both queries enforce `is_public` in SQL. Public responses are allow-listed and
+exclude the tracking code, citizen fields, coordinates, attachments, internal
+notes, staff authors, and notification metadata. Known owner identity strings,
+tracking codes, emails, and phone/ID-like numbers are redacted from public text.
+Citizens are warned not to put personal data in public text. Automatic redaction
+is not a general-purpose review of all possible third-party personal information.
+Secret-code tracking remains separate and is not used to fetch public details.
+
+Staff analytics are available at `/api/v1/analytics` and in the statistics tab.
+The server applies directorate authorization before all aggregations.
+The default period is the last 30 days; filters include both endpoint days in
+UTC and allow a maximum span of 366 days. Charts are not required: the UI uses
+summary cards and accessible tables for statuses, categories, priorities and
+daily counts (including zero days).
+
+Resolution rate = resolved complaints / all complaints in the selected creation
+date range × 100, including rejected complaints in the denominator. Estimated
+average progress is a different metric based on staff-entered percentages.
+There is no fabricated resolution-time metric. `RESOLVED` forces 100%, other
+states reject explicit 100%, and reopening without a new estimate resets to 0%.
+
+For interactive regression checks, install development requirements and a
+Chromium executable, then run `PYTHONPATH=. python tests/browser_flow.py`.
+This starts an isolated temporary database and test server, checks public views
+on desktop/mobile, both roles, statistics, logout, and password changes.
+Screenshots/logs are generated under ignored `generated-artifacts/`.

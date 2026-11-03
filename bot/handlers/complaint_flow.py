@@ -264,6 +264,10 @@ async def process_category(callback: CallbackQuery, state: FSMContext):
     lang = data.get("lang", "ar")
     
     category_map = {
+        "cat_roads": "طرق",
+        "cat_construction": "مخالفات بناء",
+        "cat_digging": "حفريات",
+        "cat_opening_roads": "فتح طرق",
         "cat_outage": "انقطاع خدمة",
         "cat_technical": "عطل فني",
         "cat_admin": "شكوى إدارية",
@@ -350,6 +354,7 @@ async def process_details(message: Message, state: FSMContext):
         "directorate_id": data["directorate_id"],
         "title": data["title"],
         "details": full_details,
+        "is_public": False,
         "category": data["category"],
         "priority": "MEDIUM",
         "latitude": data.get("latitude"),
@@ -363,6 +368,11 @@ async def process_details(message: Message, state: FSMContext):
                     res_data = await response.json()
                     complaint_id = res_data.get("id")
                     tracking_code = res_data.get("tracking_code")
+                    await message.answer(
+                        "خصوصية الشكوى: خاصة. لن تُنشر في دليل الشكاوى العامة."
+                        if lang == "ar" else
+                        "Privacy: private. This complaint will not appear in the public directory."
+                    )
                     
                     await state.update_data(complaint_id=complaint_id, tracking_code=tracking_code)
                     

@@ -56,6 +56,9 @@ def current_employee(request: Request, db: Session = Depends(get_db)) -> Employe
     employee = db.get(Employee, request.session.get("employee_id")) if request.session.get("employee_id") else None
     if not employee:
         raise HTTPException(401, "يرجى تسجيل الدخول")
+    if request.session.get("password_version") != employee.password_version:
+        request.session.clear()
+        raise HTTPException(401, "تغيرت كلمة المرور، يرجى تسجيل الدخول مجددًا")
     return employee
 
 
