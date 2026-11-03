@@ -1,0 +1,10 @@
+.env
+.pythonlibs/
+__pycache__/
+*.pyc
+.pytest_cache/
+/generated-artifacts/
+/uploads/*
+!uploads/.gitkeep
+*.db
+*.db-*

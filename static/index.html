@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>منصة شكوى | SHAKWA</title>
+  <link rel="icon" href="data:,">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              dark: "#3B4B32",
+              primary: "#4A5D3F",
+              light: "#657B57",
+              accent: "#B88D4B",
+              gold: "#D4A860",
+              bg: "#F7F8F4",
+              card: "#FFFFFF"
+            }
+          },
+          fontFamily: {
+            cairo: ["Cairo", "sans-serif"]
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body class="bg-brand-bg text-gray-800 min-h-screen flex flex-col">
+  <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-20">
+        <button
+          class="flex items-center gap-4 cursor-pointer text-right"
+          onclick="switchTab('submit')"
+          aria-label="العودة لتقديم شكوى">
+          <svg class="w-12 h-12" viewBox="0 0 100 100" fill="none" aria-hidden="true">
+            <path
+              d="M20 30C20 19 29 10 40 10H60C71 10 80 19 80 30V50C80 61 71 70 60 70H45L25 85V70C22 70 20 65 20 50V30Z"
+              stroke="#3B4B32"
+              stroke-width="8"
+              stroke-linecap="round"
+              stroke-linejoin="round"/>
+            <path
+              d="M35 35H65M35 48H55"
+              stroke="#3B4B32"
+              stroke-width="6"
+              stroke-linecap="round"/>
+            <path
+              d="M40 55L52 67L82 32"
+              stroke="#B88D4B"
+              stroke-width="10"
+              stroke-linecap="round"
+              stroke-linejoin="round"/>
+          </svg>
+          <span>
+            <strong class="block text-2xl text-brand-dark">
+              شكوى
+              <small class="text-brand-accent text-sm font-normal tracking-widest">SHAKWA</small>
+            </strong>
+            <small class="text-gray-500">المنصة الحكومية الموحدة للشكاوى</small>
+          </span>
+        </button>
+        <div class="flex items-center gap-3">
+          <div class="hidden sm:flex items-center gap-2 bg-brand-bg px-3 py-1.5 rounded-full border border-gray-200 text-xs font-semibold text-brand-dark">
+            <span class="status-dot"></span>
+            نظام الشكاوى المباشر
+          </div>
+          <div id="auth-controls"></div>
+        </div>
+      </div>
+      <nav class="flex border-t border-gray-100 overflow-x-auto">
+        <button onclick="switchTab('submit')" id="tab-submit" class="tab-btn active">
+          <i class="fa-solid fa-pen-to-square"></i> تقديم شكوى
+        </button>
+        <button onclick="switchTab('view')" id="tab-view" class="tab-btn">
+          <i class="fa-solid fa-magnifying-glass"></i> استعلام ومتابعة
+        </button>
+        <span class="border-r border-gray-200 my-2 mx-1"></span>
+        <button onclick="switchTab('list')" id="tab-list" class="tab-btn staff-tab">
+          <i class="fa-solid fa-list-check"></i> سجل الشكاوى
+        </button>
+        <button onclick="switchTab('process')" id="tab-process" class="tab-btn staff-tab">
+          <i class="fa-solid fa-user-gear"></i> معالجة الشكوى
+        </button>
+      </nav>
+    </div>
+  </header>
+  <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div id="notice" class="hidden notice" role="status"></div>
+    <section id="sec-submit" class="tab-content">
+      <div class="max-w-3xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="bg-brand-dark text-white p-6 text-center">
+          <h2 class="text-xl font-bold">تقديم شكوى جديدة</h2>
+          <p class="text-sm text-gray-200 mt-1">يرجى تعبئة البيانات الشخصية وتفاصيل الشكوى</p>
+        </div>
+        <div class="bg-gray-50 border-b border-gray-200 px-6 py-4">
+          <div class="flex items-center justify-center max-w-md mx-auto">
+            <div class="flex flex-col items-center">
+              <div id="circle-step-1" class="step-circle active">1</div>
+              <span class="text-xs font-semibold mt-1">البيانات الشخصية</span>
+            </div>
+            <div id="line-step" class="flex-1 h-1 bg-gray-300 mx-4"></div>
+            <div class="flex flex-col items-center">
+              <div id="circle-step-2" class="step-circle">2</div>
+              <span class="text-xs font-semibold text-gray-500 mt-1">تفاصيل الشكوى</span>
+            </div>
+          </div>
+        </div>
+        <div class="p-6 sm:p-8">
+          <div id="form-step-1" class="space-y-5">
+            <div class="bg-blue-50 border-r-4 border-blue-500 p-4 rounded text-sm text-blue-800">
+              <i class="fa-solid fa-user-shield ml-1"></i>
+              <strong>الخطوة الأولى:</strong>
+              أدخل بياناتك بدقة وأرفق صورة الهوية الشخصية.
+            </div>
+            <div>
+              <label class="field-label" for="c-first-name">
+                الاسم الأول <span class="required">*</span>
+              </label>
+              <input id="c-first-name" type="text" minlength="2" maxlength="50" autocomplete="given-name" class="field" required>
+              <p class="field-help">من حرفين إلى 50 حرفاً</p>
+            </div>
+            <div>
+              <label class="field-label" for="c-last-name">
+                اسم العائلة <span class="required">*</span>
+              </label>
+              <input id="c-last-name" type="text" minlength="2" maxlength="50" autocomplete="family-name" class="field" required>
+            </div>
+            <div>
+              <label class="field-label" for="c-phone">
+                رقم الموبايل <span class="required">*</span>
+              </label>
+              <input id="c-phone" type="tel" maxlength="10" placeholder="0912345678" dir="ltr" class="field text-left font-mono" required>
+              <p id="phone-error" class="text-xs text-red-600 mt-1 hidden">
+                يجب أن يتكون الرقم من 10 أرقام ويبدأ بـ 09.
+              </p>
+            </div>
+            <div>
+              <label class="field-label" for="c-national-id">
+                الرقم الوطني <span class="required">*</span>
+              </label>
+              <input id="c-national-id" type="text" maxlength="11" inputmode="numeric" dir="ltr" class="field font-mono" required>
+              <p id="nid-error" class="text-xs text-red-600 mt-1 hidden">
+                يجب إدخال 11 رقماً بالضبط.
+              </p>
+            </div>
+            <div>
+              <label class="field-label" for="c-id-card">
+                صورة الهوية الشخصية <span class="required">* إجباري</span>
+              </label>
+              <input id="c-id-card" type="file" accept="image/*" class="file-field" required>
+            </div>
+            <button type="button" onclick="goToStep2()" class="primary-button w-full">
+              المتابعة للخطوة الثانية <i class="fa-solid fa-arrow-left mr-2"></i>
+            </button>
+          </div>
+          <div id="form-step-2" class="hidden space-y-5">
+            <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 flex justify-between items-center text-xs gap-3">
+              <span>
+                <strong>مقدم الشكوى:</strong>
+                <span id="summary-citizen-name" class="text-brand-dark font-bold"></span>
+              </span>
+              <button type="button" onclick="goToStep1()" class="text-brand-accent font-bold">
+                تعديل البيانات
+              </button>
+            </div>
+            <div>
+              <label class="field-label" for="comp-title">
+                عنوان الشكوى <span class="required">*</span>
+              </label>
+              <input id="comp-title" type="text" minlength="5" class="field" required>
+            </div>
+            <div>
+              <label class="field-label" for="comp-details">
+                تفاصيل الشكوى <span class="required">*</span>
+              </label>
+              <textarea id="comp-details" rows="4" minlength="10" class="field" required></textarea>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="field-label" for="comp-entity">الجهة المشتكى عليها</label>
+                <select id="comp-entity" class="field">
+                  <option value="2">مديرية الخدمات الفنية</option>
+                  <option value="1">المحافظة</option>
+                </select>
+              </div>
+              <div>
+                <label class="field-label" for="comp-type">نوع الشكوى</label>
+                <select id="comp-type" class="field">
+                  <option value="عامة">عامة</option>
+                  <option value="خاصة">خاصة</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="field-label" for="comp-attachments">مرفقات الشكوى (صور / مستندات)</label>
+              <input id="comp-attachments" type="file" multiple class="file-field">
+            </div>
+            <div class="bg-amber-50 border-r-4 border-amber-400 p-3 rounded text-sm text-amber-900">
+              إشعارات Telegram تتطلب إرسال الشكوى أو ربط الهوية عبر البوت.
+              الإرسال من الموقع لا يربط حساب Telegram جديداً.
+            </div>
+            <div class="flex gap-3 pt-2">
+              <button type="button" onclick="goToStep1()" class="secondary-button w-1/3">السابق</button>
+              <button type="button" onclick="submitComplaintForm()" id="submit-complaint" class="primary-button flex-1">
+                <i class="fa-solid fa-paper-plane ml-2"></i> إرسال الشكوى
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section id="sec-view" class="tab-content hidden">
+      <div class="max-w-3xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
+        <div class="text-center max-w-md mx-auto mb-8">
+          <h2 class="text-xl font-bold text-brand-dark">استعلام ومتابعة حالة شكوى</h2>
+          <p class="text-sm text-gray-500 mt-1">أدخل رمز المتابعة لمعرفة حالة الإنجاز</p>
+          <div class="flex gap-2 mt-4">
+            <input id="search-code-input" type="text" placeholder="مثال: SHK-1001" class="field flex-1 text-center uppercase font-mono">
+            <button onclick="searchComplaint()" id="track-button" class="primary-button">استعلام</button>
+          </div>
+        </div>
+        <div id="view-card" class="hidden border border-gray-200 rounded-xl overflow-hidden">
+          <div class="bg-brand-bg p-4 border-b flex justify-between items-center flex-wrap gap-2">
+            <div>
+              <span class="text-xs text-gray-500">رمز الشكوى</span>
+              <h3 id="v-code" class="text-lg font-bold text-brand-dark font-mono"></h3>
+            </div>
+            <div id="v-status-badge"></div>
+          </div>
+          <div class="p-6 space-y-6">
+            <div>
+              <span id="v-type" class="text-xs font-semibold px-2.5 py-0.5 rounded bg-gray-100"></span>
+              <span id="v-priority" class="text-xs font-semibold px-2.5 py-0.5 rounded mr-1"></span>
+              <h2 id="v-title" class="text-xl font-bold mt-2"></h2>
+              <p id="v-details" class="text-sm text-gray-600 mt-2 leading-relaxed bg-gray-50 p-3 rounded-lg"></p>
+            </div>
+            <div>
+              <div class="flex justify-between text-xs font-bold mb-1">
+                <span>نسبة معالجة الشكوى:</span>
+                <span id="v-progress-num" class="text-brand-accent font-mono"></span>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                <div id="v-progress-bar" class="bg-brand-accent h-3 rounded-full" style="width:0%"></div>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs border-t border-b border-gray-100 py-4">
+              <div>
+                <strong class="text-gray-500">الجهة المشتكى عليها:</strong>
+                <span id="v-entity"></span>
+              </div>
+              <div>
+                <strong class="text-gray-500">تاريخ تقديم الشكوى:</strong>
+                <span id="v-date"></span>
+              </div>
+              <div class="sm:col-span-2">
+                <strong class="text-gray-500 block mb-1">المرفقات:</strong>
+                <div id="v-attachments-container" class="flex flex-wrap gap-2"></div>
+              </div>
+            </div>
+            <div id="v-note-box" class="hidden bg-amber-50 border-r-4 border-amber-400 p-3 rounded">
+              <strong>سجل التحديثات:</strong>
+              <div id="v-notes-history" class="mt-2 space-y-3"></div>
+            </div>
+            <div id="v-resolution-box" class="hidden bg-green-50 border border-green-200 p-4 rounded-xl">
+              <h4 class="font-bold text-green-900 text-sm">نتيجة المعالجة النهائية</h4>
+              <p id="v-report" class="text-xs text-green-800 leading-relaxed mt-2"></p>
+            </div>
+            <div class="pt-2 flex items-center justify-between bg-gray-50 p-3 rounded-lg text-xs">
+              <span class="text-gray-500">رابط المتابعة:</span>
+              <button onclick="copyComplaintLink()" class="text-brand-accent font-bold">
+                <i class="fa-solid fa-copy"></i> نسخ الرابط
+              </button>
+            </div>
+          </div>
+        </div>
+        <div id="view-not-found" class="hidden text-center py-8 text-gray-500"></div>
+      </div>
+    </section>
+    <section id="sec-list" class="tab-content hidden">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
+        <div class="flex justify-between items-center flex-wrap gap-4 mb-6">
+          <div>
+            <h2 class="text-xl font-bold text-brand-dark">سجل الشكاوى (لوحة الموظف)</h2>
+            <p class="text-sm text-gray-500">استعرض الشكاوى المصرح لك بالوصول إليها</p>
+          </div>
+          <span class="text-xs text-gray-500">
+            إجمالي الشكاوى: <strong id="total-count" class="text-brand-dark">0</strong>
+          </span>
+        </div>
+        <div class="bg-brand-bg p-4 rounded-xl mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label class="field-label" for="filter-status">الحالة</label>
+            <select id="filter-status" onchange="renderComplaintsTable()" class="field">
+              <option value="الكل">جميع الحالات</option>
+              <option value="PENDING">جديدة</option>
+              <option value="IN_PROGRESS">جاري العمل</option>
+              <option value="RESOLVED">تمت المعالجة</option>
+              <option value="REJECTED">مرفوضة</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label" for="filter-priority">الأولوية</label>
+            <select id="filter-priority" onchange="renderComplaintsTable()" class="field">
+              <option value="الكل">جميع الأولويات</option>
+              <option value="MEDIUM">عادي</option>
+              <option value="URGENT">مستعجل</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label" for="filter-type">النوع</label>
+            <select id="filter-type" onchange="renderComplaintsTable()" class="field">
+              <option value="الكل">جميع الأنواع</option>
+              <option value="عامة">عامة</option>
+              <option value="خاصة">خاصة</option>
+            </select>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-right text-sm">
+            <thead>
+              <tr class="bg-gray-100 text-gray-700 text-xs border-b">
+                <th class="p-3">الرمز</th>
+                <th class="p-3">عنوان الشكوى</th>
+                <th class="p-3">مقدم الشكوى</th>
+                <th class="p-3">النوع</th>
+                <th class="p-3">الأولوية</th>
+                <th class="p-3">الحالة</th>
+                <th class="p-3">الإنجاز</th>
+                <th class="p-3">إجراء</th>
+              </tr>
+            </thead>
+            <tbody id="complaints-table-body" class="divide-y divide-gray-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+    <section id="sec-process" class="tab-content hidden">
+      <div class="max-w-4xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
+        <div class="border-b pb-4 mb-6">
+          <h2 class="text-xl font-bold text-brand-dark">لوحة معالجة الشكوى</h2>
+          <p class="text-sm text-gray-500">تحديث الحالة والأولوية ونسبة الإنجاز والتقرير</p>
+        </div>
+        <div class="mb-6">
+          <label class="field-label" for="process-select-id">اختر الشكوى</label>
+          <select id="process-select-id" onchange="loadComplaintForProcessing()" class="field"></select>
+        </div>
+        <div id="processing-card" class="bg-brand-bg rounded-xl p-6 border border-gray-200 space-y-6">
+          <div class="bg-white p-4 rounded-lg border space-y-2">
+            <div class="flex justify-between gap-3">
+              <h3 id="p-title" class="font-bold text-lg text-brand-dark"></h3>
+              <span id="p-code-badge" class="bg-brand-dark text-white text-xs px-2.5 py-1 rounded font-mono"></span>
+            </div>
+            <p id="p-details" class="text-sm text-gray-600 whitespace-pre-wrap"></p>
+            <strong class="text-xs block">المرفقات</strong>
+            <div id="p-attachments-container" class="flex flex-wrap gap-2"></div>
+            <div class="text-xs text-gray-500 flex flex-wrap gap-4 pt-2 border-t">
+              <span>المواطن: <span id="p-citizen"></span></span>
+              <span>الموبايل: <span id="p-phone"></span></span>
+              <span>الجهة: <span id="p-entity"></span></span>
+              <span>التاريخ: <span id="p-date"></span></span>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="field-label" for="p-status">حالة الشكوى</label>
+              <select id="p-status" onchange="toggleResolutionFields()" class="field">
+                <option value="PENDING">جديدة</option>
+                <option value="IN_PROGRESS">جاري العمل</option>
+                <option value="RESOLVED">تمت المعالجة</option>
+                <option value="REJECTED">مرفوضة</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label" for="p-priority">الأولوية</label>
+              <select id="p-priority" class="field">
+                <option value="MEDIUM">عادي</option>
+                <option value="URGENT">مستعجل</option>
+              </select>
+            </div>
+          </div>
+          <div class="bg-white p-4 rounded-xl border space-y-2">
+            <div class="flex justify-between items-center text-sm font-bold">
+              <label for="p-progress">نسبة المعالجة</label>
+              <span id="p-progress-text" class="text-brand-accent font-mono">0%</span>
+            </div>
+            <input type="range" id="p-progress" min="0" max="100" step="1" value="0" oninput="updateSliderProgress(this.value)" class="custom-slider">
+            <div class="flex justify-between text-[10px] text-gray-400 font-mono">
+              <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
+            </div>
+          </div>
+          <div>
+            <label class="field-label" for="p-employee-note">ملاحظة عامة جديدة للمواطن (اختياري)</label>
+            <textarea id="p-employee-note" rows="2" placeholder="لن تُحفظ الملاحظات إلا عند حفظ التحديث" class="field"></textarea>
+            <div id="p-notes-history" class="mt-3 space-y-3"></div>
+          </div>
+          <div id="resolution-fields" class="hidden space-y-4 pt-4 border-t">
+            <h4 class="font-bold text-brand-dark">نتيجة الشكوى النهائية</h4>
+            <div>
+              <label class="field-label" for="p-report">تقرير المعالجة النهائي</label>
+              <textarea id="p-report" rows="3" class="field"></textarea>
+            </div>
+          </div>
+          <button
+            onclick="saveComplaintProcessing()"
+            id="save-processing"
+            class="primary-button w-full">
+            <i class="fa-solid fa-floppy-disk ml-2"></i> حفظ التحديثات
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer class="bg-brand-dark text-white text-xs py-6 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 text-center space-y-2">
+      <p>© 2026 منصة شكوى (SHAKWA) - جميع الحقوق محفوظة لمديرية الخدمات الفنية</p>
+      <p class="text-gray-300">خدمة تقديم ومتابعة الشكاوى الحكومية</p>
+    </div>
+  </footer>
+  <dialog id="login-dialog" class="login-dialog">
+    <form id="login-form" method="dialog" class="space-y-4">
+      <div class="flex justify-between items-start">
+        <div>
+          <h2 class="text-xl font-bold text-brand-dark">دخول الموظفين</h2>
+          <p class="text-sm text-gray-500 mt-1">استخدم بيانات الدخول المعتمدة من الإدارة.</p>
+        </div>
+        <button type="button" id="close-login" class="text-gray-500 p-2" aria-label="إغلاق">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div id="login-config-warning" class="hidden bg-amber-50 text-amber-900 text-sm p-3 rounded-lg">
+        لم يتم إعداد حسابات الموظفين بعد. يرجى التواصل مع مسؤول النظام.
+      </div>
+      <div>
+        <label class="field-label" for="login-username">اسم المستخدم</label>
+        <input id="login-username" autocomplete="username" class="field" required>
+      </div>
+      <div>
+        <label class="field-label" for="login-password">كلمة المرور</label>
+        <input id="login-password" type="password" autocomplete="current-password" class="field" required>
+      </div>
+      <p id="login-error" class="text-sm text-red-700 hidden"></p>
+      <button class="primary-button w-full" type="submit">تسجيل الدخول</button>
+    </form>
+  </dialog>
+  <script type="module" src="/static/js/app.js"></script>
+</body>
+</html>

@@ -1,5 +1,4 @@
-import random
-import string
+import secrets
 from sqlalchemy.orm import Session
 from app.models.complaint import Complaint, Attachment
 from app.schemas.complaint import ComplaintCreate, AttachmentCreate
@@ -8,10 +7,7 @@ class ComplaintService:
     
     @staticmethod
     def generate_tracking_code() -> str:
-        letters = string.ascii_uppercase
-        digits = ''.join(random.choices(string.digits, k=4))
-        random_letters = ''.join(random.choices(letters, k=3))
-        return f"CMP-{random_letters}-{digits}"
+        return f"CMP-{secrets.token_hex(8).upper()}"
 
     @staticmethod
     def create_complaint(db: Session, complaint_in: ComplaintCreate) -> Complaint:
@@ -28,7 +24,9 @@ class ComplaintService:
             title=complaint_in.title,
             details=complaint_in.details,
             category=complaint_in.category,
-            priority=complaint_in.priority
+            priority=complaint_in.priority,
+            latitude=complaint_in.latitude,
+            longitude=complaint_in.longitude
         )
         
         db.add(db_complaint)

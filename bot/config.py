@@ -1,7 +1,6 @@
 import os
-from dotenv import load_dotenv
 
-load_dotenv()
-
-BOT_TOKEN = os.getenv("BOT_TOKEN", "9248290183:AAGlvRnbH8bFR1OJ1WH8D746c2pI06uxlQ8")
-API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000/api/v1")
+# Secrets are supplied by the runtime, never from committed .env files.
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
+API_BASE_URL = os.environ.get("API_BASE_URL", "http://127.0.0.1:5000/api/v1")
+API_HEADERS = {"X-Bot-Token": BOT_TOKEN}

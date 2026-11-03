@@ -1,8 +1,11 @@
 fastapi
 uvicorn
 aiogram
+aiohttp
 sqlalchemy
 psycopg2-binary
 pydantic
 pydantic-settings
 python-dotenv
+python-multipart
+itsdangerous

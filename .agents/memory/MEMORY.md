@@ -1,0 +1,1 @@
+- [Complaint access rules](complaint-access.md) — المحافظة تدير كل الشكاوى، والخدمات تدير شكاوى قسمها فقط.

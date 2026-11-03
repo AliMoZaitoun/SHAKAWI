@@ -1,11 +1,12 @@
 import random
 import aiohttp
+from html import escape
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.context import FSMContext
 from bot.states.complaint_states import ComplaintForm
 from bot.keyboards.inline import get_directorates_keyboard, get_categories_keyboard
-from bot.config import API_BASE_URL
+from bot.config import API_BASE_URL, API_HEADERS
 from bot.locales import get_txt
 
 router = Router()
@@ -31,7 +32,7 @@ def get_language_keyboard():
 async def cmd_start(message: Message, state: FSMContext):
     telegram_id = message.from_user.id
     
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(headers=API_HEADERS) as session:
         try:
             async with session.get(f"{API_BASE_URL}/citizens/telegram/{telegram_id}") as response:
                 if response.status == 200:
@@ -84,7 +85,7 @@ async def set_language(callback: CallbackQuery, state: FSMContext):
     
     telegram_id = callback.from_user.id
     
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(headers=API_HEADERS) as session:
         try:
             async with session.get(f"{API_BASE_URL}/citizens/telegram/{telegram_id}") as response:
                 if response.status == 200:
@@ -187,7 +188,7 @@ async def process_id_image(message: Message, state: FSMContext):
         "telegram_id": message.from_user.id
     }
 
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(headers=API_HEADERS) as session:
         try:
             # 1. إنشاء الحساب في الباك إند
             async with session.post(f"{API_BASE_URL}/citizens/", json=citizen_payload) as response:
@@ -348,7 +349,7 @@ async def process_details(message: Message, state: FSMContext):
         "longitude": data.get("longitude")
     }
 
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(headers=API_HEADERS) as session:
         try:
             async with session.post(f"{API_BASE_URL}/complaints/", json=payload) as response:
                 if response.status == 200:
@@ -388,9 +389,10 @@ async def process_attachment(message: Message, state: FSMContext):
     file_bytes = file_bytes_io.read()
     filename = file_info.file_path.split("/")[-1] or "attachment.jpg"
     
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(headers=API_HEADERS) as session:
         form = aiohttp.FormData()
-        form.add_field('file', file_bytes, filename=filename, content_type='image/jpeg' if message.photo else 'application/octet-stream')
+        mime_type = 'image/jpeg' if message.photo else (message.document.mime_type or 'application/octet-stream')
+        form.add_field('file', file_bytes, filename=filename, content_type=mime_type)
         
         try:
             async with session.post(f"{API_BASE_URL}/complaints/{complaint_id}/attachments/", data=form) as response:
@@ -438,7 +440,7 @@ async def process_track_code_input(message: Message, state: FSMContext):
     lang = data.get("lang", "ar")
     tracking_code = message.text.strip()
     
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(headers=API_HEADERS) as session:
         try:
             async with session.get(f"{API_BASE_URL}/complaints/track/{tracking_code}") as response:
                 if response.status == 200:
@@ -446,11 +448,11 @@ async def process_track_code_input(message: Message, state: FSMContext):
                     
                     admin_note_text = ""
                     if comp.get('admin_notes'):
-                        admin_note_text = f"\n{get_txt(lang, 'admin_note_label')} {comp['admin_notes']}"
+                        admin_note_text = f"\n{get_txt(lang, 'admin_note_label')} {escape(comp['admin_notes'])}"
                     
                     resolution_text = ""
                     if comp.get('resolution_report'):
-                        resolution_text = f"\n{get_txt(lang, 'resolution_report_label')} {comp['resolution_report']}"
+                        resolution_text = f"\n{get_txt(lang, 'resolution_report_label')} {escape(comp['resolution_report'])}"
 
                     status_key = f"status_{comp['status'].lower()}"
                     priority_key = f"priority_{comp['priority'].lower()}"
@@ -483,7 +485,7 @@ async def action_my_complaints(callback: CallbackQuery, state: FSMContext):
     lang = data.get("lang", "ar")
     citizen_id = data.get("citizen_id")
     
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(headers=API_HEADERS) as session:
         try:
             async with session.get(f"{API_BASE_URL}/complaints/citizen/{citizen_id}") as response:
                 if response.status == 200:
@@ -522,7 +524,7 @@ async def show_complaint_detail(callback: CallbackQuery, state: FSMContext):
     lang = data.get("lang", "ar")
     comp_id = callback.data.split("_")[2]
     
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(headers=API_HEADERS) as session:
         try:
             async with session.get(f"{API_BASE_URL}/complaints/{comp_id}") as response:
                 if response.status == 200:
@@ -530,11 +532,11 @@ async def show_complaint_detail(callback: CallbackQuery, state: FSMContext):
 
                     admin_note_text = ""
                     if comp.get('admin_notes'):
-                        admin_note_text = f"\n{get_txt(lang, 'admin_note_label')} {comp['admin_notes']}"
+                        admin_note_text = f"\n{get_txt(lang, 'admin_note_label')} {escape(comp['admin_notes'])}"
                     
                     resolution_text = ""
                     if comp.get('resolution_report'):
-                        resolution_text = f"\n{get_txt(lang, 'resolution_report_label')} {comp['resolution_report']}"
+                        resolution_text = f"\n{get_txt(lang, 'resolution_report_label')} {escape(comp['resolution_report'])}"
 
                     status_key = f"status_{comp['status'].lower()}"
                     priority_key = f"priority_{comp['priority'].lower()}"
@@ -569,7 +571,7 @@ async def cmd_mystatus(message: Message, state: FSMContext):
     citizen_id = data.get("citizen_id")
     telegram_id = message.from_user.id
 
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(headers=API_HEADERS) as session:
         if not citizen_id:
             try:
                 async with session.get(f"{API_BASE_URL}/citizens/telegram/{telegram_id}") as citizen_res:

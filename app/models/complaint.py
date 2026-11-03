@@ -36,6 +36,8 @@ class Complaint(Base):
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    progress = Column(Integer, nullable=False, default=0, server_default="0")
+    resolution_report = Column(Text, nullable=False, default="", server_default="")
 
     citizen = relationship("Citizen", back_populates="complaints")
     notes = relationship("ComplaintNote", back_populates="complaint", cascade="all, delete-orphan")
@@ -62,3 +64,5 @@ class ComplaintNote(Base):
 
     complaint = relationship("Complaint", back_populates="notes")
     author = relationship("Employee", back_populates="notes")
+    notification_status = Column(String(30), nullable=False, default="not_requested", server_default="not_requested")
+    notification_error = Column(Text, nullable=True)
