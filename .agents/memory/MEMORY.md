@@ -6,3 +6,4 @@
 - [Citizen recovery trust](citizen-recovery.md) — وسيلتا الاستعادة المعتمدتان وحدود السجلات القديمة دون إثبات ملكية.
 - [Runtime reconciliation](runtime-reconciliation.md) — نجاح تهيئة الدمج لا يضمن تحديث عملية Python؛ تحقّق من المسارات الجديدة بالخادم الجاري.
 - [Public text review](public-text-review.md) — نشر فوري باختيار المواطن ومراجعة البلاغات؛ لا موافقة مسبقة ولا إخفاء تلقائي بمجرد الإبلاغ.
+- [Local demonstration](local-demonstration.md) — المستخدم أكد نجاح تحميل `.env` صراحة وتشغيل الموقع والبوت بأمر واحد محليًا.
