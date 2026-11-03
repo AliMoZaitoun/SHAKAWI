@@ -146,3 +146,16 @@ Chromium executable, then run `PYTHONPATH=. python tests/browser_flow.py`.
 This starts an isolated temporary database and test server, checks public views
 on desktop/mobile, both roles, statistics, logout, and password changes.
 Screenshots/logs are generated under ignored `generated-artifacts/`.
+
+## Post-merge setup
+
+Configure the post-merge hook to run `scripts/post-merge.sh`. It checks the
+existing runtime requirements without upgrading satisfied packages, imports
+the application, creates missing tables and applies the idempotent additive
+migrations to the existing configured database. It never starts a duplicate
+web server or bot; managed workflow reconciliation restarts the application.
+It runs non-interactively and fails immediately if setup fails.
+Dependency installation uses the existing project-local `.pythonlibs` prefix,
+not the immutable Nix interpreter environment or a virtual environment.
+After reconciliation, verify a new runtime endpoint; if Python still serves old
+routes while static files are updated, restart the existing managed workflow.
