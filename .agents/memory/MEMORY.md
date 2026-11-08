@@ -7,3 +7,4 @@
 - [Runtime reconciliation](runtime-reconciliation.md) — نجاح تهيئة الدمج لا يضمن تحديث عملية Python؛ تحقّق من المسارات الجديدة بالخادم الجاري.
 - [Public text review](public-text-review.md) — نشر فوري باختيار المواطن ومراجعة البلاغات؛ لا موافقة مسبقة ولا إخفاء تلقائي بمجرد الإبلاغ.
 - [Local demonstration](local-demonstration.md) — المستخدم أكد نجاح تحميل `.env` صراحة وتشغيل الموقع والبوت بأمر واحد محليًا.
+- [Extensible languages](extensible-languages.md) — اللغات من جدول قابل للتوسعة، لا أعمدة name_ar/name_en؛ عرض البيانات حسب لغة المستخدم.
