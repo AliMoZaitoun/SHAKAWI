@@ -1,0 +1,11 @@
+{
+  "name": "shakwa",
+  "private": true,
+  "packageManager": "pnpm@10.26.1",
+  "scripts": {
+    "dev": "pnpm --filter @shakwa/frontend dev",
+    "build": "pnpm --filter @shakwa/frontend build",
+    "typecheck": "pnpm --filter @shakwa/frontend typecheck",
+    "format:check": "pnpm --filter @shakwa/frontend format:check"
+  }
+}

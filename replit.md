@@ -1,5 +1,17 @@
 # SHAKWA — imported complaints MVP
 
+## React interface (same repository)
+
+The React+TypeScript frontend lives in `frontend/`; FastAPI and the Telegram bot
+remain Python. See `docs/react-frontend-ar.md`. Use pnpm workspace scripts:
+`pnpm install --frozen-lockfile`, `pnpm typecheck`, `pnpm build`.
+FastAPI serves the built SPA and deep links on the existing port 5000.
+`pnpm dev` optionally runs Vite on 5173 with a same-origin API proxy for local
+development. Do not create another backend/auth/database for the frontend.
+Keep the old UI at `/legacy`; `SHAKWA_UI=legacy` selects it at `/` for regression.
+Never expose secrets through VITE_* or persist citizen credentials in browser
+storage. Removing the legacy interface needs separate approval after parity.
+
 ## Versioned database foundations
 
 Read `docs/database-foundations-ar.md` and `docs/local-setup-ar.md` for the current

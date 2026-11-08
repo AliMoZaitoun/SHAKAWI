@@ -47,7 +47,7 @@ def run():
                 "env", "-u", "REPLIT_DEV_DOMAIN", "-u", "REPLIT_DEPLOYMENT",
                 "-u", "GOVERNOR_PASSWORD", "-u", "SERVICES_PASSWORD",
                 f"SHAKWA_DATABASE_URL=sqlite:///{database}", "ENABLE_DEMO_ACCOUNTS=1",
-                "APP_ENV=test", "BOT_TOKEN=", sys.executable, "-m", "uvicorn",
+                "APP_ENV=test", "SHAKWA_UI=legacy", "BOT_TOKEN=", sys.executable, "-m", "uvicorn",
                 "app.main:app", "--host", "127.0.0.1", "--port", "8008",
             ], cwd=root, stdout=log, stderr=log)
             try:

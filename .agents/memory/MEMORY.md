@@ -2,10 +2,11 @@
 - [Complaint transparency](complaint-transparency.md) — عامة/خاصة مستقلة عن التصنيف؛ الشكاوى العامة للناس، والتحليل للموظفين.
 - [Citizen account linking](citizen-account-linking.md) — تقديم الويب بلا حساب إجباري، بإيصال ورمز سري؛ ربط تيليغرام والحساب لاحقًا اختياري.
 - [Evidence requests](complaint-evidence.md) — طلب أدلة ورد نصّي ومرفقات من الويب أو البوت، حتى للضيف؛ المراسلات خاصة وليست منشورات عامة.
-- [Release scope](release-scope.md) — تجميد عرض اللجنة تاريخي؛ المرحلة الجديدة تجهيز الباك إند والعلاقات والصلاحيات، وواجهة React مؤجلة.
+- [Release scope](release-scope.md) — تجميد اللجنة وتأجيل React تاريخيان؛ المستخدم أذن الآن ببناء واجهة React فوق الباك إند الحالي.
 - [Citizen recovery trust](citizen-recovery.md) — وسيلتا الاستعادة المعتمدتان وحدود السجلات القديمة دون إثبات ملكية.
 - [Runtime reconciliation](runtime-reconciliation.md) — نجاح تهيئة الدمج لا يضمن تحديث عملية Python؛ تحقّق من المسارات الجديدة بالخادم الجاري.
 - [Public text review](public-text-review.md) — نشر فوري باختيار المواطن ومراجعة البلاغات؛ لا موافقة مسبقة ولا إخفاء تلقائي بمجرد الإبلاغ.
 - [Local demonstration](local-demonstration.md) — المستخدم أكد نجاح تحميل `.env` صراحة وتشغيل الموقع والبوت بأمر واحد محليًا.
 - [Extensible languages](extensible-languages.md) — اللغات من جدول قابل للتوسعة، لا أعمدة name_ar/name_en؛ عرض البيانات حسب لغة المستخدم.
 - [SQLite migration atomicity](sqlite-migration-atomicity.md) — وضع معاملات sqlite3 القديم لا يضمن رجوع DDL بمجرد استخدام engine.begin.
+- [Frontend direction](frontend-direction.md) — React وTypeScript بنفس الريبو حالياً، وهوية بصرية قريبة من الحالية وكود منظّم قابل للصيانة.

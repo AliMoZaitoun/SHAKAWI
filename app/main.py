@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from urllib.parse import urlparse
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
@@ -68,6 +68,16 @@ app.include_router(directorates.router, prefix="/api/v1", tags=["Directorates"])
 app.include_router(localization.router, prefix="/api/v1", tags=["Languages and translations"])
 app.include_router(foundations.router, prefix="/api/v1", tags=["Private files, audit and history"])
 app.mount("/static", StaticFiles(directory="static", check_dir=False), name="static")
+FRONTEND_DIST = Path(__file__).resolve().parents[1] / "frontend" / "dist"
+
+
+@app.get("/assets/{asset_path:path}", include_in_schema=False)
+def react_asset(asset_path: str):
+    directory = (FRONTEND_DIST / "assets").resolve()
+    path = (directory / asset_path).resolve()
+    if not path.is_relative_to(directory) or not path.is_file():
+        raise HTTPException(404, "Asset not found")
+    return FileResponse(path)
 
 
 @app.get("/health")
@@ -77,6 +87,13 @@ def health():
 
 @app.get("/")
 def index():
+    if os.environ.get("SHAKWA_UI") != "legacy" and (FRONTEND_DIST / "index.html").is_file():
+        return FileResponse(FRONTEND_DIST / "index.html")
+    return legacy_index()
+
+
+@app.get("/legacy")
+def legacy_index():
     path = Path("static/index.html")
     if not path.exists():
         return JSONResponse({"message": "واجهة المشروع قيد التجهيز"})
@@ -85,4 +102,14 @@ def index():
 
 @app.get("/Shakwa.html")
 def original_link():
-    return index()
+    return legacy_index()
+
+
+@app.get("/{path:path}", include_in_schema=False)
+def react_route(path: str):
+    # Unknown APIs and files must remain 404, not a 200 HTML SPA response.
+    if path.split("/", 1)[0] in {"api", "assets", "static", "docs", "redoc", "health", "legacy"} or "." in path.rsplit("/", 1)[-1]:
+        raise HTTPException(404, "Not found")
+    if os.environ.get("SHAKWA_UI") != "legacy" and (FRONTEND_DIST / "index.html").is_file():
+        return FileResponse(FRONTEND_DIST / "index.html")
+    raise HTTPException(404, "React build is not available; run pnpm install and pnpm build")

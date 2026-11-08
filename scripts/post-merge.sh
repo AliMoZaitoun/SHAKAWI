@@ -28,3 +28,8 @@ print("Application import and database setup succeeded.")
 PY
 
 echo "Setup complete; managed workflows will now be reconciled."
+if [[ -f frontend/package.json ]]; then
+  echo "Building the React/TypeScript interface..."
+  pnpm install --frozen-lockfile
+  pnpm build
+fi

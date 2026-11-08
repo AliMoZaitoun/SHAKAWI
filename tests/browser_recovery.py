@@ -23,6 +23,7 @@ def run():
     output.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="recovery-browser-") as temp:
         env = os.environ.copy()
+        env["SHAKWA_UI"] = "legacy"
         for key in ("REPLIT_DEV_DOMAIN", "REPLIT_DEPLOYMENT", "GOVERNOR_PASSWORD", "SERVICES_PASSWORD"):
             env.pop(key, None)
         env.update(SHAKWA_DATABASE_URL=f"sqlite:///{temp}/test.db",

@@ -3,3 +3,5 @@
 __pycache__/
 .pytest_cache/
 /generated-artifacts/
+node_modules/
+.pnpm-store/

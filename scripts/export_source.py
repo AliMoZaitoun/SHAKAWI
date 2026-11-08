@@ -6,12 +6,13 @@ import json
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-DIRECTORIES = ("app", "bot", "static", "migrations", "docs", "scripts", "tests")
+DIRECTORIES = ("app", "bot", "static", "migrations", "docs", "scripts", "tests", "frontend")
 ROOT_FILES = (
     "run.py", "requirements.txt", "requirements-dev.txt", "alembic.ini", ".replit",
     ".env.example", ".gitignore", ".replitignore", "replit.md",
+    "package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml",
 )
-EXCLUDED_PARTS = {"__pycache__", ".pytest_cache", ".cache", "node_modules"}
+EXCLUDED_PARTS = {"__pycache__", ".pytest_cache", ".cache", "node_modules", "dist"}
 
 
 def export_source(output=None):

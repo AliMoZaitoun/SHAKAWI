@@ -9,3 +9,7 @@ __pycache__/
 !uploads/.gitkeep
 *.db
 *.db-*
+node_modules/
+.pnpm-store/
+/frontend/dist/
+*.tsbuildinfo
