@@ -17,12 +17,11 @@ python - <<'PY'
 # uvicorn or Telegram polling. Never print configuration or credentials.
 from app.main import app
 from app.db.base import Base
-from app.db.migrations import migrate
+from app.db.upgrade import upgrade_database
 from app.db.session import engine, SessionLocal
 from app.services.access import bootstrap_access
 
-Base.metadata.create_all(bind=engine)
-migrate(engine)
+upgrade_database(engine)
 with SessionLocal() as db:
     bootstrap_access(db)
 print("Application import and database setup succeeded.")

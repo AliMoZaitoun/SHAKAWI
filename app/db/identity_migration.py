@@ -10,7 +10,7 @@ def backup_legacy_sqlite(engine):
     inspector = inspect(engine)
     if engine.dialect.name != "sqlite" or engine.url.database in (None, "", ":memory:"):
         return
-    if "user_id" in {c["name"] for c in inspector.get_columns("employees")}:
+    if "employees" not in inspector.get_table_names() or "user_id" in {c["name"] for c in inspector.get_columns("employees")}:
         return
     directory = Path("generated-artifacts/db-backups")
     directory.mkdir(parents=True, exist_ok=True)
@@ -25,10 +25,15 @@ def backup_legacy_sqlite(engine):
 
 
 def backfill_identity(engine):
-    tables = set(inspect(engine).get_table_names())
+    with engine.begin() as conn:
+        backfill_identity_connection(conn)
+
+
+def backfill_identity_connection(conn):
+    tables = set(inspect(conn).get_table_names())
     if not {"users", "directorates", "citizens", "employees"}.issubset(tables):
         return
-    with engine.begin() as conn:
+    if True:  # Keep the legacy backfill in the caller's transaction.
         existing = set(conn.execute(text("SELECT id FROM directorates")).scalars())
         required = {1, 2}
         for table in ("employees", "complaints"):

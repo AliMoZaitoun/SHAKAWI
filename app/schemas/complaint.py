@@ -35,6 +35,7 @@ class ProcessingUpdate(BaseModel):
     resolution_report: Optional[str] = Field(default=None, max_length=10000)
     progress: Optional[int] = Field(default=None, ge=0, le=100)
     priority: Optional[PriorityEnum] = None
+    reason: str = Field(default="", max_length=1000)
 
 
 class NoteCreate(BaseModel):

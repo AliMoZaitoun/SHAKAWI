@@ -156,6 +156,27 @@ async def cmd_start(message: Message, state: FSMContext):
         parse_mode="HTML"
     )
 
+async def show_directorates(message, state, lang, edit=False):
+    """Use the same translated, active directory as web/API clients."""
+    try:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=15)) as session:
+            async with session.get(f"{API_BASE_URL}/directorates", params={"lang": lang}) as response:
+                if response.status != 200:
+                    raise RuntimeError("Directory service unavailable")
+                rows = await response.json()
+        if not rows:
+            raise RuntimeError("No active directorates")
+        keyboard = get_directorates_keyboard(lang, rows)
+        await state.update_data(allowed_directorates=[row["id"] for row in rows])
+        sender = message.edit_text if edit else message.answer
+        await sender(get_txt(lang, "ask_directorate"), reply_markup=keyboard, parse_mode="HTML")
+        await state.set_state(ComplaintForm.directorate_id)
+        return True
+    except (aiohttp.ClientError, TimeoutError, RuntimeError, ValueError, KeyError):
+        await message.answer(get_txt(lang, "reg_error"))
+        return False
+
+
 @router.message(F.text == "/new")
 async def cmd_new_complaint_shortcut(message: Message, state: FSMContext):
     if not await current_citizen(message, state):
@@ -168,12 +189,7 @@ async def cmd_new_complaint_shortcut(message: Message, state: FSMContext):
         await message.answer(get_txt(lang, "please_start_first"), parse_mode="HTML")
         return
 
-    await message.answer(
-        get_txt(lang, "ask_directorate"),
-        reply_markup=get_directorates_keyboard(lang),
-        parse_mode="HTML"
-    )
-    await state.set_state(ComplaintForm.directorate_id)
+    await show_directorates(message, state, lang)
 
 @router.callback_query(F.data.startswith("set_lang_"))
 async def set_language(callback: CallbackQuery, state: FSMContext):
@@ -304,7 +320,10 @@ async def process_id_image(message: Message, state: FSMContext):
                     # 2. إرسال صورة الهوية كمرفق خاص بالمواطن
                     form = aiohttp.FormData()
                     form.add_field('file', file_bytes, filename="id_card.jpg", content_type='image/jpeg')
-                    await session.post(f"{API_BASE_URL}/citizens/{citizen_id}/id-image/", data=form)
+                    async with session.post(f"{API_BASE_URL}/citizens/{citizen_id}/id-image/", data=form) as image_response:
+                        if image_response.status != 200:
+                            await message.answer(get_txt(lang, "reg_error"))
+                            return
                     
                     # رسالة النجاح والتوثيق المترجمة
                     await message.answer(
@@ -313,12 +332,7 @@ async def process_id_image(message: Message, state: FSMContext):
                     )
                     
                     # الانتقال مباشرة لخطوة اختيار المديرية باللغة المختارة
-                    await message.answer(
-                        get_txt(lang, "ask_directorate"),
-                        reply_markup=get_directorates_keyboard(lang),
-                        parse_mode="HTML"
-                    )
-                    await state.set_state(ComplaintForm.directorate_id)
+                    await show_directorates(message, state, lang)
                 else:
                     await message.answer(get_txt(lang, "reg_error"))
                     await state.clear()
@@ -333,12 +347,7 @@ async def action_new_complaint(callback: CallbackQuery, state: FSMContext):
         return
     data = await state.get_data()
     lang = data.get("lang", "ar")
-    await callback.message.edit_text(
-        get_txt(lang, "ask_directorate"),
-        reply_markup=get_directorates_keyboard(lang),
-        parse_mode="HTML"
-    )
-    await state.set_state(ComplaintForm.directorate_id)
+    await show_directorates(callback.message, state, lang, edit=True)
     await callback.answer()
 
 @router.callback_query(F.data.startswith("dir_"), ComplaintForm.directorate_id)
@@ -346,8 +355,18 @@ async def process_directorate(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     lang = data.get("lang", "ar")
     
-    dir_data = callback.data.split("_")[1] # gov or services
-    dir_id = 1 if dir_data == "gov" else 2
+    dir_data = callback.data.split("_")[1]
+    # Old buttons may remain in Telegram chat history; validate IDs against the
+    # catalog displayed for the current draft, never map an arbitrary value to 2.
+    dir_id = {"gov": 1, "services": 2}.get(dir_data)
+    if dir_id is None:
+        try:
+            dir_id = int(dir_data)
+        except ValueError:
+            dir_id = None
+    if dir_id not in data.get("allowed_directorates", []):
+        await callback.answer(get_txt(lang, "reg_error"), show_alert=True)
+        return
     
     await state.update_data(directorate_id=dir_id)
     await callback.message.edit_text(

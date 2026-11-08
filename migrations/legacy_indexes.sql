@@ -1,0 +1,15 @@
+CREATE INDEX IF NOT EXISTS ix_attachments_attachable_id ON attachments(attachable_id);
+CREATE INDEX IF NOT EXISTS ix_attachments_attachable_type ON attachments(attachable_type);
+CREATE UNIQUE INDEX IF NOT EXISTS ix_citizens_national_id ON citizens(national_id);
+CREATE UNIQUE INDEX IF NOT EXISTS ix_citizens_phone ON citizens(phone);
+CREATE UNIQUE INDEX IF NOT EXISTS ix_citizens_telegram_id ON citizens(telegram_id);
+CREATE UNIQUE INDEX IF NOT EXISTS ix_employees_username ON employees(username);
+CREATE INDEX IF NOT EXISTS ix_complaints_category ON complaints(category);
+CREATE INDEX IF NOT EXISTS ix_complaints_directorate_id ON complaints(directorate_id);
+CREATE INDEX IF NOT EXISTS ix_complaints_is_public ON complaints(is_public);
+CREATE UNIQUE INDEX IF NOT EXISTS ix_complaints_tracking_code ON complaints(tracking_code);
+CREATE INDEX IF NOT EXISTS ix_employee_role_assignments_employee_id ON employee_role_assignments(employee_id);
+CREATE INDEX IF NOT EXISTS ix_employee_role_assignments_role_id ON employee_role_assignments(role_id);
+CREATE INDEX IF NOT EXISTS ix_evidence_requests_complaint_id ON evidence_requests(complaint_id);
+CREATE INDEX IF NOT EXISTS ix_public_complaint_reviews_complaint_id ON public_complaint_reviews(complaint_id);
+CREATE INDEX IF NOT EXISTS ix_public_complaint_reports_complaint_id ON public_complaint_reports(complaint_id);

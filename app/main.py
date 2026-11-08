@@ -9,21 +9,24 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.api.v1.endpoints import analytics, auth, citizens, complaints, public, recovery, evidence
-from app.api.v1.endpoints import access_admin, directorates
+from app.api.v1.endpoints import access_admin, directorates, localization, foundations
 from app.services import identity  # Registers the transactional identity adapter.
+from app.services import translations, file_catalog, audit
+from app.services.foundation_middleware import FoundationMiddleware
 from app.services.access import bootstrap_access
 from app.db.base import Base
-from app.db.migrations import migrate
+from app.db.upgrade import upgrade_database
 from app.db.session import SessionLocal, engine
 
 
 @asynccontextmanager
 async def lifespan(app):
-    Base.metadata.create_all(bind=engine)
-    migrate(engine)
+    upgrade_database(engine)
     with SessionLocal() as db:
         auth.provision_accounts(db)
         bootstrap_access(db)
+        translations.seed_translations(db)
+        db.commit()
     yield
 
 
@@ -31,6 +34,7 @@ app = FastAPI(title="Government Complaints Platform", version="1.0.0", lifespan=
 secret = os.environ.get("SESSION_SECRET")
 if not secret:
     raise RuntimeError("SESSION_SECRET must be configured in Secrets")
+app.add_middleware(FoundationMiddleware)
 app.add_middleware(
     SessionMiddleware, secret_key=secret,
     same_site="none" if os.environ.get("REPLIT_DEV_DOMAIN") or os.environ.get("REPLIT_DEPLOYMENT") else "strict",
@@ -61,6 +65,8 @@ app.include_router(complaints.router, prefix="/api/v1/complaints", tags=["Compla
 app.include_router(evidence.router, prefix="/api/v1", tags=["Private evidence"])
 app.include_router(access_admin.router, prefix="/api/v1/admin", tags=["Access administration"])
 app.include_router(directorates.router, prefix="/api/v1", tags=["Directorates"])
+app.include_router(localization.router, prefix="/api/v1", tags=["Languages and translations"])
+app.include_router(foundations.router, prefix="/api/v1", tags=["Private files, audit and history"])
 app.mount("/static", StaticFiles(directory="static", check_dir=False), name="static")
 
 

@@ -32,13 +32,14 @@ def demo_enabled():
 
 def employee_data(employee):
     from app.services.access import permission_scopes, PERMISSIONS
+    from app.services.translations import localized
     return {
         "id": employee.id, "username": employee.username,
         "full_name": employee.full_name, "role": employee.role.value,
         "directorate_id": employee.directorate_id,
         "is_demo": employee.is_demo, "password_version": employee.password_version,
         "user_id": employee.user_id,
-        "roles": [{"id": row.role.id, "code": row.role.code, "name": row.role.name,
+        "roles": [{"id": row.role.id, "code": row.role.code, "name": localized(row.role)["name"],
                    "scope_type": row.scope_type, "directorate_id": row.directorate_id}
                   for row in employee.role_assignments],
         "permissions": {
@@ -97,6 +98,9 @@ def login(data: LoginInput, request: Request, db: Session = Depends(get_db)):
     )
     if not employee or not valid or not employee.user or not employee.user.is_active:
         raise HTTPException(401, "اسم المستخدم أو كلمة المرور غير صحيحة")
+    from app.services.audit import record_event
+    record_event(db, "auth.login", "users", employee.user_id, actor_user_id=employee.user_id)
+    db.commit()
     request.session.clear()
     request.session["employee_id"] = employee.id
     request.session["password_version"] = employee.password_version
@@ -109,7 +113,13 @@ def me(employee=Depends(current_employee)):
 
 
 @router.post("/logout")
-def logout(request: Request):
+def logout(request: Request, db: Session = Depends(get_db)):
+    from app.services.audit import record_event
+    from app.services.request_context import request_context
+    actor = request_context.get().get("actor_user_id")
+    if actor:
+        record_event(db, "auth.logout", "users", actor)
+        db.commit()
     request.session.clear()
     return {"ok": True}
 

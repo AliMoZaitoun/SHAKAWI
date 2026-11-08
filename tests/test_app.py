@@ -384,6 +384,15 @@ def test_telegram_api_result_and_escaping(monkeypatch):
 
 
 def test_citizen_submission_upload_and_identity_conflict(system):
+    import io
+    from PIL import Image
+    from pypdf import PdfWriter
+    image = io.BytesIO()
+    Image.new("RGB", (2, 2)).save(image, format="JPEG")
+    document = io.BytesIO()
+    writer = PdfWriter()
+    writer.add_blank_page(width=72, height=72)
+    writer.write(document)
     client, factory = system
     data = {"first_name": "سليم", "last_name": "حسن", "phone": "0998765432", "national_id": "98765432109"}
     assert client.post("/api/v1/citizens/", json={**data, "first_name": "123"}).status_code == 422
@@ -393,7 +402,7 @@ def test_citizen_submission_upload_and_identity_conflict(system):
     assert client.post("/api/v1/citizens/", json={**data, "national_id": "00000000000"}).status_code == 409
     assert client.post("/api/v1/citizens/", json={**data, "telegram_id": 999}).status_code == 403
     response = client.post(f"/api/v1/citizens/{citizen_id}/id-image/",
-                           files={"file": ("../../identity.jpg", b"test image", "image/jpeg")})
+                           files={"file": ("../../identity.jpg", image.getvalue(), "image/jpeg")})
     assert response.status_code == 200
     with factory() as db:
         path = db.get(Citizen, citizen_id).identity_card_url
@@ -405,7 +414,7 @@ def test_citizen_submission_upload_and_identity_conflict(system):
     assert created.status_code == 200, created.text
     complaint_id = created.json()["id"]
     file = client.post(f"/api/v1/complaints/{complaint_id}/attachments/",
-                      files={"file": ("test.pdf", b"%PDF-test", "application/pdf")})
+                      files={"file": ("test.pdf", document.getvalue(), "application/pdf")})
     assert file.status_code == 200
     attachment_id = file.json()["id"]
     assert client.get(f"/api/v1/complaints/attachments/{attachment_id}/download").status_code == 401

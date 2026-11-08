@@ -1,10 +1,12 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from bot.locales import get_txt
 
-def get_directorates_keyboard(lang: str = "ar") -> InlineKeyboardMarkup:
+def get_directorates_keyboard(lang: str = "ar", directorates=None) -> InlineKeyboardMarkup:
+    if directorates is None:
+        raise ValueError("Fetch the active translated directorate catalog before building the keyboard")
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=get_txt(lang, "dir_gov"), callback_data="dir_gov")],
-        [InlineKeyboardButton(text=get_txt(lang, "dir_services"), callback_data="dir_services")]
+        [InlineKeyboardButton(text=row["name"], callback_data=f"dir_{row['id']}")]
+        for row in directorates
     ])
     return keyboard
 

@@ -49,8 +49,8 @@ def directorate_or_422(db, identifier, *, active=True):
 
 
 def role_data(role):
-    return {"id": role.id, "code": role.code, "name": role.name,
-            "description": role.description, "is_system": role.is_system,
+    from app.services.translations import localized
+    return {"id": role.id, "code": role.code, **localized(role), "is_system": role.is_system,
             "permissions": sorted(permission.code for permission in role.permissions)}
 
 

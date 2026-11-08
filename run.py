@@ -3,6 +3,21 @@ import asyncio
 import os
 import signal
 import sys
+import aiohttp
+
+
+async def wait_for_api(web, timeout=120):
+    deadline = asyncio.get_running_loop().time() + timeout
+    async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=2)) as client:
+        while web.returncode is None and asyncio.get_running_loop().time() < deadline:
+            try:
+                async with client.get("http://127.0.0.1:5000/health") as response:
+                    if response.status == 200:
+                        return
+            except (aiohttp.ClientError, TimeoutError):
+                pass
+            await asyncio.sleep(0.25)
+    raise RuntimeError("API startup did not complete; Telegram polling was not started")
 
 
 async def main():
@@ -12,8 +27,14 @@ async def main():
     )
     processes.append(web)
     if os.environ.get("BOT_TOKEN"):
-        # Give the API a chance to finish startup before Telegram updates arrive.
-        await asyncio.sleep(2)
+        # Backups and schema upgrades can exceed a fixed two-second sleep.
+        try:
+            await wait_for_api(web)
+        except Exception:
+            if web.returncode is None:
+                web.terminate()
+                await web.wait()
+            raise
         processes.append(await asyncio.create_subprocess_exec(sys.executable, "-m", "bot.main"))
     else:
         print("Telegram polling is disabled: BOT_TOKEN is not configured.", flush=True)

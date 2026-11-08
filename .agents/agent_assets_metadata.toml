@@ -42,3 +42,17 @@ mtime_ms = 1793685385395
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:ccc5b614-ea0f-4fcb-a550-899be80f2b10/c3c098bb-a98d-492f-8334-ebae39ed728a/218c05ef-c1b5-41e4-810c-16f377c4e359"
 storage_version_token = "1793685413708793"
 content_type = "text/plain"
+
+[[outputs]]
+id = "bVJ_Xb56S12rtkkxf2jHV"
+uri = "file://generated-artifacts/exports/shakwa-foundations-20261108-200711.zip"
+type = "unspecified"
+title = "تحميل المشروع — تحديث قاعدة البيانات"
+description = "نسخة كود نظيفة مع دليل التشغيل المحلي ودليل الجداول واللغات والملفات والتدقيق. لا تتضمن أسراراً أو قواعد بيانات أو ملفات مواطنين."
+logical_id = "7344f528-59e8-44f3-8082-8eb4bffe53d0"
+content_hash = "sha256:069a2705fe98fd8c5910e917f45fe56d2929ab64c485d5207cb060674ba093a6"
+size = 189693
+mtime_ms = 1794168432235
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:ccc5b614-ea0f-4fcb-a550-899be80f2b10/7344f528-59e8-44f3-8082-8eb4bffe53d0/345a9908-1b35-49c9-8277-4b25c896c7e5"
+storage_version_token = "1794168499944061"
+content_type = "application/octet-stream"

@@ -19,8 +19,12 @@ PERMISSIONS = {
     "rbac.manage": "إدارة الأدوار والصلاحيات وإسنادها",
     "employees.manage": "إدارة حسابات الموظفين",
     "directorates.manage": "إدارة المديريات",
+    "audit.view": "عرض سجل تدقيق النظام",
+    "files.identity.read": "قراءة وثائق الهوية",
+    "complaints.transfer": "تحويل الشكاوى بين المديريات",
 }
-ADMIN_PERMISSIONS = {"rbac.manage", "employees.manage", "directorates.manage"}
+ADMIN_PERMISSIONS = {"rbac.manage", "employees.manage", "directorates.manage",
+                     "audit.view", "files.identity.read"}
 
 
 def bootstrap_access(db):

@@ -16,6 +16,8 @@ from app.services.notifications import MESSAGES, notify, notify_note
 from app.services.uploads import UPLOAD_DIR, save_upload
 from app.services.access import has_permission, scope_query
 from app.services.access_admin import directorate_or_422
+from app.models.foundations import StoredFile, ComplaintFile
+from app.services.file_catalog import protected_path
 
 router = APIRouter()
 
@@ -68,13 +70,14 @@ def complaint_data(db, complaint, staff=False, employee=None):
             "first_name": citizen.first_name, "last_name": citizen.last_name,
             "phone": citizen.phone, "national_id": citizen.national_id,
         } if citizen else None
-        for item in db.query(Attachment).filter(
-            Attachment.attachable_id == complaint.id,
-            Attachment.attachable_type.in_(["complaint", "complaints"]),
-        ).all() if employee and has_permission(employee, "complaints.files.read", complaint.directorate_id) else []:
+        for item, link in db.query(StoredFile, ComplaintFile).join(
+            ComplaintFile, ComplaintFile.file_id == StoredFile.id,
+        ).filter(ComplaintFile.complaint_id == complaint.id).all() if employee and has_permission(
+            employee, "complaints.files.read", complaint.directorate_id) else []:
             data["attachments"].append({
-                "id": item.id, "file_path": item.file_path, "file_type": item.file_type,
-                "file_url": f"/api/v1/complaints/attachments/{item.id}/download",
+                "id": link.legacy_attachment_id or item.id, "file_id": item.id,
+                "file_type": item.mime_type,
+                "file_url": f"/api/v1/files/{item.id}/download",
             })
     return data
 
@@ -153,16 +156,14 @@ def by_citizen(citizen_id: int, request: Request, db: Session = Depends(get_db))
 
 
 @router.get("/attachments/{attachment_id}/download")
-def download(attachment_id: int, employee=Depends(current_employee), db: Session = Depends(get_db)):
-    item = db.get(Attachment, attachment_id)
-    if not item or item.attachable_type not in ("complaint", "complaints"):
+def download(attachment_id: int, request: Request, employee=Depends(current_employee), db: Session = Depends(get_db)):
+    link = db.query(ComplaintFile).filter_by(legacy_attachment_id=attachment_id).first()
+    if not link:
         raise HTTPException(404, "المرفق غير موجود")
-    complaint = find_complaint(db, item.attachable_id)
+    complaint = find_complaint(db, link.complaint_id)
     authorize_complaint(employee, complaint, "complaints.files.read")
-    path = Path(item.file_path).resolve()
-    if not path.is_relative_to(UPLOAD_DIR.resolve()) or not path.is_file():
-        raise HTTPException(404, "ملف المرفق غير موجود")
-    return FileResponse(path, filename=path.name, media_type="application/octet-stream")
+    from app.api.v1.endpoints.foundations import download as catalog_download
+    return catalog_download(link.file_id, request, db)
 
 
 @router.get("/{complaint_id}")
@@ -188,10 +189,18 @@ async def upload_attachment(complaint_id: int, request: Request, file: UploadFil
     path = await save_upload(file)
     item = Attachment(file_path=path, file_type=file.content_type or "unknown",
                       attachable_type="complaint", attachable_id=complaint_id)
+    item._original_name = Path((file.filename or Path(path).name).replace("\\", "/")).name
     db.add(item)
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        Path(path).unlink(missing_ok=True)
+        raise
     db.refresh(item)
-    return {"id": item.id, "file_path": path, "message": "تم حفظ المرفق"}
+    link = db.query(ComplaintFile).filter_by(legacy_attachment_id=item.id).one()
+    return {"id": item.id, "file_id": link.file_id, "file_path": path,
+            "file_url": f"/api/v1/files/{link.file_id}/download", "message": "تم حفظ المرفق"}
 
 
 @router.patch("/{complaint_id}/status")
@@ -205,6 +214,7 @@ async def update_status(complaint_id: int, new_status: StatusEnum,
     if data.admin_notes.strip():
         authorize_complaint(employee, complaint, "complaints.notes.create")
     old_status = complaint.status
+    db.info["history_reason"] = data.reason
     if new_status != StatusEnum.RESOLVED and data.progress == 100:
         raise HTTPException(422, "نسبة 100٪ مخصصة للشكاوى المحلولة فقط")
     complaint.status = new_status

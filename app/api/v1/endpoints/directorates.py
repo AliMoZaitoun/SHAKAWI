@@ -14,8 +14,8 @@ manage = require_permission("directorates.manage", global_only=True)
 
 
 def serialize(row, db=None):
-    data = {"id": row.id, "name": row.name, "description": row.description,
-            "location": row.location, "is_active": row.is_active}
+    from app.services.translations import localized
+    data = {"id": row.id, **localized(row), "is_active": row.is_active}
     if db is not None:
         assignment = db.query(RoleAssignment).join(Role).filter(
             Role.code == "branch_manager", RoleAssignment.directorate_id == row.id,

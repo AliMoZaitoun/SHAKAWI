@@ -3,7 +3,7 @@
 Run: PYTHONPATH=. python tests/browser_recovery.py
 Telegram's external transport is replaced by authenticated backend calls.
 """
-import base64
+import io
 import os
 from pathlib import Path
 import shutil
@@ -14,6 +14,7 @@ import time
 import urllib.request
 
 from playwright.sync_api import sync_playwright, expect
+from PIL import Image
 
 
 def run():
@@ -52,11 +53,11 @@ def run():
                     page.locator("#c-last-name").fill("تجريبي")
                     page.locator("#c-phone").fill("0998765432")
                     page.locator("#c-national-id").fill("98765432101")
+                    synthetic_image = io.BytesIO()
+                    Image.new("RGB", (2, 2), color="blue").save(synthetic_image, format="PNG")
                     page.locator("#c-id-card").set_input_files({
                         "name": "synthetic-identity.png", "mimeType": "image/png",
-                        "buffer": base64.b64decode(
-                            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0l"
-                            "EQVR42mP8/x8AAwMCAO+aXioAAAAASUVORK5CYII="),
+                        "buffer": synthetic_image.getvalue(),
                     })
                     page.locator('[onclick="goToStep2()"]').click()
                     page.locator("#comp-title").fill("شكوى اختبار الاستعادة")
@@ -65,6 +66,7 @@ def run():
                     page.locator("#comp-type").select_option("طرق")
                     with page.expect_response("**/id-image/") as identity_response:
                         page.locator("#submit-complaint").click()
+                    assert identity_response.value.status == 200, identity_response.value.text()
                     identity_path = root / identity_response.value.json()["file_path"]
                     expect(page.locator("#sec-view")).to_be_visible()
                     owner_response = context.request.get(

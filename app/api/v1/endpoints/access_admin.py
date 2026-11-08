@@ -30,7 +30,8 @@ def find(db, model, identifier):
 
 @router.get("/permissions")
 def permissions(actor=Depends(manage), db: Session = Depends(get_db)):
-    return [{"code": row.code, "name": row.name, "description": row.description}
+    from app.services.translations import localized
+    return [{"code": row.code, **localized(row)}
             for row in db.query(Permission).order_by(Permission.code)]
 
 

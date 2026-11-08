@@ -20,10 +20,16 @@ TYPES = {"JPEG": ("image/jpeg", ".jpg"), "PNG": ("image/png", ".png"),
 
 
 def reply_data(reply):
+    from sqlalchemy.orm import object_session
+    from app.models.foundations import EvidenceReplyFile
+    db = object_session(reply)
+    links = {row.legacy_evidence_file_id: row.file_id for row in db.query(
+        EvidenceReplyFile).filter_by(reply_id=reply.id)} if db else {}
     return {"id": reply.id, "text": reply.text, "channel": reply.channel,
             "created_at": reply.created_at,
-            "attachments": [{"id": f.id, "name": f.name, "file_type": f.file_type,
-                             "file_url": f"/api/v1/evidence-files/{f.id}/download"}
+            "attachments": [{"id": f.id, "file_id": links.get(f.id), "name": f.name, "file_type": f.file_type,
+                             "file_url": f"/api/v1/files/{links[f.id]}/download" if f.id in links else
+                             f"/api/v1/evidence-files/{f.id}/download"}
                             for f in reply.attachments]}
 
 

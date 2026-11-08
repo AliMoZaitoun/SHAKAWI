@@ -8,3 +8,4 @@
 - [Public text review](public-text-review.md) — نشر فوري باختيار المواطن ومراجعة البلاغات؛ لا موافقة مسبقة ولا إخفاء تلقائي بمجرد الإبلاغ.
 - [Local demonstration](local-demonstration.md) — المستخدم أكد نجاح تحميل `.env` صراحة وتشغيل الموقع والبوت بأمر واحد محليًا.
 - [Extensible languages](extensible-languages.md) — اللغات من جدول قابل للتوسعة، لا أعمدة name_ar/name_en؛ عرض البيانات حسب لغة المستخدم.
+- [SQLite migration atomicity](sqlite-migration-atomicity.md) — وضع معاملات sqlite3 القديم لا يضمن رجوع DDL بمجرد استخدام engine.begin.

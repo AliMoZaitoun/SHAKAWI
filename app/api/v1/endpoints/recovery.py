@@ -98,6 +98,10 @@ def restore_key(data: Credential, request: Request, db: Session = Depends(get_db
     # Conditional deletion is atomic: concurrent redemptions cannot both win.
     count = db.query(RecoveryKey).filter_by(citizen_id=row.citizen_id, digest=row.digest).delete(
         synchronize_session=False)
+    if count == 1:
+        from app.services.audit import record_event
+        record_event(db, "citizen.recovery_key_redeemed", "citizens", citizen.id,
+                     actor_user_id=citizen.user_id)
     db.commit()
     if count != 1:
         raise invalid()
@@ -149,6 +153,9 @@ def finish(data: Credential, request: Request, db: Session = Depends(get_db)):
     if query.update({"consumed": True}, synchronize_session=False) != 1:
         db.rollback()
         raise invalid()
+    from app.services.audit import record_event
+    record_event(db, "citizen.telegram_recovery_completed", "citizens", citizen.id,
+                 actor_user_id=citizen.user_id)
     db.commit()
     request.session.pop("recovery_browser", None)
     grant_citizen(request, citizen.id)
@@ -184,6 +191,10 @@ def confirm_link(data: TelegramProof, request: Request, db: Session = Depends(ge
         if changed != 1:
             db.rollback()
             raise invalid()
+        from app.services.audit import record_event
+        citizen = db.get(Citizen, row.citizen_id)
+        record_event(db, "citizen.telegram_link_changed", "citizens", row.citizen_id,
+                     actor_user_id=citizen.user_id)
         db.commit()
     except IntegrityError:
         db.rollback()

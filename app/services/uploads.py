@@ -28,6 +28,25 @@ async def save_upload(file: UploadFile, identity=False) -> str:
                 output.write(chunk)
         if size == 0:
             raise HTTPException(400, "الملف فارغ")
+        # MIME supplied by a browser is not proof of the actual content.
+        if file.content_type.startswith("image/") or file.content_type == "application/pdf":
+            import io
+            from starlette.datastructures import Headers
+            from app.services.evidence import validate_files
+            safe_name = Path((file.filename or path.name).replace("\\", "/")).name
+            probe = UploadFile(io.BytesIO(path.read_bytes()), filename=safe_name,
+                               headers=Headers({"content-type": file.content_type}))
+            await validate_files([probe])
+        else:
+            head = path.read_bytes()[:32]
+            supported = (
+                (file.content_type == "audio/ogg" and head.startswith(b"OggS")) or
+                (file.content_type == "audio/mpeg" and (head.startswith(b"ID3") or
+                  len(head) > 1 and head[0] == 255 and head[1] & 224 == 224)) or
+                (file.content_type in {"video/mp4", "audio/mp4"} and head[4:8] == b"ftyp")
+            )
+            if not supported:
+                raise HTTPException(415, "محتوى الملف لا يطابق نوعه")
     except Exception:
         path.unlink(missing_ok=True)
         raise

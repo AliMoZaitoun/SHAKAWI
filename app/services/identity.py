@@ -1,5 +1,5 @@
 """Transition adapter: keep old API contracts without two writable identities."""
-from sqlalchemy import event, inspect
+from sqlalchemy import event
 from sqlalchemy.orm import Session
 
 from app.models.access import User
@@ -30,23 +30,17 @@ def sync_identity(session, flush_context, instances):
                     username=profile.username, hashed_password=profile.hashed_password,
                     needs_profile_completion=True,
                 )
-        else:
-            state = inspect(profile)
-            fields = ({"first_name": "first_name", "last_name": "last_name", "phone": "phone"}
-                      if isinstance(profile, Citizen) else
-                      {"username": "username", "hashed_password": "hashed_password"})
-            for old, new in fields.items():
-                if state.attrs[old].history.has_changes():
-                    setattr(profile.user, new, getattr(profile, old))
+        # Hybrid setters write to User immediately. Raw legacy column changes
+        # never overwrite the canonical account during a later flush.
     for account in list(session.new) + list(session.dirty):
         if not isinstance(account, User) or account in session.deleted:
             continue
         if account.citizen:
             for field in ("first_name", "last_name", "phone"):
-                setattr(account.citizen, field, getattr(account, field))
+                setattr(account.citizen, "_legacy_" + field, getattr(account, field))
         if account.employee:
             employee = account.employee
-            employee.username = account.username
-            employee.hashed_password = account.hashed_password
+            employee._legacy_username = account.username
+            employee._legacy_hashed_password = account.hashed_password
             if account.last_name:
-                employee.full_name = f"{account.first_name} {account.last_name}"
+                employee._legacy_full_name = f"{account.first_name} {account.last_name}"

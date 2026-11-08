@@ -1,5 +1,22 @@
 # SHAKWA — imported complaints MVP
 
+## Versioned database foundations
+
+Read `docs/database-foundations-ar.md` and `docs/local-setup-ar.md` for the current
+schema/API contracts and local upgrade instructions. Startup now uses Alembic
+through `app.db.upgrade`, not create_all followed by ad-hoc migrations. Existing
+SQLite remains; migration SQL snapshots are immutable and destructive downgrade
+is disabled. Stop all other writers before upgrading. Pre-upgrade database and
+uploads backups are private in ignored `generated-artifacts/backups/`.
+
+Languages and per-entity translation tables are extensible without per-language
+columns. Shared user attributes read from users; legacy columns remain mirrors
+until an explicitly approved removal. A private file catalog has real complaint,
+citizen and evidence FK links; old attachment IDs/routes remain compatible.
+New `audit_events` and `complaint_history` are transactional and append-only in
+the ORM; old events are imported honestly, not reconstructed. New audit/identity/
+transfer capabilities are not automatically granted to existing roles.
+
 ## Identity and scoped RBAC foundation
 
 See `docs/identity-rbac.md` for the relational model, compatibility migration,
@@ -35,10 +52,10 @@ An explicit `SHAKWA_DATABASE_URL` may override the SQLite connection when a
 database change is intentionally configured. Do not migrate databases without
 the owner's approval.
 
-Startup performs additive migrations for processing progress, resolution reports,
-and note notification results. It does not delete or rebuild existing tables.
-Uploads remain in `uploads/`; identity paths are stored on the citizen, and
-complaint attachment downloads require employee authorization. Back up both
+Startup performs versioned additive migrations and does not delete or rebuild
+existing tables. Uploads remain in `uploads/`, indexed by a unified private file
+catalog with explicit links. Old identity paths remain compatibility mirrors.
+Complaint file downloads enforce owner or scoped employee access. Back up both
 the SQLite file and uploads before using the MVP with real complaints.
 No public static mount exposes the database, identity files, or upload directory.
 

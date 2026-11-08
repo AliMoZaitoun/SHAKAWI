@@ -70,8 +70,13 @@ def require_bot_owner(request: Request, db: Session, citizen_id: int):
         telegram_id = int(request.headers.get("X-Telegram-Id", ""))
     except ValueError:
         raise HTTPException(403, "يلزم تحديد حساب تيليغرام الحالي")
-    if not db.query(Citizen).filter_by(id=citizen_id, telegram_id=telegram_id).first():
+    citizen = db.query(Citizen).filter_by(id=citizen_id, telegram_id=telegram_id).first()
+    if not citizen:
         raise HTTPException(403, "لم يعد حساب تيليغرام مرتبطًا بهذا السجل")
+    from app.services.request_context import request_context
+    # Mutate this request's metadata so sync dependencies and async handlers
+    # share the authenticated actor without trusting caller-supplied user IDs.
+    request_context.get()["actor_user_id"] = citizen.user_id
 
 
 def owns_citizen(request: Request, citizen_id: int) -> bool:

@@ -160,8 +160,10 @@ def download(fid: int, request: Request, db: Session = Depends(get_db)):
     authorize_reader(request, db, find(db, row.complaint_id))
     if request.session.get("employee_id") and not is_bot(request):
         authorize_complaint(current_employee(request, db), find(db, row.complaint_id), "evidence.files.read")
-    path = Path(item.file_path).resolve()
-    if not path.is_relative_to((UPLOAD_DIR / "evidence").resolve()) or not path.is_file():
-        raise HTTPException(404, "الملف غير موجود")
-    return FileResponse(path, filename=item.name, media_type="application/octet-stream",
-                        headers={"X-Content-Type-Options": "nosniff"})
+    from app.models.foundations import EvidenceReplyFile, StoredFile
+    from app.services.file_catalog import protected_path
+    link = db.query(EvidenceReplyFile).filter_by(legacy_evidence_file_id=fid).first()
+    if not link:
+        raise HTTPException(404, "الملف غير موجود في الكتالوج")
+    from app.api.v1.endpoints.foundations import download as catalog_download
+    return catalog_download(link.file_id, request, db)

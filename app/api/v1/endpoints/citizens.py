@@ -91,6 +91,18 @@ async def identity_image(citizen_id: int, request: Request, file: UploadFile = F
     citizen = db.get(Citizen, citizen_id)
     if not citizen:
         raise HTTPException(404, "المواطن غير موجود")
-    citizen.identity_card_url = await save_upload(file, identity=True)
-    db.commit()
-    return {"message": "تم حفظ صورة الهوية", "file_path": citizen.identity_card_url}
+    path = await save_upload(file, identity=True)
+    try:
+        from pathlib import Path
+        citizen._identity_original_name = Path((file.filename or "identity").replace("\\", "/")).name
+        citizen.identity_card_url = path
+        db.commit()
+    except Exception:
+        from pathlib import Path
+        db.rollback()
+        Path(path).unlink(missing_ok=True)
+        raise
+    from app.models.foundations import CitizenFile
+    link = db.query(CitizenFile).filter_by(citizen_id=citizen_id, purpose="identity", is_current=True).first()
+    return {"message": "تم حفظ صورة الهوية", "file_path": citizen.identity_card_url,
+            "file_id": link.file_id, "file_url": f"/api/v1/files/{link.file_id}/download"}

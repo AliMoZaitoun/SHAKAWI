@@ -163,6 +163,9 @@ def run():
                     page.locator("#tab-list").click()
                     page.get_by_role("button", name="معالجة الشكوى", exact=True).click()
                     expect(page.locator("#p-public-review")).to_contain_text("اعتراض على إخفاء النص")
+                    # Both the tab navigation and record selection refresh the
+                    # list. Wait for those requests before filling a replaced form.
+                    page.wait_for_load_state("networkidle")
                     page.locator("#review-decision-reason").fill("راجعت النصوص وأؤكد سلامتها لإعادة إظهارها")
                     page.once("dialog", lambda dialog: dialog.accept())
                     page.get_by_role("button", name="حفظ قرار المراجعة", exact=True).click()
