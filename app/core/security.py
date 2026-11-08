@@ -10,7 +10,7 @@ from collections import defaultdict, deque
 from fastapi import Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.models.user import Citizen, Employee, UserRole
+from app.models.user import Citizen, Employee
 
 _attempts = defaultdict(deque)
 
@@ -88,15 +88,18 @@ def current_employee(request: Request, db: Session = Depends(get_db)) -> Employe
     employee = db.get(Employee, request.session.get("employee_id")) if request.session.get("employee_id") else None
     if not employee:
         raise HTTPException(401, "يرجى تسجيل الدخول")
+    if not employee.user or not employee.user.is_active:
+        request.session.clear()
+        raise HTTPException(401, "الحساب غير مفعل")
     if request.session.get("password_version") != employee.password_version:
         request.session.clear()
         raise HTTPException(401, "تغيرت كلمة المرور، يرجى تسجيل الدخول مجددًا")
     return employee
 
 
-def authorize_complaint(employee: Employee, complaint):
-    if employee.role != UserRole.GOVERNOR and complaint.directorate_id != employee.directorate_id:
-        raise HTTPException(403, "لا تملك صلاحية الوصول إلى هذه الشكوى")
+def authorize_complaint(employee: Employee, complaint, permission="complaints.view"):
+    from app.services.access import check_permission
+    check_permission(employee, permission, complaint.directorate_id)
 
 
 def authorize_owner(request: Request, db: Session, complaint):

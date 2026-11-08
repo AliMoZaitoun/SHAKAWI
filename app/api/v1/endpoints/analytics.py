@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session
 from app.core.security import current_employee
 from app.db.session import get_db
 from app.models.complaint import Complaint, PriorityEnum, StatusEnum
-from app.models.user import UserRole
+from app.services.access import check_permission, permission_scopes, scope_query
+from app.services.access_admin import directorate_or_422
 
 router = APIRouter()
 
@@ -15,7 +16,7 @@ router = APIRouter()
 @router.get("")
 @router.get("/")
 def analytics(start_date: date | None = None, end_date: date | None = None,
-              directorate_id: int | None = Query(None, ge=1, le=2),
+              directorate_id: int | None = Query(None, ge=1),
               employee=Depends(current_employee), db: Session = Depends(get_db)):
     end = end_date or date.today()
     start = start_date or end - timedelta(days=29)
@@ -23,14 +24,16 @@ def analytics(start_date: date | None = None, end_date: date | None = None,
         raise HTTPException(422, "بداية الفترة يجب أن تسبق نهايتها")
     if (end - start).days > 366:
         raise HTTPException(422, "اختر فترة لا تتجاوز سنة")
-    if employee.role != UserRole.GOVERNOR:
-        if directorate_id is not None and directorate_id != employee.directorate_id:
-            raise HTTPException(403, "لا تملك صلاحية إحصائيات هذه الجهة")
-        directorate_id = employee.directorate_id
+    check_permission(employee, "reports.view", directorate_id)
+    scopes = permission_scopes(employee, "reports.view")
+    if directorate_id is None and scopes is not None and len(scopes) == 1:
+        directorate_id = next(iter(scopes))
+    directorate_or_422(db, directorate_id, active=False)
     query = db.query(Complaint).filter(
         Complaint.created_at >= datetime.combine(start, time.min),
         Complaint.created_at < datetime.combine(end + timedelta(days=1), time.min),
     )
+    query = scope_query(query, Complaint, employee, "reports.view")
     if directorate_id is not None:
         query = query.filter(Complaint.directorate_id == directorate_id)
     total = query.count()

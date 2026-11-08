@@ -6,7 +6,7 @@ from app.models.complaint import PriorityEnum, StatusEnum
 
 class ComplaintCreate(BaseModel):
     citizen_id: int = Field(gt=0)
-    directorate_id: int = Field(ge=1, le=2)
+    directorate_id: int = Field(ge=1)
     title: str = Field(min_length=5, max_length=150)
     details: str = Field(min_length=10, max_length=20000)
     category: str = Field(min_length=1, max_length=50)

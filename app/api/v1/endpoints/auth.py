@@ -31,11 +31,22 @@ def demo_enabled():
 
 
 def employee_data(employee):
+    from app.services.access import permission_scopes, PERMISSIONS
     return {
         "id": employee.id, "username": employee.username,
         "full_name": employee.full_name, "role": employee.role.value,
         "directorate_id": employee.directorate_id,
         "is_demo": employee.is_demo, "password_version": employee.password_version,
+        "user_id": employee.user_id,
+        "roles": [{"id": row.role.id, "code": row.role.code, "name": row.role.name,
+                   "scope_type": row.scope_type, "directorate_id": row.directorate_id}
+                  for row in employee.role_assignments],
+        "permissions": {
+            code: {"scope_type": "global" if scopes is None else "directorate",
+                   "directorate_ids": None if scopes is None else sorted(scopes)}
+            for code in PERMISSIONS
+            if (scopes := permission_scopes(employee, code)) is None or scopes
+        },
     }
 
 
@@ -84,7 +95,7 @@ def login(data: LoginInput, request: Request, db: Session = Depends(get_db)):
     valid = verify_password(data.password, employee.hashed_password) if employee else (
         verify_password(data.password, hash_password("non-account-placeholder"))
     )
-    if not employee or not valid:
+    if not employee or not valid or not employee.user or not employee.user.is_active:
         raise HTTPException(401, "اسم المستخدم أو كلمة المرور غير صحيحة")
     request.session.clear()
     request.session["employee_id"] = employee.id

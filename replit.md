@@ -1,5 +1,21 @@
 # SHAKWA — imported complaints MVP
 
+## Identity and scoped RBAC foundation
+
+See `docs/identity-rbac.md` for the relational model, compatibility migration,
+administration API, permission catalog and React integration contract. Backend
+management is implemented; the React management UI is intentionally deferred.
+The four organizational roles exist, but new branch roles have no presumed
+permission matrix. Legacy department staff keep a transitional scoped role.
+New employee accounts receive no permissions until explicitly assigned.
+
+Shared user records and profile links coexist with old columns during an
+additive compatibility phase. Do not drop/independently update old identity
+columns or reset passwords. Legacy staff with missing phone/surname are flagged
+for completion, not given invented values. Initial file-based SQLite migration
+backs up to ignored `generated-artifacts/db-backups/` (sensitive, never publish).
+Existing profile IDs and complaint/recovery/Telegram references are preserved.
+
 ## Stack and run command
 
 Keep the existing Python/FastAPI, SQLAlchemy, aiogram and vanilla HTML/CSS/JS stack.

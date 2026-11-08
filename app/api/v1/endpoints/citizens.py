@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.security import is_bot, owns_citizen, require_bot, require_bot_owner
+from app.core.security import current_employee, is_bot, owns_citizen, require_bot, require_bot_owner
 from app.db.session import get_db
 from app.models.user import Citizen
 from app.schemas.user import CitizenCreate, CitizenResponse
@@ -32,11 +32,21 @@ def create(data: CitizenCreate, request: Request, db: Session = Depends(get_db))
     trusted_bot = is_bot(request)
     if data.telegram_id is not None and not trusted_bot:
         raise HTTPException(403, "ربط تيليغرام متاح من خلال البوت فقط")
+    # A staff member can act as a citizen without a duplicate person record,
+    # but only the authenticated staff session proves the account link.
+    staff_user = None
+    if not trusted_bot and request.session.get("employee_id"):
+        staff_user = current_employee(request, db).user
+        if not all(getattr(staff_user, field) == getattr(data, field)
+                   for field in ("first_name", "last_name", "phone")):
+            staff_user = None
     existing = db.query(Citizen).filter(
         (Citizen.phone == data.phone) | (Citizen.national_id == data.national_id)
     ).first()
     if existing:
-        if not trusted_bot and not owns_citizen(request, existing.id):
+        if not trusted_bot and not owns_citizen(request, existing.id) and not (
+            staff_user and existing.user_id == staff_user.id
+        ):
             raise HTTPException(
                 409,
                 "هذا السجل موجود مسبقًا. البيانات الشخصية وحدها لا تثبت ملكيته. "
@@ -54,6 +64,10 @@ def create(data: CitizenCreate, request: Request, db: Session = Depends(get_db))
         citizen = existing
     else:
         citizen = Citizen(**data.model_dump(exclude_none=True, exclude={"identity_card_url"}))
+        if staff_user:
+            if staff_user.citizen is not None:
+                raise HTTPException(409, "يوجد ملف مواطن للحساب؛ لا يمكن استبدال هويته ببيانات أخرى")
+            citizen.user = staff_user
         db.add(citizen)
     try:
         db.commit()

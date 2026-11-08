@@ -65,7 +65,7 @@ async def send_request(db, complaint, row):
 async def create(cid: int, data: RequestInput, employee=Depends(current_employee),
                  db: Session = Depends(get_db)):
     complaint = find(db, cid)
-    authorize_complaint(employee, complaint)
+    authorize_complaint(employee, complaint, "evidence.request")
     if not data.prompt.strip():
         raise HTTPException(422, "اكتب المعلومات المطلوبة")
     old = db.query(EvidenceRequest).filter_by(complaint_id=cid, submission_key=data.submission_key).first()
@@ -92,13 +92,16 @@ def listing(cid: int, request: Request, db: Session = Depends(get_db)):
     complaint = find(db, cid)
     authorize_reader(request, db, complaint)
     staff = bool(request.session.get("employee_id")) and not is_bot(request)
+    if staff:
+        authorize_complaint(current_employee(request, db), complaint, "evidence.read")
     return [request_data(r, staff) for r in complaint.evidence_requests]
 
 
 @router.post("/complaints/{cid}/evidence/{rid}/retry")
 async def retry(cid: int, rid: int, employee=Depends(current_employee), db: Session = Depends(get_db)):
     complaint, row = find(db, cid, rid)
-    authorize_complaint(employee, complaint)
+    authorize_complaint(employee, complaint, "notifications.retry")
+    authorize_complaint(employee, complaint, "evidence.read")
     if row.status != "pending":
         raise HTTPException(409, "أجاب المواطن؛ لا حاجة لتنبيه جديد")
     return await send_request(db, complaint, row)
@@ -155,6 +158,8 @@ def download(fid: int, request: Request, db: Session = Depends(get_db)):
     reply = db.get(EvidenceReply, item.reply_id)
     row = db.get(EvidenceRequest, reply.request_id)
     authorize_reader(request, db, find(db, row.complaint_id))
+    if request.session.get("employee_id") and not is_bot(request):
+        authorize_complaint(current_employee(request, db), find(db, row.complaint_id), "evidence.files.read")
     path = Path(item.file_path).resolve()
     if not path.is_relative_to((UPLOAD_DIR / "evidence").resolve()) or not path.is_file():
         raise HTTPException(404, "الملف غير موجود")

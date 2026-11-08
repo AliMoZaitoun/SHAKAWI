@@ -39,8 +39,10 @@ def report_public_text(complaint_id: int, data: ReportInput, request: Request,
 def public_list(page: int = Query(1, ge=1), page_size: int = Query(12, ge=1, le=50),
                 category: str | None = Query(None, max_length=50),
                 status: StatusEnum | None = None,
-                directorate_id: int | None = Query(None, ge=1, le=2),
+                directorate_id: int | None = Query(None, ge=1),
                 db: Session = Depends(get_db)):
+    from app.services.access_admin import directorate_or_422
+    directorate_or_422(db, directorate_id, active=False)
     query = db.query(Complaint).filter(Complaint.is_public.is_(True))
     if category:
         query = query.filter(Complaint.category == category)

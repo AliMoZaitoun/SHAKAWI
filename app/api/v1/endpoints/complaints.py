@@ -9,11 +9,13 @@ from app.db.session import get_db
 from app.models.complaint import Attachment, Complaint, ComplaintNote, StatusEnum, PublicComplaintReview
 from app.schemas.public_review import ReviewInput
 from app.services.public_review import ACTION_LABELS, review_data
-from app.models.user import Citizen, UserRole
+from app.models.user import Citizen
 from app.schemas.complaint import ComplaintCreate, NoteCreate, ProcessingUpdate
 from app.services.complaint_service import ComplaintService
 from app.services.notifications import MESSAGES, notify, notify_note
 from app.services.uploads import UPLOAD_DIR, save_upload
+from app.services.access import has_permission, scope_query
+from app.services.access_admin import directorate_or_422
 
 router = APIRouter()
 
@@ -38,7 +40,7 @@ def note_data(note, staff=False):
     return data
 
 
-def complaint_data(db, complaint, staff=False):
+def complaint_data(db, complaint, staff=False, employee=None):
     notes = sorted(complaint.notes, key=lambda n: n.id)
     visible = notes if staff else [n for n in notes if not n.is_internal]
     public_notes = [n for n in notes if not n.is_internal]
@@ -48,14 +50,17 @@ def complaint_data(db, complaint, staff=False):
         "directorate_id": complaint.directorate_id, "title": complaint.title,
         "details": complaint.details, "category": complaint.category,
         "is_public": complaint.is_public,
-        "public_review": review_data(complaint, staff),
+        "public_review": review_data(complaint, staff and employee is not None
+                                     and has_permission(employee, "public.review", complaint.directorate_id)),
         "priority": complaint.priority, "status": complaint.status,
         "created_at": complaint.created_at, "updated_at": complaint.updated_at,
         "progress": complaint.progress, "resolution_report": complaint.resolution_report,
         "notes": [note_data(n, staff) for n in visible],
         "admin_notes": public_notes[-1].note if public_notes else "",
         "attachments": [],
-        "evidence_requests": [request_data(r, staff) for r in complaint.evidence_requests],
+        "evidence_requests": [
+            request_data(r, staff) for r in complaint.evidence_requests
+        ] if not staff or (employee and has_permission(employee, "evidence.read", complaint.directorate_id)) else [],
     }
     if staff:
         citizen = complaint.citizen
@@ -66,7 +71,7 @@ def complaint_data(db, complaint, staff=False):
         for item in db.query(Attachment).filter(
             Attachment.attachable_id == complaint.id,
             Attachment.attachable_type.in_(["complaint", "complaints"]),
-        ).all():
+        ).all() if employee and has_permission(employee, "complaints.files.read", complaint.directorate_id) else []:
             data["attachments"].append({
                 "id": item.id, "file_path": item.file_path, "file_type": item.file_type,
                 "file_url": f"/api/v1/complaints/attachments/{item.id}/download",
@@ -78,7 +83,7 @@ def complaint_data(db, complaint, staff=False):
 async def review_public_text(complaint_id: int, data: ReviewInput,
                              employee=Depends(current_employee), db: Session = Depends(get_db)):
     complaint = find_complaint(db, complaint_id)
-    authorize_complaint(employee, complaint)
+    authorize_complaint(employee, complaint, "public.review")
     if not complaint.is_public:
         raise HTTPException(409, "الشكوى خاصة؛ لا يمكن نشرها أو مراجعة نصوصها العامة")
     if data.action == "hide":
@@ -114,6 +119,7 @@ def create_complaint(data: ComplaintCreate, request: Request, db: Session = Depe
         raise HTTPException(403, "يرجى إدخال بيانات المواطن أولاً")
     if not db.get(Citizen, data.citizen_id):
         raise HTTPException(404, "المواطن غير موجود")
+    directorate_or_422(db, data.directorate_id)
     complaint = ComplaintService.create_complaint(db, data)
     return complaint_data(db, complaint)
 
@@ -121,9 +127,8 @@ def create_complaint(data: ComplaintCreate, request: Request, db: Session = Depe
 @router.get("/")
 def list_complaints(employee=Depends(current_employee), db: Session = Depends(get_db)):
     query = db.query(Complaint).options(selectinload(Complaint.notes), selectinload(Complaint.citizen))
-    if employee.role != UserRole.GOVERNOR:
-        query = query.filter(Complaint.directorate_id == employee.directorate_id)
-    return [complaint_data(db, c, staff=True) for c in query.order_by(Complaint.id.desc()).all()]
+    query = scope_query(query, Complaint, employee, "complaints.view")
+    return [complaint_data(db, c, staff=True, employee=employee) for c in query.order_by(Complaint.id.desc()).all()]
 
 
 @router.get("/track/{tracking_code}")
@@ -153,7 +158,7 @@ def download(attachment_id: int, employee=Depends(current_employee), db: Session
     if not item or item.attachable_type not in ("complaint", "complaints"):
         raise HTTPException(404, "المرفق غير موجود")
     complaint = find_complaint(db, item.attachable_id)
-    authorize_complaint(employee, complaint)
+    authorize_complaint(employee, complaint, "complaints.files.read")
     path = Path(item.file_path).resolve()
     if not path.is_relative_to(UPLOAD_DIR.resolve()) or not path.is_file():
         raise HTTPException(404, "ملف المرفق غير موجود")
@@ -168,7 +173,7 @@ def get_complaint(complaint_id: int, request: Request, db: Session = Depends(get
         return complaint_data(db, complaint)
     employee = current_employee(request, db)
     authorize_complaint(employee, complaint)
-    return complaint_data(db, complaint, staff=True)
+    return complaint_data(db, complaint, staff=True, employee=employee)
 
 
 @router.post("/{complaint_id}/attachments/")
@@ -179,7 +184,7 @@ async def upload_attachment(complaint_id: int, request: Request, file: UploadFil
         require_bot_owner(request, db, complaint.citizen_id)
     if not is_bot(request) and not owns_citizen(request, complaint.citizen_id):
         employee = current_employee(request, db)
-        authorize_complaint(employee, complaint)
+        authorize_complaint(employee, complaint, "complaints.update")
     path = await save_upload(file)
     item = Attachment(file_path=path, file_type=file.content_type or "unknown",
                       attachable_type="complaint", attachable_id=complaint_id)
@@ -194,7 +199,11 @@ async def update_status(complaint_id: int, new_status: StatusEnum,
                         data: ProcessingUpdate = Body(default_factory=ProcessingUpdate),
                         employee=Depends(current_employee), db: Session = Depends(get_db)):
     complaint = find_complaint(db, complaint_id)
-    authorize_complaint(employee, complaint)
+    authorize_complaint(employee, complaint, "complaints.update")
+    if new_status == StatusEnum.RESOLVED:
+        authorize_complaint(employee, complaint, "complaints.resolve")
+    if data.admin_notes.strip():
+        authorize_complaint(employee, complaint, "complaints.notes.create")
     old_status = complaint.status
     if new_status != StatusEnum.RESOLVED and data.progress == 100:
         raise HTTPException(422, "نسبة 100٪ مخصصة للشكاوى المحلولة فقط")
@@ -232,7 +241,7 @@ async def update_status(complaint_id: int, new_status: StatusEnum,
 async def add_note(complaint_id: int, data: NoteCreate,
                    employee=Depends(current_employee), db: Session = Depends(get_db)):
     complaint = find_complaint(db, complaint_id)
-    authorize_complaint(employee, complaint)
+    authorize_complaint(employee, complaint, "complaints.notes.create")
     if not data.note.strip():
         raise HTTPException(422, "الملاحظة لا يمكن أن تكون فارغة")
     audience = data.audience or ("internal" if data.is_internal else "private")
@@ -250,7 +259,7 @@ async def add_note(complaint_id: int, data: NoteCreate,
 async def retry_note(complaint_id: int, note_id: int,
                      employee=Depends(current_employee), db: Session = Depends(get_db)):
     complaint = find_complaint(db, complaint_id)
-    authorize_complaint(employee, complaint)
+    authorize_complaint(employee, complaint, "notifications.retry")
     note = db.get(ComplaintNote, note_id)
     if not note or note.complaint_id != complaint_id or note.is_internal:
         raise HTTPException(404, "الملاحظة غير موجودة")

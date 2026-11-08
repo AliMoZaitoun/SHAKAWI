@@ -9,6 +9,9 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.api.v1.endpoints import analytics, auth, citizens, complaints, public, recovery, evidence
+from app.api.v1.endpoints import access_admin, directorates
+from app.services import identity  # Registers the transactional identity adapter.
+from app.services.access import bootstrap_access
 from app.db.base import Base
 from app.db.migrations import migrate
 from app.db.session import SessionLocal, engine
@@ -20,6 +23,7 @@ async def lifespan(app):
     migrate(engine)
     with SessionLocal() as db:
         auth.provision_accounts(db)
+        bootstrap_access(db)
     yield
 
 
@@ -55,6 +59,8 @@ app.include_router(public.router, prefix="/api/v1/complaints/public", tags=["Pub
 app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["Staff analytics"])
 app.include_router(complaints.router, prefix="/api/v1/complaints", tags=["Complaints"])
 app.include_router(evidence.router, prefix="/api/v1", tags=["Private evidence"])
+app.include_router(access_admin.router, prefix="/api/v1/admin", tags=["Access administration"])
+app.include_router(directorates.router, prefix="/api/v1", tags=["Directorates"])
 app.mount("/static", StaticFiles(directory="static", check_dir=False), name="static")
 
 

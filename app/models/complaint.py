@@ -22,7 +22,8 @@ class Complaint(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)    
     tracking_code = Column(String(30), unique=True, nullable=False, index=True)
     citizen_id = Column(BigInteger, ForeignKey("citizens.id"), nullable=False)
-    directorate_id = Column(BigInteger, nullable=False, index=True)
+    directorate_id = Column(BigInteger, ForeignKey("directorates.id"), nullable=False, index=True)
+    directorate = relationship("Directorate")
     
     title = Column(String(150), nullable=False)
     details = Column(Text, nullable=False)

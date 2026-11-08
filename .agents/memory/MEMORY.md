@@ -2,7 +2,7 @@
 - [Complaint transparency](complaint-transparency.md) — عامة/خاصة مستقلة عن التصنيف؛ الشكاوى العامة للناس، والتحليل للموظفين.
 - [Citizen account linking](citizen-account-linking.md) — تقديم الويب بلا حساب إجباري، بإيصال ورمز سري؛ ربط تيليغرام والحساب لاحقًا اختياري.
 - [Evidence requests](complaint-evidence.md) — طلب أدلة ورد نصّي ومرفقات من الويب أو البوت، حتى للضيف؛ المراسلات خاصة وليست منشورات عامة.
-- [Committee demonstration scope](release-scope.md) — إكمال السيناريو الحالي واختباره قبل عرض اللجنة؛ أولوية للإصلاحات لا لتوسعة الميزات.
+- [Release scope](release-scope.md) — تجميد عرض اللجنة تاريخي؛ المرحلة الجديدة تجهيز الباك إند والعلاقات والصلاحيات، وواجهة React مؤجلة.
 - [Citizen recovery trust](citizen-recovery.md) — وسيلتا الاستعادة المعتمدتان وحدود السجلات القديمة دون إثبات ملكية.
 - [Runtime reconciliation](runtime-reconciliation.md) — نجاح تهيئة الدمج لا يضمن تحديث عملية Python؛ تحقّق من المسارات الجديدة بالخادم الجاري.
 - [Public text review](public-text-review.md) — نشر فوري باختيار المواطن ومراجعة البلاغات؛ لا موافقة مسبقة ولا إخفاء تلقائي بمجرد الإبلاغ.
