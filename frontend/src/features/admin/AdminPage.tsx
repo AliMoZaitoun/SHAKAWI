@@ -10,18 +10,24 @@ export function AdminPage({
   subtitle,
   children,
   required = "rbac.manage",
+  globalOnly = true,
 }: {
   title: string;
   subtitle: string;
   children: React.ReactNode;
   required?: string;
+  globalOnly?: boolean;
 }) {
   const { tText } = useI18n();
   const session = useSession();
   const permissions = session.data?.permissions ?? {};
   const can = (code: string) => permissions[code]?.directorate_ids === null;
+  const hasAnyScope = (code: string) => {
+    const scope = permissions[code]?.directorate_ids;
+    return scope === null || Boolean(scope?.length);
+  };
   return (
-    <StaffGate required={required} globalOnly>
+    <StaffGate required={required} globalOnly={globalOnly}>
       <div className="panel">
         <span className="eyebrow">SYSTEM ADMINISTRATION</span>
         <h1>{tText(title)}</h1>
@@ -45,7 +51,7 @@ export function AdminPage({
               {tText("المديريات")}
             </Link>
           )}
-          {can("employees.manage") && (
+          {hasAnyScope("employees.manage") && (
             <Link className="btn secondary" to="/employee/admin/employees">
               {tText("الموظفون")}
             </Link>

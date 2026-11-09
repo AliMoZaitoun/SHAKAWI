@@ -35,7 +35,7 @@ export function EmployeeHome() {
               <UiText source="المديريات" />
             </Link>
           )}
-          {hasGlobalPermission(session.data, "employees.manage") && (
+          {hasPermission(session.data, "employees.manage") && (
             <Link to="/employee/admin/employees">
               <UiText source="الموظفون" />
             </Link>

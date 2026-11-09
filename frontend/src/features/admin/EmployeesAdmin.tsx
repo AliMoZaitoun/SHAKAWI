@@ -2,11 +2,12 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../shared/api/client";
 import type { Directorate, Employee, Page, Role } from "../../shared/api/types";
-import { useResource } from "../../shared/api/hooks";
+import { useResource, useSession } from "../../shared/api/hooks";
 import { useI18n } from "../../shared/i18n/I18n";
 import { UiText } from "../../shared/i18n/UiText";
 import { AdminAlert, AdminPage, useAdminSave } from "./AdminPage";
 import { EmployeeProfileForm, type EmployeeDraft } from "./EmployeeProfileForm";
+import { hasGlobalPermission, hasPermission } from "../employee/permissions";
 
 const blankEmployee: EmployeeDraft = {
   first_name: "",
@@ -22,6 +23,10 @@ const blankAssignment = { role_id: "", scope_type: "directorate", directorate_id
 
 export function EmployeesAdmin() {
   const { lang, tText } = useI18n();
+  const session = useSession();
+  const canAssignRoles = hasGlobalPermission(session.data, "rbac.manage");
+  const employeeScope = session.data?.permissions?.["employees.manage"]?.directorate_ids;
+  const canManageGlobally = employeeScope === null;
   const [page, setPage] = useState(1);
   const employees = useQuery({
     queryKey: ["admin-employees", page, lang],
@@ -29,8 +34,13 @@ export function EmployeesAdmin() {
       api<Page<Employee>>(`/admin/employees?page=${page}&page_size=20`, { language: lang }),
     retry: false,
   });
-  const roles = useResource<Role[]>("/admin/roles", lang);
-  const directorates = useResource<Directorate[]>("/admin/directorates", lang);
+  const roles = useResource<Role[]>("/admin/roles", lang, canAssignRoles);
+  const directorates = useResource<Directorate[]>("/admin/employees/directorates", lang);
+  const manageableDirectorates = (directorates.data ?? []).filter(
+    (item) =>
+      canManageGlobally ||
+      (employeeScope?.includes(item.id) ?? false),
+  );
   const save = useAdminSave();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Employee | null>(null);
@@ -60,8 +70,14 @@ export function EmployeesAdmin() {
     <AdminPage
       title="إدارة الموظفين"
       required="employees.manage"
+      globalOnly={false}
       subtitle="لا تُستكمل الحسابات القديمة بتخمين بيانات. الإسناد الجديد لا يمنح صلاحيات حتى يُعيّن دور ونطاق."
     >
+      {!canManageGlobally && (
+        <div className="status info" role="status">
+          {tText("يمكنك إدارة موظفي مديريتك والمديريات التابعة لها فقط. إسناد الأدوار والصلاحيات متاح للإدارة العامة.")}
+        </div>
+      )}
       <button className="btn" onClick={() => start()}>
         <UiText source="إضافة موظف" />
       </button>
@@ -101,8 +117,8 @@ export function EmployeesAdmin() {
                   </td>
                   <td>{employee.username}</td>
                   <td>
-                    {directorates.data?.find((item) => item.id === employee.directorate_id)?.hierarchy_path ??
-                      directorates.data?.find((item) => item.id === employee.directorate_id)?.name ??
+                    {manageableDirectorates.find((item) => item.id === employee.directorate_id)?.hierarchy_path ??
+                      manageableDirectorates.find((item) => item.id === employee.directorate_id)?.name ??
                       "—"}
                   </td>
                   <td>
@@ -122,7 +138,7 @@ export function EmployeesAdmin() {
                     <button className="btn secondary" onClick={() => start(employee)}>
                       <UiText source="تعديل" />
                     </button>
-                    <form
+                    {canAssignRoles && <form
                       onSubmit={(event) => {
                         event.preventDefault();
                         void save.run(() =>
@@ -183,7 +199,7 @@ export function EmployeesAdmin() {
                             required
                           >
                             <option value="">{tText("اختر مديرية")}</option>
-                            {directorates.data?.map((item) => (
+                            {manageableDirectorates.map((item) => (
                               <option key={item.id} value={item.id}>
                                 {item.hierarchy_path ?? item.name}
                               </option>
@@ -194,8 +210,8 @@ export function EmployeesAdmin() {
                       <button className="btn secondary" disabled={!assignment.role_id}>
                         <UiText source="إسناد دور" />
                       </button>
-                    </form>
-                    {employee.role_assignments.map((item) => (
+                    </form>}
+                    {canAssignRoles && employee.role_assignments.map((item) => (
                       <button
                         key={item.id}
                         className="btn danger"
@@ -224,7 +240,8 @@ export function EmployeesAdmin() {
         <EmployeeProfileForm
           form={form}
           editing={editing}
-          directorates={directorates.data ?? []}
+          directorates={manageableDirectorates}
+          requireDirectorate={!canManageGlobally}
           busy={save.busy}
           setForm={setForm}
           close={() => setShowForm(false)}

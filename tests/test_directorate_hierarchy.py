@@ -1,6 +1,17 @@
 """Hierarchical directorates flow scoped access downward, never upward."""
+import pytest
+
 from test_app import TEST_PASSWORD, login, system
 from app.models.complaint import Complaint
+
+
+@pytest.fixture(autouse=True)
+def isolated_rate_limits():
+    from app.core.security import _attempts
+
+    _attempts.clear()
+    yield
+    _attempts.clear()
 
 
 def make_directorate(client, name, parent_id=None):
@@ -169,3 +180,150 @@ def test_directorate_parent_validation_rejects_cycles_and_parent_deletion(system
     assert missing_parent.status_code == 422
     assert client.delete(f"/api/v1/admin/directorates/{parent['id']}").status_code == 409
     assert client.delete(f"/api/v1/admin/directorates/{sibling['id']}").status_code == 200
+
+
+def test_employee_management_scope_includes_descendants_but_not_siblings(system):
+    client, _ = system
+    login(client, "governor")
+    root = make_directorate(client, "إدارة نطاق الموظفين")
+    child = make_directorate(client, "فرع تابع", root["id"])
+    leaf = make_directorate(client, "مكتب تابع", child["id"])
+    sibling = make_directorate(client, "فرع شقيق", root["id"])
+    outside = make_directorate(client, "مديرية مستقلة")
+
+    role = client.post(
+        "/api/v1/admin/roles",
+        json={
+            "code": "employee_tree_manager",
+            "name": "مدير موظفي الشجرة",
+            "permissions": ["employees.manage"],
+        },
+    )
+    assert role.status_code == 201, role.text
+    manager = make_employee(client, "tree_manager", "0991113011", root["id"])
+    child_manager = make_employee(client, "tree_child_mgr", "0991113018", child["id"])
+    child_employee = make_employee(client, "tree_child", "0991113012", child["id"])
+    leaf_employee = make_employee(client, "tree_leaf", "0991113013", leaf["id"])
+    sibling_employee = make_employee(client, "tree_sibling", "0991113014", sibling["id"])
+    outside_employee = make_employee(client, "tree_outside", "0991113015", outside["id"])
+    grant_response = client.post(
+        f"/api/v1/admin/employees/{manager['id']}/roles",
+        json={
+            "role_id": role.json()["id"],
+            "scope_type": "directorate",
+            "directorate_id": root["id"],
+        },
+    )
+    assert grant_response.status_code == 201, grant_response.text
+    child_grant = client.post(
+        f"/api/v1/admin/employees/{child_manager['id']}/roles",
+        json={
+            "role_id": role.json()["id"],
+            "scope_type": "directorate",
+            "directorate_id": child["id"],
+        },
+    )
+    assert child_grant.status_code == 201, child_grant.text
+
+    client.cookies.clear()
+    login(client, "tree_manager")
+    managed_directories = client.get("/api/v1/admin/employees/directorates")
+    assert managed_directories.status_code == 200, managed_directories.text
+    assert {item["id"] for item in managed_directories.json()} == {
+        root["id"],
+        child["id"],
+        leaf["id"],
+        sibling["id"],
+    }
+    listing = client.get("/api/v1/admin/employees?page_size=100")
+    assert listing.status_code == 200, listing.text
+    listed_ids = {item["id"] for item in listing.json()["items"]}
+    assert listed_ids == {
+        manager["id"],
+        child_manager["id"],
+        child_employee["id"],
+        leaf_employee["id"],
+        sibling_employee["id"],
+    }
+    assert listing.json()["total"] == 5
+
+    created = client.post(
+        "/api/v1/admin/employees",
+        json={
+            "first_name": "موظف",
+            "last_name": "جديد",
+            "phone": "0991113016",
+            "username": "tree_new",
+            "password": TEST_PASSWORD,
+            "directorate_id": leaf["id"],
+        },
+    )
+    assert created.status_code == 201, created.text
+    forbidden_create = client.post(
+        "/api/v1/admin/employees",
+        json={
+            "first_name": "موظف",
+            "last_name": "خارج",
+            "phone": "0991113017",
+            "username": "tree_forbidden",
+            "password": TEST_PASSWORD,
+            "directorate_id": outside["id"],
+        },
+    )
+    assert forbidden_create.status_code == 403
+
+    update_body = {
+        "first_name": "موظف",
+        "last_name": "نُقل",
+        "phone": "0991113012",
+        "email": None,
+        "directorate_id": leaf["id"],
+        "is_active": True,
+    }
+    assert client.put(
+        f"/api/v1/admin/employees/{child_employee['id']}", json=update_body
+    ).status_code == 200
+    update_body["directorate_id"] = outside["id"]
+    assert client.put(
+        f"/api/v1/admin/employees/{child_employee['id']}", json=update_body
+    ).status_code == 403
+    assert client.put(
+        f"/api/v1/admin/employees/{sibling_employee['id']}", json=update_body
+    ).status_code == 403
+    assert client.put(
+        f"/api/v1/admin/employees/{outside_employee['id']}", json=update_body
+    ).status_code == 404
+    assert client.get("/api/v1/admin/roles").status_code == 403
+    assert client.post(
+        f"/api/v1/admin/employees/{child_employee['id']}/roles",
+        json={
+            "role_id": role.json()["id"],
+            "scope_type": "directorate",
+            "directorate_id": child["id"],
+        },
+    ).status_code == 403
+
+    client.cookies.clear()
+    login(client, "tree_child_mgr")
+    child_directories = client.get("/api/v1/admin/employees/directorates")
+    assert child_directories.status_code == 200, child_directories.text
+    assert {item["id"] for item in child_directories.json()} == {
+        child["id"],
+        leaf["id"],
+    }
+    child_listing = client.get("/api/v1/admin/employees?page_size=100")
+    assert child_listing.status_code == 200, child_listing.text
+    child_ids = {item["id"] for item in child_listing.json()["items"]}
+    assert child_ids == {
+        child_manager["id"],
+        child_employee["id"],
+        leaf_employee["id"],
+        created.json()["id"],
+    }
+    assert child_listing.json()["total"] == 4
+    assert client.put(
+        f"/api/v1/admin/employees/{manager['id']}", json=update_body
+    ).status_code == 404
+    assert client.put(
+        f"/api/v1/admin/employees/{sibling_employee['id']}", json=update_body
+    ).status_code == 404

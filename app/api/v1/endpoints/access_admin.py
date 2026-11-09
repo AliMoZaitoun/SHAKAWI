@@ -5,20 +5,38 @@ from sqlalchemy.orm import Session
 
 from app.core.security import hash_password
 from app.db.session import get_db
-from app.models.access import AccessAudit, Permission, Role, RoleAssignment, User
+from app.models.access import AccessAudit, Directorate, Permission, Role, RoleAssignment, User
 from app.models.user import Employee, UserRole
 from app.schemas.access import (
     AssignmentInput, EmployeeInput, EmployeeUpdate, PermissionUpdate, RoleInput, RoleUpdate,
 )
-from app.services.access import require_permission
+from app.services.access import permission_scopes, require_permission
 from app.services.access_admin import (
-    assignment_data, begin_change, directorate_or_422, employee_data, finish_change,
-    permission_rows, role_data,
+    assignment_data, begin_change, directorate_or_422, employee_data, employee_directorate_data,
+    finish_change, permission_rows, role_data,
 )
 
 router = APIRouter()
 manage = require_permission("rbac.manage", global_only=True)
-manage_employees = require_permission("employees.manage", global_only=True)
+manage_employees = require_permission("employees.manage")
+
+
+def require_employee_directorate(actor, directorate_id):
+    """Scoped employee managers can act only inside their assigned tree."""
+    scopes = permission_scopes(actor, "employees.manage")
+    if scopes is not None and (directorate_id is None or directorate_id not in scopes):
+        raise HTTPException(403, "لا تملك صلاحية إدارة الموظفين في هذه المديرية")
+
+
+def employee_in_scope(db, actor, identifier):
+    employee = db.get(Employee, identifier)
+    if employee is None:
+        raise HTTPException(404, "الموظف غير موجود")
+    scopes = permission_scopes(actor, "employees.manage")
+    if scopes is not None and employee.directorate_id not in scopes:
+        # Do not reveal whether an employee exists outside the caller's tree.
+        raise HTTPException(404, "الموظف غير موجود")
+    return employee
 
 
 def find(db, model, identifier):
@@ -87,13 +105,34 @@ def delete_role(role_id: int, actor=Depends(manage), db: Session = Depends(get_d
 def employees(page: int = Query(1, ge=1), page_size: int = Query(25, ge=1, le=100),
               actor=Depends(manage_employees), db: Session = Depends(get_db)):
     query = db.query(Employee).order_by(Employee.id)
+    scopes = permission_scopes(actor, "employees.manage")
+    if scopes is not None:
+        if not scopes:
+            return {"total": 0, "page": page, "items": []}
+        query = query.filter(Employee.directorate_id.in_(scopes))
     return {"total": query.count(), "page": page,
             "items": [employee_data(row) for row in query.offset((page - 1) * page_size).limit(page_size)]}
 
 
+@router.get("/employees/directorates")
+def employee_directorates(actor=Depends(manage_employees), db: Session = Depends(get_db)):
+    """Return only directorates within the caller's employee-management scope."""
+    query = db.query(Directorate)
+    scopes = permission_scopes(actor, "employees.manage")
+    if scopes is not None:
+        if not scopes:
+            return []
+        query = query.filter(Directorate.id.in_(scopes))
+    return [
+        employee_directorate_data(row)
+        for row in query.order_by(Directorate.id)
+    ]
+
+
 @router.post("/employees", status_code=201)
 def create_employee(data: EmployeeInput, actor=Depends(manage_employees), db: Session = Depends(get_db)):
-    begin_change(db, actor, "employees.manage")
+    begin_change(db, actor, "employees.manage", global_only=False)
+    require_employee_directorate(actor, data.directorate_id)
     directorate_or_422(db, data.directorate_id)
     if (db.query(User).filter((User.username == data.username) | (User.phone == data.phone)
                              | ((User.email == data.email) if data.email else False)).first()):
@@ -114,8 +153,10 @@ def create_employee(data: EmployeeInput, actor=Depends(manage_employees), db: Se
 @router.put("/employees/{employee_id}")
 def edit_employee(employee_id: int, data: EmployeeUpdate,
                   actor=Depends(manage_employees), db: Session = Depends(get_db)):
-    begin_change(db, actor, "employees.manage")
-    row = find(db, Employee, employee_id)
+    begin_change(db, actor, "employees.manage", global_only=False)
+    row = employee_in_scope(db, actor, employee_id)
+    require_employee_directorate(actor, row.directorate_id)
+    require_employee_directorate(actor, data.directorate_id)
     directorate_or_422(db, data.directorate_id)
     for field in ("first_name", "last_name", "phone", "email", "is_active"):
         setattr(row.user, field, getattr(data, field))

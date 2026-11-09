@@ -17,6 +17,7 @@ export function EmployeeProfileForm({
   form,
   editing,
   directorates,
+  requireDirectorate = false,
   busy,
   setForm,
   close,
@@ -26,6 +27,7 @@ export function EmployeeProfileForm({
   form: EmployeeDraft;
   editing: Employee | null;
   directorates: Directorate[];
+  requireDirectorate?: boolean;
   busy: boolean;
   setForm: Dispatch<SetStateAction<EmployeeDraft>>;
   close: () => void;
@@ -108,10 +110,11 @@ export function EmployeeProfileForm({
         {tText("المديرية الأساسية")}
         <select
           className="field"
+          required={requireDirectorate}
           value={form.directorate_id}
           onChange={(event) => setForm({ ...form, directorate_id: event.target.value })}
         >
-          <option value="">{tText("بدون مديرية")}</option>
+          {!requireDirectorate && <option value="">{tText("بدون مديرية")}</option>}
           {directorates.map((directorate) => (
             <option key={directorate.id} value={directorate.id}>
               {directorate.hierarchy_path ?? directorate.name}

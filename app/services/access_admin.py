@@ -9,12 +9,12 @@ from app.models.access import AccessAudit, Directorate, Permission, Role
 from app.services.access import assert_admin_survives, check_permission
 
 
-def begin_change(db, actor, permission="rbac.manage"):
+def begin_change(db, actor, permission="rbac.manage", *, global_only=True):
     # Serializes all security mutations even on SQLite (FOR UPDATE is ignored
     # there). The same shared row is locked on PostgreSQL as well.
     db.execute(update(Role).where(Role.code == "governor").values(name=Role.name))
     db.expire_all()
-    check_permission(actor, permission, global_only=True)
+    check_permission(actor, permission, global_only=global_only)
 
 
 def finish_change(db, actor, action, target_type, target_id, details=None):
@@ -67,3 +67,22 @@ def employee_data(employee):
             "directorate_id": employee.directorate_id,
             "needs_profile_completion": user.needs_profile_completion,
             "role_assignments": [assignment_data(row) for row in employee.role_assignments]}
+
+
+def employee_directorate_data(directorate):
+    from app.services.translations import localized
+
+    path = []
+    current = directorate
+    visited = set()
+    while current is not None and current.id not in visited:
+        visited.add(current.id)
+        path.append(localized(current)["name"])
+        current = current.parent
+    return {
+        "id": directorate.id,
+        "parent_id": directorate.parent_id,
+        "hierarchy_path": " / ".join(reversed(path)),
+        **localized(directorate),
+        "is_active": directorate.is_active,
+    }
