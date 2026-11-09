@@ -13,15 +13,21 @@ def upgrade():
     inspector = inspect(connection)
     columns = {column["name"] for column in inspector.get_columns("directorates")}
     if "parent_id" not in columns:
-        op.add_column(
-            "directorates",
-            sa.Column(
-                "parent_id",
-                sa.Integer(),
-                sa.ForeignKey("directorates.id", ondelete="RESTRICT"),
-                nullable=True,
-            ),
-        )
+        if connection.dialect.name == "sqlite":
+            op.execute(
+                "ALTER TABLE directorates ADD COLUMN parent_id "
+                "INTEGER REFERENCES directorates(id) ON DELETE RESTRICT"
+            )
+        else:
+            op.add_column(
+                "directorates",
+                sa.Column(
+                    "parent_id",
+                    sa.Integer(),
+                    sa.ForeignKey("directorates.id", ondelete="RESTRICT"),
+                    nullable=True,
+                ),
+            )
     indexes = {index["name"] for index in inspector.get_indexes("directorates")}
     if "ix_directorates_parent_id" not in indexes:
         op.create_index("ix_directorates_parent_id", "directorates", ["parent_id"])

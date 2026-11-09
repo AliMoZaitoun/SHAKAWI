@@ -320,7 +320,12 @@ def test_versioned_legacy_migration_backups_repeat_and_restore(tmp_path, monkeyp
             if foreign_key["constrained_columns"] == ["parent_id"]
         )
         assert parent_foreign_key["referred_table"] == "directorates"
-        assert parent_foreign_key["options"]["ondelete"] == "RESTRICT"
+        sqlite_foreign_key = next(
+            row
+            for row in db.execute(text("PRAGMA foreign_key_list('directorates')")).all()
+            if row[3] == "parent_id"
+        )
+        assert sqlite_foreign_key[6] == "RESTRICT"
     backups = list(Path("generated-artifacts/backups").iterdir())
     assert len(backups) == 1 and verify_backup(backups[0])
     restored = restore_to_new_directory(backups[0], tmp_path / "restored")

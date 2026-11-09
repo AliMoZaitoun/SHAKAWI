@@ -21,15 +21,21 @@ def upgrade():
     apply_snapshot(connection, "foundations_schema.sql")
     columns = {column["name"] for column in sa.inspect(connection).get_columns("directorates")}
     if "parent_id" not in columns:
-        op.add_column(
-            "directorates",
-            sa.Column(
-                "parent_id",
-                sa.Integer(),
-                sa.ForeignKey("directorates.id", ondelete="RESTRICT"),
-                nullable=True,
-            ),
-        )
+        if connection.dialect.name == "sqlite":
+            op.execute(
+                "ALTER TABLE directorates ADD COLUMN parent_id "
+                "INTEGER REFERENCES directorates(id) ON DELETE RESTRICT"
+            )
+        else:
+            op.add_column(
+                "directorates",
+                sa.Column(
+                    "parent_id",
+                    sa.Integer(),
+                    sa.ForeignKey("directorates.id", ondelete="RESTRICT"),
+                    nullable=True,
+                ),
+            )
     with Session(bind=connection) as db:
         db.info["disable_audit"] = True
         seed_translations(db)

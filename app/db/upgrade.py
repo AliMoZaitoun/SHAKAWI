@@ -29,12 +29,27 @@ def upgrade_database(engine):
         if engine.dialect.name == "sqlite" and not conn.connection.driver_connection.in_transaction:
             conn.exec_driver_sql("BEGIN IMMEDIATE")
         config.attributes["connection"] = conn
-        before = {name: conn.execute(text(f'SELECT COUNT(*) FROM "{name}"')).scalar()
-                  for name in PRESERVED_TABLES.intersection(tables)}
+        preserved = PRESERVED_TABLES.intersection(tables)
+        before = {
+            name: conn.execute(text(f'SELECT COUNT(*) FROM "{name}"')).scalar()
+            for name in preserved
+            if name != "directorates"
+        }
+        directorate_ids = (
+            set(conn.execute(text("SELECT id FROM directorates")).scalars())
+            if "directorates" in preserved
+            else set()
+        )
         command.upgrade(config, "head")
         for name, count in before.items():
             if conn.execute(text(f'SELECT COUNT(*) FROM "{name}"')).scalar() != count:
                 raise RuntimeError(f"Preserved record count changed in {name}; upgrade rolled back")
+        if directorate_ids:
+            upgraded_directorate_ids = set(
+                conn.execute(text("SELECT id FROM directorates")).scalars()
+            )
+            if not directorate_ids.issubset(upgraded_directorate_ids):
+                raise RuntimeError("Existing directorates were lost during upgrade; upgrade rolled back")
         if engine.dialect.name == "sqlite":
             if conn.exec_driver_sql("PRAGMA foreign_key_check").first():
                 raise RuntimeError("Foreign key validation failed; no destructive repair attempted")
