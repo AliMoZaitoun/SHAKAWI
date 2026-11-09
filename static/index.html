@@ -98,6 +98,9 @@
         <button onclick="switchTab('directorates')" id="tab-directorates" class="tab-btn" aria-controls="sec-directorates">
           <i class="fa-solid fa-sitemap"></i> إدارة المديريات
         </button>
+        <button onclick="switchTab('roles')" id="tab-roles" class="tab-btn" aria-controls="sec-roles">
+          <i class="fa-solid fa-shield-halved"></i> الأدوار والصلاحيات
+        </button>
       </nav>
     </div>
   </header>
@@ -508,6 +511,56 @@
             <tbody id="directorates-table-body" class="divide-y divide-gray-100"></tbody>
           </table>
         </div>
+      </div>
+    </section>
+    <section id="sec-roles" class="tab-content hidden">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8 space-y-8">
+        <div>
+          <h2 class="text-xl font-bold text-brand-dark">إدارة الأدوار والصلاحيات</h2>
+          <p class="text-sm text-gray-500 mt-1">أنشئ الأدوار وحدد الصلاحيات الممنوحة لها. التغييرات تطبق من الخادم وتُسجل في سجل التدقيق.</p>
+        </div>
+        <div id="roles-state" class="state-panel" role="status" aria-live="polite">جارٍ تحميل الأدوار والصلاحيات…</div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <form id="role-form" class="bg-brand-bg p-5 rounded-xl space-y-4">
+            <h3 id="role-form-title" class="font-bold text-brand-dark">إنشاء دور</h3>
+            <input id="role-id" type="hidden">
+            <label class="block"><span class="field-label">الرمز الداخلي</span><input id="role-code" class="field" pattern="[a-z][a-z0-9_]*" minlength="2" maxlength="60" required dir="ltr"></label>
+            <label class="block"><span class="field-label">اسم الدور بالعربية</span><input id="role-name" class="field" minlength="2" maxlength="150" required></label>
+            <label class="block"><span class="field-label">الوصف بالعربية</span><textarea id="role-description" class="field" rows="2" maxlength="2000"></textarea></label>
+            <fieldset class="space-y-2">
+              <legend class="field-label">الصلاحيات الممنوحة</legend>
+              <div id="role-permissions" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+            </fieldset>
+            <div class="flex gap-2">
+              <button id="role-save" type="submit" class="primary-button">إنشاء الدور</button>
+              <button id="role-cancel" type="button" class="secondary-button hidden">إلغاء التعديل</button>
+            </div>
+            <p id="role-form-state" class="text-sm hidden" role="alert"></p>
+          </form>
+          <div>
+            <h3 class="font-bold text-brand-dark mb-3">الأدوار الحالية</h3>
+            <div id="roles-list" class="space-y-3"></div>
+          </div>
+        </div>
+        <section class="border-t pt-6 space-y-4">
+          <div>
+            <h3 class="font-bold text-brand-dark">ترجمة الأدوار والصلاحيات</h3>
+            <p class="text-sm text-gray-500 mt-1">اختر دوراً أو صلاحية ولغة لتعديل الاسم والوصف. اللغة العربية هي الترجمة الأساسية.</p>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <label><span class="field-label">نوع السجل</span><select id="role-translation-entity" class="field"><option value="roles">دور</option><option value="permissions">صلاحية</option></select></label>
+            <label><span class="field-label">السجل</span><select id="role-translation-record" class="field"><option value="">اختر السجل</option></select></label>
+            <label><span class="field-label">اللغة</span><select id="role-translation-language" class="field"><option value="">اختر اللغة</option></select></label>
+          </div>
+          <form id="role-translation-form" class="grid grid-cols-1 sm:grid-cols-2 gap-4 hidden">
+            <label><span class="field-label">الاسم</span><input id="role-translation-name" class="field" required maxlength="150"></label>
+            <label><span class="field-label">الوصف</span><input id="role-translation-description" class="field" maxlength="4000"></label>
+            <div class="sm:col-span-2 flex gap-2">
+              <button type="submit" class="primary-button">حفظ الترجمة</button>
+              <button id="role-translation-delete" type="button" class="secondary-button hidden">حذف الترجمة</button>
+            </div>
+          </form>
+        </section>
       </div>
     </section>
     <section id="sec-process" class="tab-content hidden">

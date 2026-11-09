@@ -1,4 +1,4 @@
-import { loadAuthState, isStaff, loginUser, setUnauthorizedHandler, logoutUser, changePassword } from "./auth.js";
+import { loadAuthState, isStaff, getUser, loginUser, setUnauthorizedHandler, logoutUser, changePassword } from "./auth.js";
 import { complaints, loadComplaints, createCitizen, uploadCitizenIdentity, createComplaint, uploadComplaintAttachment, statusLabels, priorityLabels, clearComplaints } from "./complaints.js";
 import { searchComplaint, copyComplaintLink, checkUrlForCode } from "./tracking.js";
 import { populateProcessDropdown, loadComplaintForProcessing, saveComplaintProcessing, toggleResolutionFields, updateSliderProgress } from "./processing.js";
@@ -6,6 +6,7 @@ import { loadPublicComplaints, changePublicPage, handlePublicHash, initPublicBro
 import { loadStatistics, initStatistics, clearStatistics } from "./statistics.js";
 import { initRecovery, refreshCitizenAccess } from "./recovery.js";
 import { initDirectorates } from "./directorates.js";
+import { initRoles } from "./roles.js";
 
 let pendingSubmission = null;
 let submissionInProgress = false;
@@ -73,7 +74,11 @@ window.showNotice = (message, type = "info") => {
   window.clearTimeout(window.noticeTimer); window.noticeTimer = window.setTimeout(() => notice.classList.add("hidden"), 8500);
 };
 window.switchTab = (name) => {
-  if (["list", "process", "statistics"].includes(name) && !isStaff()) { window.showNotice("تسجيل الدخول مطلوب للوصول إلى لوحة الموظفين.", "info"); document.getElementById("login-dialog").showModal(); return; }
+  if (["list", "process", "statistics", "roles"].includes(name) && !isStaff()) { window.showNotice("تسجيل الدخول مطلوب للوصول إلى لوحة الموظفين.", "info"); document.getElementById("login-dialog").showModal(); return; }
+  if (name === "roles" && getUser()?.permissions?.["rbac.manage"]?.scope_type !== "global") {
+    window.showNotice("لا تملك صلاحية إدارة الأدوار والصلاحيات.", "error");
+    return;
+  }
   if (name === "statistics") history.replaceState(null, "", `${location.pathname}${location.search}#statistics`);
   if (name === "public" && !location.hash.startsWith("#public-")) history.replaceState(null, "", `${location.pathname}${location.search}#public`);
   document.querySelectorAll(".tab-content").forEach((element) => element.classList.add("hidden"));
@@ -84,6 +89,7 @@ window.switchTab = (name) => {
   if (name === "process") refreshStaffData();
   if (name === "statistics") loadStatistics();
   if (name === "public") loadPublicComplaints();
+  if (name === "roles") void initRoles();
 };
 window.loadPublicComplaints = loadPublicComplaints;
 window.changePublicPage = changePublicPage;
@@ -270,7 +276,7 @@ window.addEventListener("shakwa:logout", () => {
   updateSliderProgress(0);
   document.getElementById("resolution-fields").classList.add("hidden");
   document.getElementById("processing-card").classList.add("opacity-50");
-  if (["list","process","statistics","directorates"].includes(location.hash.replace("#",""))) window.switchTab("submit");
+  if (["list","process","statistics","directorates","roles"].includes(location.hash.replace("#",""))) window.switchTab("submit");
   else { document.querySelectorAll(".tab-content").forEach((section) => section.classList.add("hidden")); document.getElementById("sec-submit").classList.remove("hidden"); }
   window.showNotice("تم تسجيل الخروج.", "info");
 });
@@ -294,12 +300,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   catch (error) { window.showNotice(`تعذر التحقق من جلسة الموظف: ${error.message}`, "error"); }
   try { await initDirectorates(); }
   catch (error) { window.showNotice(`تعذر تحميل المديريات: ${error.message}`, "error"); }
+  try { await initRoles(); }
+  catch (error) { window.showNotice(`تعذر تحميل الأدوار والصلاحيات: ${error.message}`, "error"); }
   if (location.hash.startsWith("#public")) handlePublicHash();
   else if (location.hash === "#statistics") window.switchTab("statistics");
-  else if (["#list", "#process", "#directorates"].includes(location.hash)) window.switchTab(location.hash.slice(1));
+  else if (["#list", "#process", "#directorates", "#roles"].includes(location.hash)) window.switchTab(location.hash.slice(1));
   else checkUrlForCode();
 });
 window.addEventListener("hashchange", () => {
   if (location.hash.startsWith("#public")) handlePublicHash();
-  else if (["#statistics", "#list", "#process", "#directorates"].includes(location.hash)) window.switchTab(location.hash.slice(1));
+  else if (["#statistics", "#list", "#process", "#directorates", "#roles"].includes(location.hash)) window.switchTab(location.hash.slice(1));
 });

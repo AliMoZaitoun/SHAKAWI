@@ -5,6 +5,7 @@ import { useResource } from "../../shared/api/hooks";
 import { useI18n } from "../../shared/i18n/I18n";
 import { UiText } from "../../shared/i18n/UiText";
 import { AdminAlert, AdminPage, useAdminSave } from "./AdminPage";
+import { Link } from "react-router-dom";
 
 export function RolesAdmin() {
   const { lang, tText } = useI18n();
@@ -39,8 +40,14 @@ export function RolesAdmin() {
   return (
     <AdminPage
       title="الأدوار ومصفوفة الصلاحيات"
-      subtitle="توزيع صلاحيات موجودة في الخادم فقط. التغيير يؤثر فورًا على الجلسات التالية."
+      subtitle="إنشاء الأدوار وتوزيع صلاحيات الخادم عليها. التغيير يُسجل في سجل التدقيق ويؤثر على الصلاحيات الفعلية."
     >
+      <div className="status info">
+        <UiText source="ترجمة أسماء الأدوار والصلاحيات لكل لغة تُدار من شاشة الترجمات." />{" "}
+        <Link to="/employee/admin/translations" className="btn secondary">
+          <UiText source="فتح إدارة الترجمات" />
+        </Link>
+      </div>
       <div className="grid grid-two">
         {roles.isLoading || permissions.isLoading ? (
           <div className="skeleton" />
