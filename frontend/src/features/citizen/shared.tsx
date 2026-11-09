@@ -21,18 +21,17 @@ export type PublicPageData = Page<PublicComplaint> & { page_size: number; pages:
 export function statusText(status: string, lang: string): string {
   const labels =
     lang === "ar"
-      ? { PENDING: "جديدة", IN_PROGRESS: "قيد المعالجة", RESOLVED: "تمت المعالجة", REJECTED: "مرفوضة" }
+      ? {
+          PENDING: "جديدة",
+          IN_PROGRESS: "قيد المعالجة",
+          RESOLVED: "تمت المعالجة",
+          REJECTED: "مرفوضة",
+        }
       : { PENDING: "New", IN_PROGRESS: "In progress", RESOLVED: "Resolved", REJECTED: "Rejected" };
   return labels[status as keyof typeof labels] ?? status;
 }
 
-export function CitizenLoadError({
-  message,
-  onRetry,
-}: {
-  message: string;
-  onRetry: () => void;
-}) {
+export function CitizenLoadError({ message, onRetry }: { message: string; onRetry: () => void }) {
   const { tText } = useI18n();
   return (
     <div role="alert" className="status error">
@@ -52,4 +51,3 @@ export function PanelLoading() {
     </div>
   );
 }
-

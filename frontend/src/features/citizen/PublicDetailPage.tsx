@@ -35,7 +35,8 @@ export function PublicDetailPage() {
   return (
     <>
       <Link className="btn secondary" to="/public">
-        <ArrowRight size={16} /><UiText source="العودة للقائمة" />
+        <ArrowRight size={16} />
+        <UiText source="العودة للقائمة" />
       </Link>
       <article className="panel" style={{ marginTop: 16 }}>
         <div className="eyebrow">PUBLIC COMPLAINT · #{complaint.id}</div>
@@ -44,30 +45,39 @@ export function PublicDetailPage() {
           <span className="badge">{statusText(complaint.status, lang)}</span>
         </div>
         <p className="muted">
-          {complaint.public_text_hidden
-            ? tText("النص مخفي مؤقتًا للمراجعة.")
-            : complaint.details}
+          {complaint.public_text_hidden ? tText("النص مخفي مؤقتًا للمراجعة.") : complaint.details}
         </p>
         <div className="row">
           <span className="badge">{complaint.category}</span>
           <span className="muted">{new Date(complaint.created_at).toLocaleDateString(lang)}</span>
         </div>
-        {complaint.resolution_report && <div className="status success">{complaint.resolution_report}</div>}
+        {complaint.resolution_report && (
+          <div className="status success">{complaint.resolution_report}</div>
+        )}
         {complaint.notes?.map((note, index) => (
-          <div key={index} className="status info">{note.note}</div>
+          <div key={index} className="status info">
+            {note.note}
+          </div>
         ))}
         <hr style={{ border: 0, borderTop: "1px solid var(--line)", margin: "24px 0" }} />
-        <h3><UiText source="الإبلاغ عن محتوى عام" /></h3>
-        <p className="muted"><UiText source="البلاغ لا يخفي المحتوى تلقائيًا. يراجعه موظف مخوّل." /></p>
+        <h3>
+          <UiText source="الإبلاغ عن محتوى عام" />
+        </h3>
+        <p className="muted">
+          <UiText source="البلاغ لا يخفي المحتوى تلقائيًا. يراجعه موظف مخوّل." />
+        </p>
         <form
           onSubmit={async (event) => {
             event.preventDefault();
             setBusy(true);
             try {
-              const result = await api<{ message: string }>(`/complaints/public/${complaint.id}/reports`, {
-                method: "POST",
-                body: { reason },
-              });
+              const result = await api<{ message: string }>(
+                `/complaints/public/${complaint.id}/reports`,
+                {
+                  method: "POST",
+                  body: { reason },
+                },
+              );
               setNotice(result.message);
               setReason("");
             } catch (error) {
@@ -87,9 +97,15 @@ export function PublicDetailPage() {
               onChange={(event) => setReason(event.target.value)}
             />
           </label>
-          <button className="btn danger" disabled={busy}><UiText source="إرسال بلاغ" /></button>
+          <button className="btn danger" disabled={busy}>
+            <UiText source="إرسال بلاغ" />
+          </button>
         </form>
-        {notice && <div role="status" className="status info">{notice}</div>}
+        {notice && (
+          <div role="status" className="status info">
+            {notice}
+          </div>
+        )}
       </article>
     </>
   );

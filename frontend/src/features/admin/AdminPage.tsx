@@ -28,7 +28,11 @@ export function AdminPage({
 }
 
 export function AdminAlert({ text }: { text: string }) {
-  return text ? <div className="status info" role="status">{text}</div> : null;
+  return text ? (
+    <div className="status info" role="status">
+      {text}
+    </div>
+  ) : null;
 }
 
 export function useAdminSave() {

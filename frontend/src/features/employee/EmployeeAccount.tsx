@@ -78,9 +78,15 @@ export function EmployeeAccount() {
               onChange={(event) => setConfirm(event.target.value)}
             />
           </label>
-          <button className="btn" disabled={busy}>{tText("تحديث كلمة المرور")}</button>
+          <button className="btn" disabled={busy}>
+            {tText("تحديث كلمة المرور")}
+          </button>
         </form>
-        {message && <div role="status" className="status info">{message}</div>}
+        {message && (
+          <div role="status" className="status info">
+            {message}
+          </div>
+        )}
       </div>
     </StaffGate>
   );

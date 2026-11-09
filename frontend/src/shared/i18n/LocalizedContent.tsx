@@ -7,9 +7,11 @@ export const english: Record<string, string> = {
   "قدّم شكواك دون إنشاء حساب. احتفظ برمز المتابعة السري، وتابع خطوات المعالجة، أو اطّلع على ما اختار المواطنون نشره.":
     "Submit without creating an account. Keep your private tracking code, follow progress, or explore complaints citizens chose to publish.",
   "ابدأ بشكوى جديدة": "Start a complaint",
-  "بياناتك الخاصة تبقى خارج العرض العام. النشر اختياري بالكامل.": "Your private details stay out of public view. Publishing is entirely optional.",
+  "بياناتك الخاصة تبقى خارج العرض العام. النشر اختياري بالكامل.":
+    "Your private details stay out of public view. Publishing is entirely optional.",
   "اطّلع على الشكاوى المنشورة": "Browse published complaints",
-  "شفافية بلا كشف للهويات أو رموز المتابعة أو المرفقات.": "Transparency without identities, tracking codes, or attachments.",
+  "شفافية بلا كشف للهويات أو رموز المتابعة أو المرفقات.":
+    "Transparency without identities, tracking codes, or attachments.",
   "رمز المتابعة يخص شكوى واحدة": "A tracking code opens one complaint",
   "لا يمنح الرمز وصولًا إلى سجل المواطن أو بقية شكاواه. لا تحفظه في جهاز مشترك.":
     "It does not reveal a citizen account or their other complaints. Avoid keeping it on shared devices.",
@@ -165,13 +167,13 @@ export const english: Record<string, string> = {
   "تم استلام شكواك": "Your complaint has been received",
   "تعذر إكمال الطلب.": "Could not complete the submission.",
   "تم إنشاء الشكوى": "Complaint created",
-  "المعرّف": "ID",
+  المعرّف: "ID",
   "المرفقات المتبقية محفوظة في هذه الصفحة؛ أعد المحاولة لإكمال الرفع دون إنشاء شكوى جديدة.":
     "Pending attachments remain on this page. Retry to finish uploading without creating another complaint.",
   "تعذر تحميل الجهات.": "Could not load directorates.",
   "مثال: صيانة طريق": "Example: road maintenance",
   "إرسال الشكوى": "Submit complaint",
-  "تحميل": "Loading",
+  تحميل: "Loading",
   "أضف نصًا للرد أو أرفق ملفًا واحدًا على الأقل.": "Write a reply or attach at least one file.",
   "اختر حتى خمسة ملفات صور أو PDF، بحد أقصى 10 ميبيبايت لكل ملف.":
     "Choose up to five image or PDF files, no larger than 10 MiB each.",
@@ -182,8 +184,8 @@ export const english: Record<string, string> = {
     "Only approved public content is shown. Citizen details, tracking codes, and files are never displayed.",
   "اكتب التصنيف": "Enter a category",
   "معرّف عام": "Public ID",
-  "صفحة": "Page",
-  "من": "of",
+  صفحة: "Page",
+  من: "of",
   "تعذر إرسال البلاغ": "Could not submit the report",
   "تعذر إتمام الإجراء": "Could not complete the action",
   "أدخل معرّف تيليغرام رقميًا صحيحًا.": "Enter a valid numeric Telegram ID.",
@@ -194,8 +196,9 @@ export const english: Record<string, string> = {
   "تم تغيير كلمة المرور.": "Password changed.",
   "تعذر تغيير كلمة المرور": "Could not change the password",
   "الأدلة ومراجعة النشر": "Evidence and publication review",
-  "الجمهور": "Audience",
-  "يتطلب صلاحية النقل في نطاق المديريتين.": "Transfer permission is required in both directorate scopes.",
+  الجمهور: "Audience",
+  "يتطلب صلاحية النقل في نطاق المديريتين.":
+    "Transfer permission is required in both directorate scopes.",
   "فتح ملف": "Open file",
   "يمكن إدارة طلبات الأدلة من متابعة المواطن. عناصر الملفات لا تُعرض هنا دون الصلاحيات اللازمة.":
     "Evidence requests are managed from citizen tracking. Files are not displayed here without the required permissions.",
@@ -208,14 +211,14 @@ export const english: Record<string, string> = {
   "تعديل ترجمة الأدوار والمديريات والصلاحيات متاح في شاشة الأدوار والصلاحيات. تفضيل لغة الواجهة يُحفظ على هذا الجهاز فقط.":
     "Role, directorate, and permission translations are managed in Roles and permissions. The interface language preference is saved on this device only.",
   "تعذر تحميل سجل التدقيق.": "Could not load the audit log.",
-  "نظام": "System",
-  "حدث": "events",
+  نظام: "System",
+  حدث: "events",
   "اختر دورًا": "Choose a role",
   "اختر مديرية": "Choose a directorate",
-  "ملاحظة": "Note",
-  "الدور": "Role",
-  "النطاق": "Scope",
-  "موظفًا": "employees",
+  ملاحظة: "Note",
+  الدور: "Role",
+  النطاق: "Scope",
+  موظفًا: "employees",
   السابق: "Previous",
   التالي: "Next",
   "تمت الاستعادة.": "Access restored.",

@@ -31,12 +31,10 @@ export function EmployeeLogin() {
       {authConfig.isLoading && <div className="skeleton" aria-label={tText("جارٍ التحميل")} />}
       {authConfig.error && (
         <div className="status error" role="alert">
-          {authConfig.error instanceof Error ? authConfig.error.message : tText("تعذر تحميل البيانات.")}
-          <button
-            type="button"
-            className="btn secondary"
-            onClick={() => void authConfig.refetch()}
-          >
+          {authConfig.error instanceof Error
+            ? authConfig.error.message
+            : tText("تعذر تحميل البيانات.")}
+          <button type="button" className="btn secondary" onClick={() => void authConfig.refetch()}>
             <RefreshCw size={15} />
             {tText("إعادة المحاولة")}
           </button>

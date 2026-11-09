@@ -4,8 +4,4 @@ export { EmployeeHome } from "./EmployeeHome";
 export { EmployeeLogin } from "./EmployeeLogin";
 export { Statistics } from "./Statistics";
 export { StaffGate } from "./StaffGate";
-export {
-  complaintStatusLabel,
-  hasGlobalPermission,
-  hasPermission,
-} from "./permissions";
+export { complaintStatusLabel, hasGlobalPermission, hasPermission } from "./permissions";

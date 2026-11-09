@@ -41,7 +41,9 @@ export function AccessPage() {
         <span className="eyebrow">ACCOUNT OWNERSHIP</span>
         <h1>{tText("استعادة الوصول")}</h1>
         <p className="muted">
-          {tText("الاسم أو الرقم الوطني وحده لا يثبت ملكية السجل. لا تشارك مفاتيح الاستعادة أو رموز تيليغرام.")}
+          {tText(
+            "الاسم أو الرقم الوطني وحده لا يثبت ملكية السجل. لا تشارك مفاتيح الاستعادة أو رموز تيليغرام.",
+          )}
         </p>
         <form
           onSubmit={(event) => {
@@ -66,7 +68,9 @@ export function AccessPage() {
               onChange={(event) => setRestore(event.target.value)}
             />
           </Field>
-          <button className="btn" disabled={busy}>{tText("استعادة بالمفتاح")}</button>
+          <button className="btn" disabled={busy}>
+            {tText("استعادة بالمفتاح")}
+          </button>
         </form>
         <hr />
         <h3>{tText("طلب عبر تيليغرام")}</h3>
@@ -82,7 +86,11 @@ export function AccessPage() {
           />
         </Field>
         <label className="muted">
-          <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} />{" "}
+          <input
+            type="checkbox"
+            checked={consent}
+            onChange={(event) => setConsent(event.target.checked)}
+          />{" "}
           {tText("أوافق على طلب إثبات الملكية عبر الحساب المرتبط أصلًا.")}
         </label>
         <button
@@ -109,7 +117,9 @@ export function AccessPage() {
           <div className="status info code">
             {pending}
             <p className="muted">
-              {tText("أرسل الأمر في محادثة خاصة مع البوت الرسمي ووافق هناك فقط إن كنت بدأت الطلب. ثم أكمل من هذا المتصفح.")}
+              {tText(
+                "أرسل الأمر في محادثة خاصة مع البوت الرسمي ووافق هناك فقط إن كنت بدأت الطلب. ثم أكمل من هذا المتصفح.",
+              )}
             </p>
             <button
               className="btn"
@@ -137,7 +147,9 @@ export function AccessPage() {
         ) : own.error && own.error instanceof ApiError && own.error.status !== 403 ? (
           <CitizenLoadError message={own.error.message} onRetry={() => void own.refetch()} />
         ) : own.error ? (
-          <p className="status info">{tText("لا توجد جلسة مواطن موثوقة في هذا المتصفح. استعد الوصول أولًا.")}</p>
+          <p className="status info">
+            {tText("لا توجد جلسة مواطن موثوقة في هذا المتصفح. استعد الوصول أولًا.")}
+          </p>
         ) : (
           <>
             <p className="muted">
@@ -154,7 +166,8 @@ export function AccessPage() {
                   if (
                     own.data?.has_recovery_key &&
                     !window.confirm(tText("إصدار مفتاح جديد سيبطل السابق. متابعة؟"))
-                  ) return;
+                  )
+                    return;
                   const result = await api<{ key: string }>("/citizens/recovery/key", {
                     method: "POST",
                     body: {},
@@ -169,7 +182,10 @@ export function AccessPage() {
               <div className="status info">
                 <p className="code">{key}</p>
                 <p>{tText("احفظه الآن خارج المتصفح. لن يُعرض مرة أخرى.")}</p>
-                <button className="btn secondary" onClick={() => void navigator.clipboard?.writeText(key)}>
+                <button
+                  className="btn secondary"
+                  onClick={() => void navigator.clipboard?.writeText(key)}
+                >
                   {tText("نسخ")}
                 </button>
                 <button
@@ -212,12 +228,18 @@ export function AccessPage() {
             {pending.startsWith("/link") && (
               <div className="status info code">
                 {pending}
-                <p className="muted">{tText("أرسل إلى البوت من الحساب المطلوب ووافق هناك. لا تُرسل الإذن لأحد.")}</p>
+                <p className="muted">
+                  {tText("أرسل إلى البوت من الحساب المطلوب ووافق هناك. لا تُرسل الإذن لأحد.")}
+                </p>
               </div>
             )}
           </>
         )}
-        {message && <div className="status info" role="status">{message}</div>}
+        {message && (
+          <div className="status info" role="status">
+            {message}
+          </div>
+        )}
       </section>
     </div>
   );

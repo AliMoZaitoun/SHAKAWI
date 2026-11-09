@@ -12,10 +12,7 @@ export function hasPermission(
   return scope.directorate_ids.includes(directorateId);
 }
 
-export function hasGlobalPermission(
-  session: SessionEmployee | undefined,
-  code: string,
-): boolean {
+export function hasGlobalPermission(session: SessionEmployee | undefined, code: string): boolean {
   return session?.permissions?.[code]?.directorate_ids === null;
 }
 

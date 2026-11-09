@@ -2,13 +2,7 @@ import { RefreshCw } from "lucide-react";
 import { ApiError } from "../../shared/api/client";
 import { useI18n } from "../../shared/i18n/I18n";
 
-export function EmployeeLoadError({
-  error,
-  retry,
-}: {
-  error: unknown;
-  retry: () => void;
-}) {
+export function EmployeeLoadError({ error, retry }: { error: unknown; retry: () => void }) {
   const { tText } = useI18n();
   return (
     <div className="status error" role="alert">

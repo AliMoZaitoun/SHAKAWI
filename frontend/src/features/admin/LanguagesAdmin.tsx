@@ -62,10 +62,16 @@ export function LanguagesAdmin() {
           <select
             className="field"
             value={form.direction}
-            onChange={(event) => setForm({ ...form, direction: event.target.value as "rtl" | "ltr" })}
+            onChange={(event) =>
+              setForm({ ...form, direction: event.target.value as "rtl" | "ltr" })
+            }
           >
-            <option value="ltr"><UiText source="يسار إلى يمين" /></option>
-            <option value="rtl"><UiText source="يمين إلى يسار" /></option>
+            <option value="ltr">
+              <UiText source="يسار إلى يمين" />
+            </option>
+            <option value="rtl">
+              <UiText source="يمين إلى يسار" />
+            </option>
           </select>
         </label>
         <label>
@@ -76,7 +82,9 @@ export function LanguagesAdmin() {
           />{" "}
           <UiText source="مفعّلة" />
         </label>
-        <button className="btn" disabled={save.busy}><UiText source="حفظ اللغة" /></button>
+        <button className="btn" disabled={save.busy}>
+          <UiText source="حفظ اللغة" />
+        </button>
         <button
           type="button"
           className="btn secondary"
@@ -101,9 +109,13 @@ export function LanguagesAdmin() {
         <div className="table-wrap">
           <table>
             <thead>
-              <tr>{["الرمز", "الاسم", "الاتجاه", "الحالة", "إجراء"].map((label) => (
-                <th key={label}><UiText source={label} /></th>
-              ))}</tr>
+              <tr>
+                {["الرمز", "الاسم", "الاتجاه", "الحالة", "إجراء"].map((label) => (
+                  <th key={label}>
+                    <UiText source={label} />
+                  </th>
+                ))}
+              </tr>
             </thead>
             <tbody>
               {languages.data?.map((language) => (
@@ -111,7 +123,9 @@ export function LanguagesAdmin() {
                   <td>{language.code}</td>
                   <td>{language.name}</td>
                   <td>{language.direction}</td>
-                  <td><UiText source={language.is_active ? "مفعّلة" : "معطلة"} /></td>
+                  <td>
+                    <UiText source={language.is_active ? "مفعّلة" : "معطلة"} />
+                  </td>
                   <td>
                     <button
                       className="btn secondary"
@@ -121,7 +135,7 @@ export function LanguagesAdmin() {
                           code: language.code,
                           name: language.name,
                           direction: language.direction,
-                          is_active: language.is_active,
+                          is_active: Boolean(language.is_active),
                         });
                       }}
                     >
@@ -135,7 +149,9 @@ export function LanguagesAdmin() {
         </div>
       )}
       <p className="muted">
-        {tText("تعديل ترجمة الأدوار والمديريات والصلاحيات متاح في شاشة الأدوار والصلاحيات. تفضيل لغة الواجهة يُحفظ على هذا الجهاز فقط.")}
+        {tText(
+          "تعديل ترجمة الأدوار والمديريات والصلاحيات متاح في شاشة الأدوار والصلاحيات. تفضيل لغة الواجهة يُحفظ على هذا الجهاز فقط.",
+        )}
       </p>
       <AdminAlert text={save.message} />
     </AdminPage>

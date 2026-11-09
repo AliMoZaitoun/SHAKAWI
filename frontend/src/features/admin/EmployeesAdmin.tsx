@@ -62,7 +62,9 @@ export function EmployeesAdmin() {
       required="employees.manage"
       subtitle="لا تُستكمل الحسابات القديمة بتخمين بيانات. الإسناد الجديد لا يمنح صلاحيات حتى يُعيّن دور ونطاق."
     >
-      <button className="btn" onClick={() => start()}><UiText source="إضافة موظف" /></button>
+      <button className="btn" onClick={() => start()}>
+        <UiText source="إضافة موظف" />
+      </button>
       {employees.isLoading ? (
         <div className="skeleton" />
       ) : employees.error ? (
@@ -77,9 +79,13 @@ export function EmployeesAdmin() {
           <table>
             <thead>
               <tr>
-                {["الموظف", "اسم الدخول", "المديرية", "الحالة", "الأدوار والنطاق", "إجراء"].map((label) => (
-                  <th key={label}><UiText source={label} /></th>
-                ))}
+                {["الموظف", "اسم الدخول", "المديرية", "الحالة", "الأدوار والنطاق", "إجراء"].map(
+                  (label) => (
+                    <th key={label}>
+                      <UiText source={label} />
+                    </th>
+                  ),
+                )}
               </tr>
             </thead>
             <tbody>
@@ -95,14 +101,18 @@ export function EmployeesAdmin() {
                   </td>
                   <td>{employee.username}</td>
                   <td>
-                    {directorates.data?.find((item) => item.id === employee.directorate_id)?.name ?? "—"}
+                    {directorates.data?.find((item) => item.id === employee.directorate_id)?.name ??
+                      "—"}
                   </td>
-                  <td><UiText source={employee.is_active ? "نشط" : "معطل"} /></td>
+                  <td>
+                    <UiText source={employee.is_active ? "نشط" : "معطل"} />
+                  </td>
                   <td>
                     {employee.role_assignments
                       .map((item) => {
                         const roleName = roles.data?.find((role) => role.id === item.role_id)?.name;
-                        const scopeName = item.scope_type === "global" ? tText("عام") : tText("مديرية");
+                        const scopeName =
+                          item.scope_type === "global" ? tText("عام") : tText("مديرية");
                         return `${roleName ?? item.role_id} · ${scopeName}${item.directorate_id ? ` #${item.directorate_id}` : ""}`;
                       })
                       .join("، ") || tText("لا أدوار")}
@@ -141,7 +151,9 @@ export function EmployeesAdmin() {
                         >
                           <option value="">{tText("اختر دورًا")}</option>
                           {roles.data?.map((role) => (
-                            <option value={role.id} key={role.id}>{role.name}</option>
+                            <option value={role.id} key={role.id}>
+                              {role.name}
+                            </option>
                           ))}
                         </select>
                       </label>
@@ -171,7 +183,9 @@ export function EmployeesAdmin() {
                           >
                             <option value="">{tText("اختر مديرية")}</option>
                             {directorates.data?.map((item) => (
-                              <option key={item.id} value={item.id}>{item.name}</option>
+                              <option key={item.id} value={item.id}>
+                                {item.name}
+                              </option>
                             ))}
                           </select>
                         </label>
@@ -194,7 +208,8 @@ export function EmployeesAdmin() {
                           }
                         }}
                       >
-                        {tText("إلغاء")} {roles.data?.find((role) => role.id === item.role_id)?.name ?? item.role_id}
+                        {tText("إلغاء")}{" "}
+                        {roles.data?.find((role) => role.id === item.role_id)?.name ?? item.role_id}
                       </button>
                     ))}
                   </td>

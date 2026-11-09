@@ -21,9 +21,19 @@ export function TrackPage() {
   return (
     <div className="panel" style={{ maxWidth: 840, margin: "auto" }}>
       <span className="eyebrow">PRIVATE TRACKING</span>
-      <h1 style={{ color: "var(--brand-dark)" }}><UiText source="متابعة شكوى" /></h1>
-      <p className="muted">{tText("رمز المتابعة السري يمنح وصولًا لهذه الشكوى فقط. لا تحفظه على جهاز مشترك.")}</p>
-      <form className="row" onSubmit={(event) => { event.preventDefault(); setActive(code.trim()); }}>
+      <h1 style={{ color: "var(--brand-dark)" }}>
+        <UiText source="متابعة شكوى" />
+      </h1>
+      <p className="muted">
+        {tText("رمز المتابعة السري يمنح وصولًا لهذه الشكوى فقط. لا تحفظه على جهاز مشترك.")}
+      </p>
+      <form
+        className="row"
+        onSubmit={(event) => {
+          event.preventDefault();
+          setActive(code.trim());
+        }}
+      >
         <input
           aria-label={tText("رمز المتابعة")}
           className="field code"
@@ -33,12 +43,21 @@ export function TrackPage() {
           onChange={(event) => setCode(event.target.value)}
           placeholder="CMP-…"
         />
-        <button className="btn"><Search size={16} /><UiText source="استعلام" /></button>
+        <button className="btn">
+          <Search size={16} />
+          <UiText source="استعلام" />
+        </button>
       </form>
-      {query.isLoading && <div className="skeleton" style={{ marginTop: 20 }} aria-label={tText("تحميل")} />}
+      {query.isLoading && (
+        <div className="skeleton" style={{ marginTop: 20 }} aria-label={tText("تحميل")} />
+      )}
       {query.error && (
         <CitizenLoadError
-          message={query.error instanceof ApiError ? query.error.message : tText("لم يتم العثور على الشكوى.")}
+          message={
+            query.error instanceof ApiError
+              ? query.error.message
+              : tText("لم يتم العثور على الشكوى.")
+          }
           onRetry={() => void query.refetch()}
         />
       )}
@@ -117,35 +136,54 @@ function TrackCard({ complaint }: { complaint: Complaint }) {
       </div>
       <div style={{ marginTop: 20 }}>
         <div className="row" style={{ justifyContent: "space-between" }}>
-          <b>{tText("تقدم المعالجة")}</b><b>{complaint.progress}%</b>
+          <b>{tText("تقدم المعالجة")}</b>
+          <b>{complaint.progress}%</b>
         </div>
-        <div className="progress"><span style={{ width: `${complaint.progress}%` }} /></div>
+        <div className="progress">
+          <span style={{ width: `${complaint.progress}%` }} />
+        </div>
       </div>
       {complaint.resolution_report && (
         <div className="status success">
-          <b>{tText("تقرير المعالجة")}</b><br />{complaint.resolution_report}
+          <b>{tText("تقرير المعالجة")}</b>
+          <br />
+          {complaint.resolution_report}
         </div>
       )}
       {complaint.notes?.length > 0 && (
         <div>
           <h3>{tText("التحديثات")}</h3>
-          {complaint.notes.filter((note) => !note.is_internal).map((note) => (
-            <div className="status info" key={note.id}>
-              {note.note}
-              <small className="muted"> · {new Date(note.created_at).toLocaleString(lang)}</small>
-            </div>
-          ))}
+          {complaint.notes
+            .filter((note) => !note.is_internal)
+            .map((note) => (
+              <div className="status info" key={note.id}>
+                {note.note}
+                <small className="muted"> · {new Date(note.created_at).toLocaleString(lang)}</small>
+              </div>
+            ))}
         </div>
       )}
       <div className="panel" style={{ marginTop: 18, background: "#fafbf8" }}>
-        <h3><UiText source="استكمال الأدلة" /></h3>
-        <p className="muted">{tText("يمكنك الرد على طلبات الأدلة وإرفاق صور أو PDF (حتى خمسة ملفات). لا يفتح الرمز ملفات الهوية.")}</p>
+        <h3>
+          <UiText source="استكمال الأدلة" />
+        </h3>
+        <p className="muted">
+          {tText(
+            "يمكنك الرد على طلبات الأدلة وإرفاق صور أو PDF (حتى خمسة ملفات). لا يفتح الرمز ملفات الهوية.",
+          )}
+        </p>
         <button type="button" className="btn secondary" onClick={() => void evidence.refetch()}>
           <UiText source="تحميل طلبات الأدلة" />
         </button>
         {evidence.isLoading && <div className="skeleton" aria-label={tText("تحميل")} />}
-        {evidence.error && <div role="alert" className="status error">{tText("تعذر تحميل طلبات الأدلة.")}</div>}
-        {evidence.data?.length === 0 && <div className="empty">{tText("لا توجد طلبات استكمال حتى الآن.")}</div>}
+        {evidence.error && (
+          <div role="alert" className="status error">
+            {tText("تعذر تحميل طلبات الأدلة.")}
+          </div>
+        )}
+        {evidence.data?.length === 0 && (
+          <div className="empty">{tText("لا توجد طلبات استكمال حتى الآن.")}</div>
+        )}
         {evidence.data?.map((request) => (
           <article className="status info" key={request.id}>
             <p>{request.prompt}</p>
@@ -154,7 +192,13 @@ function TrackCard({ complaint }: { complaint: Complaint }) {
               <div className="status success" key={item.id}>
                 {item.text}
                 {item.attachments.map((file) => (
-                  <a key={file.id} href={file.file_url} target="_blank" rel="noreferrer" className="badge">
+                  <a
+                    key={file.id}
+                    href={file.file_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="badge"
+                  >
                     {tText("ملف مرفق")}
                   </a>
                 ))}
@@ -164,13 +208,24 @@ function TrackCard({ complaint }: { complaint: Complaint }) {
               <form onSubmit={(event) => void sendReply(event, request.id)}>
                 <label className="field-label">
                   {tText("الرد")}
-                  <textarea className="field" value={reply} onChange={(event) => setReply(event.target.value)} />
+                  <textarea
+                    className="field"
+                    value={reply}
+                    onChange={(event) => setReply(event.target.value)}
+                  />
                 </label>
                 <label className="field-label">
                   {tText("إرفاق صور أو PDF")}
-                  <input type="file" multiple accept="image/*,.pdf" onChange={(event) => setFiles(Array.from(event.target.files ?? []).slice(0, 5))} />
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*,.pdf"
+                    onChange={(event) => setFiles(Array.from(event.target.files ?? []).slice(0, 5))}
+                  />
                 </label>
-                <p className="muted">{tText("حد أقصى خمسة ملفات؛ النص والملفات يبقيان عند فشل الإرسال.")}</p>
+                <p className="muted">
+                  {tText("حد أقصى خمسة ملفات؛ النص والملفات يبقيان عند فشل الإرسال.")}
+                </p>
                 <button className="btn" disabled={busy}>
                   {busy ? <UiText source="جارٍ الإرسال…" /> : <UiText source="إرسال الرد" />}
                 </button>
@@ -178,7 +233,11 @@ function TrackCard({ complaint }: { complaint: Complaint }) {
             )}
           </article>
         ))}
-        {notice && <div role="status" className="status info">{notice}</div>}
+        {notice && (
+          <div role="status" className="status info">
+            {notice}
+          </div>
+        )}
       </div>
     </section>
   );

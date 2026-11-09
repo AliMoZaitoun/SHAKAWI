@@ -64,12 +64,12 @@ export function EmployeeProfileForm({
       {(["first_name", "last_name", "phone", "email"] as const).map((key) => (
         <label key={key} className="field-label">
           {tText(
-            ({
+            {
               first_name: "الاسم الأول",
               last_name: "اسم العائلة",
               phone: "الهاتف",
               email: "البريد",
-            })[key],
+            }[key],
           )}
           <input
             className="field"
@@ -113,7 +113,9 @@ export function EmployeeProfileForm({
         >
           <option value="">{tText("بدون مديرية")}</option>
           {directorates.map((directorate) => (
-            <option key={directorate.id} value={directorate.id}>{directorate.name}</option>
+            <option key={directorate.id} value={directorate.id}>
+              {directorate.name}
+            </option>
           ))}
         </select>
       </label>
@@ -128,7 +130,9 @@ export function EmployeeProfileForm({
         </label>
       )}
       <div className="row form-field full">
-        <button className="btn" disabled={busy}><UiText source="حفظ الملف" /></button>
+        <button className="btn" disabled={busy}>
+          <UiText source="حفظ الملف" />
+        </button>
         <button type="button" className="btn secondary" onClick={close}>
           <UiText source="إغلاق" />
         </button>

@@ -19,26 +19,44 @@ export function EmployeeHome() {
       <div className="side-layout">
         <aside className="side-nav panel">
           <div className="eyebrow">{session.data?.full_name}</div>
-          <Link to="/employee/complaints"><UiText source="سجل الشكاوى" /></Link>
+          <Link to="/employee/complaints">
+            <UiText source="سجل الشكاوى" />
+          </Link>
           {hasPermission(session.data, "reports.view") && (
-            <Link to="/employee/statistics"><UiText source="الإحصائيات" /></Link>
+            <Link to="/employee/statistics">
+              <UiText source="الإحصائيات" />
+            </Link>
           )}
-          <Link to="/employee/account"><UiText source="الحساب" /></Link>
+          <Link to="/employee/account">
+            <UiText source="الحساب" />
+          </Link>
           {hasGlobalPermission(session.data, "directorates.manage") && (
-            <Link to="/employee/admin/directorates"><UiText source="المديريات" /></Link>
+            <Link to="/employee/admin/directorates">
+              <UiText source="المديريات" />
+            </Link>
           )}
           {hasGlobalPermission(session.data, "employees.manage") && (
-            <Link to="/employee/admin/employees"><UiText source="الموظفون" /></Link>
+            <Link to="/employee/admin/employees">
+              <UiText source="الموظفون" />
+            </Link>
           )}
           {hasGlobalPermission(session.data, "rbac.manage") && (
             <>
-              <Link to="/employee/admin/roles"><UiText source="الأدوار والصلاحيات" /></Link>
-              <Link to="/employee/admin/languages"><UiText source="اللغات" /></Link>
-              <Link to="/employee/admin/translations"><UiText source="الترجمات" /></Link>
+              <Link to="/employee/admin/roles">
+                <UiText source="الأدوار والصلاحيات" />
+              </Link>
+              <Link to="/employee/admin/languages">
+                <UiText source="اللغات" />
+              </Link>
+              <Link to="/employee/admin/translations">
+                <UiText source="الترجمات" />
+              </Link>
             </>
           )}
           {hasGlobalPermission(session.data, "audit.view") && (
-            <Link to="/employee/admin/audit"><UiText source="سجل التدقيق" /></Link>
+            <Link to="/employee/admin/audit">
+              <UiText source="سجل التدقيق" />
+            </Link>
           )}
           <button
             className="btn ghost"
@@ -131,7 +149,9 @@ function ComplaintList() {
                     </Link>
                   </td>
                   <td>{complaint.category}</td>
-                  <td><span className="badge">{complaintStatusLabel(complaint.status, lang)}</span></td>
+                  <td>
+                    <span className="badge">{complaintStatusLabel(complaint.status, lang)}</span>
+                  </td>
                   <td>{complaint.progress}%</td>
                   <td>{new Date(complaint.created_at).toLocaleDateString(lang)}</td>
                 </tr>

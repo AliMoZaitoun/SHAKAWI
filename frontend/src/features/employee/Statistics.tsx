@@ -55,11 +55,21 @@ export function Statistics() {
         >
           <label className="field-label">
             {tText("من تاريخ")}
-            <input className="field" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+            <input
+              className="field"
+              type="date"
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+            />
           </label>
           <label className="field-label">
             {tText("إلى تاريخ")}
-            <input className="field" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+            <input
+              className="field"
+              type="date"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+            />
           </label>
           {hasPermission(session.data, "reports.view") && (
             <label className="field-label">
@@ -71,7 +81,9 @@ export function Statistics() {
               >
                 <option value="">{tText("وفق نطاقي")}</option>
                 {directorates.data?.map((item) => (
-                  <option key={item.id} value={item.id}>{item.name}</option>
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
                 ))}
               </select>
             </label>
@@ -103,7 +115,7 @@ function AnalyticsResults({
     [tText("إجمالي الشكاوى"), data.total],
     [tText("معدل الحل"), `${data.resolution_rate}%`],
     [tText("متوسط التقدم"), `${data.average_progress}%`],
-    ...Object.entries(data.counts_by_status).map(([status, count]) => [
+    ...Object.entries(data.counts_by_status).map(([status, count]): [string, string | number] => [
       complaintStatusLabel(status, lang),
       count,
     ]),
@@ -140,7 +152,9 @@ function AnalyticsResults({
       />
       <h2>{tText("تعريفات المؤشرات")}</h2>
       {Object.entries(data.definitions).map(([key, value]) => (
-        <p className="muted" key={key}>{key}: {value}</p>
+        <p className="muted" key={key}>
+          {key}: {value}
+        </p>
       ))}
     </>
   );
@@ -163,11 +177,18 @@ function AnalyticsTable({
       <div className="table-wrap">
         <table>
           <thead>
-            <tr>{headers.map((header) => <th key={header}>{tText(header)}</th>)}</tr>
+            <tr>
+              {headers.map((header) => (
+                <th key={header}>{tText(header)}</th>
+              ))}
+            </tr>
           </thead>
           <tbody>
             {rows.map(([label, count]) => (
-              <tr key={label}><td>{label}</td><td>{count}</td></tr>
+              <tr key={label}>
+                <td>{label}</td>
+                <td>{count}</td>
+              </tr>
             ))}
           </tbody>
         </table>

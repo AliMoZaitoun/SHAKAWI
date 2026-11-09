@@ -99,7 +99,11 @@ export function RolesAdmin() {
               api(editing ? `/admin/roles/${editing.id}` : "/admin/roles", {
                 method: editing ? "PUT" : "POST",
                 body: editing
-                  ? { name: form.name, description: form.description, permissions: form.permissions }
+                  ? {
+                      name: form.name,
+                      description: form.description,
+                      permissions: form.permissions,
+                    }
                   : form,
               }),
             );
@@ -139,7 +143,9 @@ export function RolesAdmin() {
             />
           </label>
           <div className="form-field full">
-            <h3><UiText source="مصفوفة الصلاحيات المتاحة" /></h3>
+            <h3>
+              <UiText source="مصفوفة الصلاحيات المتاحة" />
+            </h3>
             <div className="grid grid-two">
               {permissions.data?.map((permission) => (
                 <label className="status info" key={permission.code}>
@@ -156,13 +162,17 @@ export function RolesAdmin() {
                     }
                   />
                   <b>{permission.name}</b>
-                  <div className="muted">{permission.code} · {permission.description}</div>
+                  <div className="muted">
+                    {permission.code} · {permission.description}
+                  </div>
                 </label>
               ))}
             </div>
           </div>
           <div className="row form-field full">
-            <button className="btn" disabled={save.busy}><UiText source="حفظ الدور" /></button>
+            <button className="btn" disabled={save.busy}>
+              <UiText source="حفظ الدور" />
+            </button>
             <button className="btn secondary" type="button" onClick={() => setShowForm(false)}>
               <UiText source="إلغاء" />
             </button>
@@ -170,7 +180,9 @@ export function RolesAdmin() {
         </form>
       )}
       <section className="panel">
-        <h2><UiText source="كتالوج الصلاحيات" /></h2>
+        <h2>
+          <UiText source="كتالوج الصلاحيات" />
+        </h2>
         {permissions.data?.map((permission) => (
           <form
             key={permission.code}
@@ -217,7 +229,9 @@ export function RolesAdmin() {
                 })
               }
             />
-            <button className="btn secondary"><UiText source="تحديث الاسم" /></button>
+            <button className="btn secondary">
+              <UiText source="تحديث الاسم" />
+            </button>
           </form>
         ))}
       </section>

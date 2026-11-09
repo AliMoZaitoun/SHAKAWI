@@ -4,7 +4,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { api } from "../../shared/api/client";
 import { useResource, useSession } from "../../shared/api/hooks";
-import type { Complaint, Directorate, HistoryEvent, Page, SessionEmployee } from "../../shared/api/types";
+import type {
+  Complaint,
+  Directorate,
+  HistoryEvent,
+  Page,
+  SessionEmployee,
+} from "../../shared/api/types";
 import { useI18n } from "../../shared/i18n/I18n";
 import { UiText } from "../../shared/i18n/UiText";
 import { NotesPanel } from "./NotesPanel";
@@ -49,10 +55,7 @@ function ComplaintDetail({ id, session }: { id: string; session?: SessionEmploye
   if (complaintQuery.isLoading) return <div className="skeleton" />;
   if (complaintQuery.error) {
     return (
-      <EmployeeLoadError
-        error={complaintQuery.error}
-        retry={() => void complaintQuery.refetch()}
-      />
+      <EmployeeLoadError error={complaintQuery.error} retry={() => void complaintQuery.refetch()} />
     );
   }
   const complaint = complaintQuery.data;
@@ -100,7 +103,9 @@ function ComplaintDetail({ id, session }: { id: string; session?: SessionEmploye
               <UiText source={complaint.is_public ? "عامة" : "خاصة"} />
             </span>
           </div>
-          <h3 style={{ marginTop: 24 }}><UiText source="معالجة الشكوى" /></h3>
+          <h3 style={{ marginTop: 24 }}>
+            <UiText source="معالجة الشكوى" />
+          </h3>
           <form
             onSubmit={(event) => {
               event.preventDefault();
@@ -124,7 +129,9 @@ function ComplaintDetail({ id, session }: { id: string; session?: SessionEmploye
                 onChange={(event) => setForm({ ...form, status: event.target.value })}
               >
                 {["PENDING", "IN_PROGRESS", "RESOLVED", "REJECTED"].map((status) => (
-                  <option key={status} value={status}>{complaintStatusLabel(status, lang)}</option>
+                  <option key={status} value={status}>
+                    {complaintStatusLabel(status, lang)}
+                  </option>
                 ))}
               </select>
             </label>
@@ -157,13 +164,17 @@ function ComplaintDetail({ id, session }: { id: string; session?: SessionEmploye
             </label>
             <button
               className="btn"
-              disabled={busy || !hasPermission(session, "complaints.update", complaint.directorate_id)}
+              disabled={
+                busy || !hasPermission(session, "complaints.update", complaint.directorate_id)
+              }
             >
               <UiText source="حفظ المعالجة" />
             </button>
           </form>
           <hr />
-          <h3><UiText source="إضافة ملاحظة" /></h3>
+          <h3>
+            <UiText source="إضافة ملاحظة" />
+          </h3>
           <form
             onSubmit={(event) => {
               event.preventDefault();
@@ -191,33 +202,47 @@ function ComplaintDetail({ id, session }: { id: string; session?: SessionEmploye
                 value={audience}
                 onChange={(event) => setAudience(event.target.value as typeof audience)}
               >
-                <option value="internal"><UiText source="داخلية للفريق" /></option>
-                <option value="private"><UiText source="للمواطن بشكل خاص" /></option>
-                <option value="public"><UiText source="تحديث عام" /></option>
+                <option value="internal">
+                  <UiText source="داخلية للفريق" />
+                </option>
+                <option value="private">
+                  <UiText source="للمواطن بشكل خاص" />
+                </option>
+                <option value="public">
+                  <UiText source="تحديث عام" />
+                </option>
               </select>
             </label>
             <button
               className="btn secondary"
-              disabled={busy || !hasPermission(session, "complaints.notes.create", complaint.directorate_id)}
+              disabled={
+                busy || !hasPermission(session, "complaints.notes.create", complaint.directorate_id)
+              }
             >
               <UiText source="إضافة ملاحظة" />
             </button>
           </form>
           <NotesPanel complaint={complaint} session={session} />
-          <h3><UiText source="سجل الأحداث" /></h3>
+          <h3>
+            <UiText source="سجل الأحداث" />
+          </h3>
           {history.isLoading ? (
             <div className="skeleton" />
           ) : history.error ? (
             <EmployeeLoadError error={history.error} retry={() => void history.refetch()} />
           ) : null}
-          {(Array.isArray(history.data) ? history.data : (history.data?.items ?? [])).map((event) => (
-            <div className="status info" key={event.id}>
-              {event.event} · {new Date(event.created_at).toLocaleString(lang)}
-            </div>
-          ))}
+          {(Array.isArray(history.data) ? history.data : (history.data?.items ?? [])).map(
+            (event) => (
+              <div className="status info" key={event.id}>
+                {event.event} · {new Date(event.created_at).toLocaleString(lang)}
+              </div>
+            ),
+          )}
         </section>
         <section className="panel">
-          <h2><UiText source="نقل الشكوى" /></h2>
+          <h2>
+            <UiText source="نقل الشكوى" />
+          </h2>
           <p className="muted">{tText("يتطلب صلاحية النقل في نطاق المديريتين.")}</p>
           <form
             onSubmit={(event) => {
@@ -238,9 +263,13 @@ function ComplaintDetail({ id, session }: { id: string; session?: SessionEmploye
                 value={transferId}
                 onChange={(event) => setTransferId(event.target.value)}
               >
-                <option value=""><UiText source="اختر جهة" /></option>
+                <option value="">
+                  <UiText source="اختر جهة" />
+                </option>
                 {directorates.data?.map((directorate) => (
-                  <option key={directorate.id} value={directorate.id}>{directorate.name}</option>
+                  <option key={directorate.id} value={directorate.id}>
+                    {directorate.name}
+                  </option>
                 ))}
               </select>
             </label>
@@ -265,17 +294,33 @@ function ComplaintDetail({ id, session }: { id: string; session?: SessionEmploye
               <UiText source="نقل" />
             </button>
           </form>
-          <h2 style={{ marginTop: 24 }}><UiText source="الملفات المرفقة" /></h2>
+          <h2 style={{ marginTop: 24 }}>
+            <UiText source="الملفات المرفقة" />
+          </h2>
           {complaint.attachments?.map((file) => (
-            <a className="badge" key={file.id} href={file.file_url} target="_blank" rel="noreferrer">
+            <a
+              className="badge"
+              key={file.id}
+              href={file.file_url}
+              target="_blank"
+              rel="noreferrer"
+            >
               {file.name || tText("فتح ملف")}
             </a>
           ))}
-          <h2 style={{ marginTop: 24 }}><UiText source="الأدلة" /></h2>
+          <h2 style={{ marginTop: 24 }}>
+            <UiText source="الأدلة" />
+          </h2>
           <p className="muted">
-            {tText("يمكن إدارة طلبات الأدلة من متابعة المواطن. عناصر الملفات لا تُعرض هنا دون الصلاحيات اللازمة.")}
+            {tText(
+              "يمكن إدارة طلبات الأدلة من متابعة المواطن. عناصر الملفات لا تُعرض هنا دون الصلاحيات اللازمة.",
+            )}
           </p>
-          {message && <div className="status info" role="status">{message}</div>}
+          {message && (
+            <div className="status info" role="status">
+              {message}
+            </div>
+          )}
         </section>
       </div>
     </>

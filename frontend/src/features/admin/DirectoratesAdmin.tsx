@@ -53,7 +53,9 @@ export function DirectoratesAdmin() {
             <thead>
               <tr>
                 {["المديرية", "الموقع", "الحالة", "المدير الحالي", "إجراء"].map((heading) => (
-                  <th key={heading}><UiText source={heading} /></th>
+                  <th key={heading}>
+                    <UiText source={heading} />
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -65,7 +67,9 @@ export function DirectoratesAdmin() {
                     <div className="muted">{directorate.description}</div>
                   </td>
                   <td>{directorate.location}</td>
-                  <td><UiText source={directorate.is_active ? "نشطة" : "معطلة"} /></td>
+                  <td>
+                    <UiText source={directorate.is_active ? "نشطة" : "معطلة"} />
+                  </td>
                   <td>{directorate.current_manager?.full_name ?? tText("غير معيّن")}</td>
                   <td>
                     <button className="btn secondary" onClick={() => begin(directorate)}>
@@ -77,12 +81,16 @@ export function DirectoratesAdmin() {
                         if (!window.confirm(tText("هل تريد حذف هذه المديرية؟"))) return;
                         void save.run(async () => {
                           try {
-                            await api(`/admin/directorates/${directorate.id}`, { method: "DELETE" });
+                            await api(`/admin/directorates/${directorate.id}`, {
+                              method: "DELETE",
+                            });
                           } catch (error) {
                             if (
                               error instanceof ApiError &&
                               error.status === 409 &&
-                              window.confirm(tText("المديرية مستخدمة. هل تريد تعطيلها بدلًا من ذلك؟"))
+                              window.confirm(
+                                tText("المديرية مستخدمة. هل تريد تعطيلها بدلًا من ذلك؟"),
+                              )
                             ) {
                               await api(`/admin/directorates/${directorate.id}`, {
                                 method: "PUT",
@@ -122,7 +130,7 @@ export function DirectoratesAdmin() {
           </h2>
           {(["name", "description", "location"] as const).map((key) => (
             <label key={key} className="field-label">
-              <UiText source={({ name: "الاسم", description: "الوصف", location: "الموقع" })[key]} />
+              <UiText source={{ name: "الاسم", description: "الوصف", location: "الموقع" }[key]} />
               <input
                 required={key === "name"}
                 className="field"
@@ -140,7 +148,9 @@ export function DirectoratesAdmin() {
             <UiText source="نشطة" />
           </label>
           <div className="row form-field full">
-            <button className="btn" disabled={save.busy}><UiText source="حفظ" /></button>
+            <button className="btn" disabled={save.busy}>
+              <UiText source="حفظ" />
+            </button>
             <button type="button" className="btn secondary" onClick={() => setShow(false)}>
               <UiText source="إلغاء" />
             </button>

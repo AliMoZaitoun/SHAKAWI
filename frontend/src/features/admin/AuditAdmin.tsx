@@ -60,15 +60,21 @@ export function AuditAdmin() {
           </button>
         </div>
       ) : !audit.data?.items.length ? (
-        <div className="empty"><UiText source="لا توجد أحداث مطابقة." /></div>
+        <div className="empty">
+          <UiText source="لا توجد أحداث مطابقة." />
+        </div>
       ) : (
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                {["الوقت", "الفاعل", "العملية", "الكيان", "المعرّف", "المصدر", "معرّف الطلب"].map((label) => (
-                  <th key={label}><UiText source={label} /></th>
-                ))}
+                {["الوقت", "الفاعل", "العملية", "الكيان", "المعرّف", "المصدر", "معرّف الطلب"].map(
+                  (label) => (
+                    <th key={label}>
+                      <UiText source={label} />
+                    </th>
+                  ),
+                )}
               </tr>
             </thead>
             <tbody>
