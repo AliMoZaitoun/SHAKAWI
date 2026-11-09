@@ -47,7 +47,7 @@ def make_employee(client, username, phone, directorate_id):
 
 def test_parent_grant_flows_to_descendants_but_child_cannot_see_parent_or_sibling(system):
     client, factory = system
-    login(client, "governor")
+    login(client, "system_admin")
     root = make_directorate(client, "الإدارة الإقليمية")
     branch = make_directorate(client, "فرع المياه", root["id"])
     leaf = make_directorate(client, "مكتب الصيانة", branch["id"])
@@ -140,7 +140,7 @@ def test_parent_grant_flows_to_descendants_but_child_cannot_see_parent_or_siblin
 
 def test_directorate_parent_validation_rejects_cycles_and_parent_deletion(system):
     client, _ = system
-    login(client, "governor")
+    login(client, "system_admin")
     parent = make_directorate(client, "المديرية العليا")
     child = make_directorate(client, "المديرية التابعة", parent["id"])
     sibling = make_directorate(client, "مديرية أخرى")
@@ -184,7 +184,7 @@ def test_directorate_parent_validation_rejects_cycles_and_parent_deletion(system
 
 def test_employee_management_scope_includes_descendants_but_not_siblings(system):
     client, _ = system
-    login(client, "governor")
+    login(client, "system_admin")
     root = make_directorate(client, "إدارة نطاق الموظفين")
     child = make_directorate(client, "فرع تابع", root["id"])
     leaf = make_directorate(client, "مكتب تابع", child["id"])

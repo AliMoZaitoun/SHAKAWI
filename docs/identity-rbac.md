@@ -98,10 +98,14 @@ for complaint scope. `/api/v1/auth/me` also returns `roles` and effective
 
 ## Bootstrap and administration
 
-The four requested roles are seeded:
+The system administrator and requested business roles are seeded:
 
-- `governor`: preserves existing governor access and bootstraps global
-  administrative permissions.
+- `system_admin`: dedicated global technical administrator with all supported
+  permissions. Its account is provisioned as `system_admin` from the
+  `SYSTEM_ADMIN_PASSWORD` secret; there is no default password.
+- `governor`: retains global complaint operations, but no longer receives
+  technical administration, employee/directory administration, audit, or
+  identity-document permissions.
 - `technical_assistant`, `complaint_receiver`, `branch_manager`: initially have
   **no assumed permission matrix**; an authorized administrator configures them.
 - `legacy_department_staff`: transitional role preserving the old department
@@ -110,7 +114,8 @@ The four requested roles are seeded:
 Only employees not previously initialized receive legacy grants. Editing a role
 or revoking a grant is never undone by restart or seed.
 
-Administrative APIs require explicit **global** management permissions. A
+Administrative APIs require explicit **global** management permissions. The
+protected `system_admin` role retains every supported permission. A
 department-scoped grant of `rbac.manage` does not open global administration.
 Security mutations acquire a shared database write lock and recheck the actor.
 Removing/deactivating the last active global `rbac.manage` holder is rejected and

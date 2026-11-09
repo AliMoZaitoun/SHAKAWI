@@ -74,9 +74,10 @@ No public static mount exposes the database, identity files, or upload directory
 ## Authentication and permissions
 
 The imported employee table and roles are retained; no identity-provider
-migration is needed for the two requested internal accounts.
+migration is needed for the internal accounts.
 
-- `governor`: governorate account, can read and manage all complaints.
+- `system_admin`: dedicated global technical administrator; can manage all system capabilities.
+- `governor`: governorate account, can read and manage complaints across all directorates, but is not the technical system administrator.
 - `services`: services account, can read and manage directorate **2** only.
 - Directorate **1** is governorate, matching the existing Telegram bot mapping.
 - There is no public staff registration. All staff routes enforce access in Python,
@@ -85,6 +86,7 @@ migration is needed for the two requested internal accounts.
 Configure these in Replit **Secrets**, never in source, chat, or a committed `.env`:
 
 - `SESSION_SECRET`: required cookie signing secret.
+- `SYSTEM_ADMIN_PASSWORD`: required until the dedicated `system_admin` account exists; at least 12 characters, never demo-seeded or reset at startup.
 - `GOVERNOR_PASSWORD`: at least 12 characters, provisions missing `governor`.
 - `SERVICES_PASSWORD`: at least 12 characters, provisions missing `services`.
 - `BOT_TOKEN`: newly rotated Telegram BotFather token.
@@ -96,6 +98,8 @@ configuration sets `ENABLE_DEMO_ACCOUNTS=1` in the development environment only.
 When this flag is on, missing `governor` and `services` accounts are provisioned
 with the requested temporary password `123456`, hashed with scrypt. Existing
 accounts are never reset. Explicit strong password secrets take precedence.
+The dedicated `system_admin` account always requires `SYSTEM_ADMIN_PASSWORD`;
+it never uses the demo password.
 This is intentionally weak and is not permission to use the app with real data
 or publish it. The UI shows a warning and a **تغيير كلمة المرور** action.
 Changing a password requires the current password and a new password of at least

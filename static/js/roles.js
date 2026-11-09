@@ -5,6 +5,7 @@ const byId = (id) => document.getElementById(id);
 let roles = [];
 let permissions = [];
 let languages = [];
+let editingRoleCode = "";
 let initialized = false;
 
 function canManageRoles() {
@@ -39,6 +40,7 @@ function setFormState(message = "", isError = false) {
 function resetRoleForm() {
   byId("role-form").reset();
   byId("role-id").value = "";
+  editingRoleCode = "";
   byId("role-code").disabled = false;
   byId("role-form-title").textContent = "إنشاء دور";
   byId("role-save").textContent = "إنشاء الدور";
@@ -57,6 +59,7 @@ function renderPermissionChecks(selected = []) {
     checkbox.type = "checkbox";
     checkbox.value = permission.code;
     checkbox.checked = selected.includes(permission.code);
+    checkbox.disabled = editingRoleCode === "system_admin";
     checkbox.className = "mt-1";
     const copy = document.createElement("span");
     const title = document.createElement("b");
@@ -122,6 +125,7 @@ function renderRoles() {
 
 function beginEdit(role) {
   byId("role-id").value = String(role.id);
+  editingRoleCode = role.code;
   byId("role-code").value = role.code;
   byId("role-code").disabled = true;
   byId("role-name").value = role.name;

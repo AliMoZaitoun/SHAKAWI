@@ -72,7 +72,7 @@ def test_guest_single_complaint_capability_and_staff_scope(evidence_system):
     login(client, "services")
     follow = create(client, key="request-key-00000002")
     assert follow.status_code == 200 and follow.json()["request"]["status"] == "pending"
-    login(client, "governor")
+    login(client, "system_admin")
     assert create(client, 1).status_code == 200
 
 
@@ -110,7 +110,7 @@ def test_atomic_files_idempotency_and_private_download(evidence_system):
         db.commit()
     assert client.get(url).status_code == 403
     assert client.get("/api/v1/complaints/2/evidence").status_code == 403
-    login(client, "governor")
+    login(client, "system_admin")
     assert client.get(url).status_code == 200
     assert len(list(Path("uploads/evidence").glob("*"))) == 1
 

@@ -159,6 +159,7 @@ export function RolesAdmin() {
                   <input
                     type="checkbox"
                     checked={form.permissions.includes(permission.code)}
+                    disabled={editing?.code === "system_admin"}
                     onChange={(event) =>
                       setForm({
                         ...form,

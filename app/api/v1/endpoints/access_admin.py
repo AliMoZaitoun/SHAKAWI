@@ -10,7 +10,7 @@ from app.models.user import Employee, UserRole
 from app.schemas.access import (
     AssignmentInput, EmployeeInput, EmployeeUpdate, PermissionUpdate, RoleInput, RoleUpdate,
 )
-from app.services.access import permission_scopes, require_permission
+from app.services.access import PERMISSIONS, permission_scopes, require_permission
 from app.services.access_admin import (
     assignment_data, begin_change, directorate_or_422, employee_data, employee_directorate_data,
     finish_change, permission_rows, role_data,
@@ -84,6 +84,8 @@ def create_role(data: RoleInput, actor=Depends(manage), db: Session = Depends(ge
 def edit_role(role_id: int, data: RoleUpdate, actor=Depends(manage), db: Session = Depends(get_db)):
     begin_change(db, actor)
     row = find(db, Role, role_id)
+    if row.code == "system_admin" and set(data.permissions) != set(PERMISSIONS):
+        raise HTTPException(409, "دور مدير النظام محمي ويجب أن يحتفظ بجميع الصلاحيات")
     row.name, row.description = data.name, data.description
     row.permissions = permission_rows(db, data.permissions)
     finish_change(db, actor, "role.update", "role", row.id, {"permissions": sorted(set(data.permissions))})
@@ -134,6 +136,8 @@ def create_employee(data: EmployeeInput, actor=Depends(manage_employees), db: Se
     begin_change(db, actor, "employees.manage", global_only=False)
     require_employee_directorate(actor, data.directorate_id)
     directorate_or_422(db, data.directorate_id)
+    if data.username == "system_admin":
+        raise HTTPException(409, "اسم المستخدم system_admin محجوز لحساب إدارة النظام")
     if (db.query(User).filter((User.username == data.username) | (User.phone == data.phone)
                              | ((User.email == data.email) if data.email else False)).first()):
         raise HTTPException(409, "اسم المستخدم أو وسيلة الاتصال مستخدمة؛ لا يتم دمج السجلات تلقائيًا")

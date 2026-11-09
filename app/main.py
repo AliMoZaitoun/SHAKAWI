@@ -23,6 +23,7 @@ from app.db.session import SessionLocal, engine
 async def lifespan(app):
     upgrade_database(engine)
     with SessionLocal() as db:
+        bootstrap_access(db)
         auth.provision_accounts(db)
         bootstrap_access(db)
         translations.seed_translations(db)

@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.security import check_login_rate, current_employee, hash_password, verify_password
 from app.db.session import get_db
+from app.models.access import Role, RoleAssignment
 from app.models.user import Employee, UserRole
 
 router = APIRouter()
@@ -33,9 +34,12 @@ def demo_enabled():
 def employee_data(employee):
     from app.services.access import permission_scopes, PERMISSIONS
     from app.services.translations import localized
+    role = ("system_admin" if any(item.role.code == "system_admin"
+                                  for item in employee.role_assignments)
+            else employee.role.value)
     return {
         "id": employee.id, "username": employee.username,
-        "full_name": employee.full_name, "role": employee.role.value,
+        "full_name": employee.full_name, "role": role,
         "directorate_id": employee.directorate_id,
         "is_demo": employee.is_demo, "password_version": employee.password_version,
         "user_id": employee.user_id,
@@ -59,6 +63,34 @@ def provision_accounts(db: Session):
         if any(employee.is_demo or verify_password("123456", employee.hashed_password)
                for employee in db.query(Employee).all()):
             raise RuntimeError("Change all temporary demo passwords before production")
+    system_admin = db.query(Employee).filter_by(username="system_admin").first()
+    if system_admin is None:
+        password = os.environ.get("SYSTEM_ADMIN_PASSWORD")
+        if not password:
+            raise RuntimeError("SYSTEM_ADMIN_PASSWORD must be configured to create the system administrator")
+        if len(password) < 12:
+            raise RuntimeError("SYSTEM_ADMIN_PASSWORD must have at least 12 characters")
+        system_role = db.query(Role).filter_by(code="system_admin").first()
+        if system_role is None:
+            raise RuntimeError("The system_admin role must be initialized before provisioning accounts")
+        next_id = (db.query(func.max(Employee.id)).scalar() or 0) + 1
+        system_admin = Employee(
+            id=next_id,
+            username="system_admin",
+            full_name="مدير النظام",
+            hashed_password=hash_password(password),
+            role=UserRole.EMPLOYEE,
+            rbac_initialized=True,
+        )
+        db.add(system_admin)
+        db.flush()
+        db.add(RoleAssignment(
+            employee=system_admin,
+            role=system_role,
+            scope_type="global",
+            scope_key=0,
+        ))
+        db.commit()
     for username, secret_key, role, directorate_id, name in [
         ("governor", "GOVERNOR_PASSWORD", UserRole.GOVERNOR, None, "حساب المحافظة"),
         ("services", "SERVICES_PASSWORD", UserRole.EMPLOYEE, 2, "حساب الخدمات"),

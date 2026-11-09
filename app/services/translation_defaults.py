@@ -1,5 +1,6 @@
 """English labels for built-in capabilities, not translations of citizen content."""
 ENGLISH_ROLES = {
+    "system_admin": "System administrator",
     "governor": "Governor", "technical_assistant": "Technical assistant",
     "complaint_receiver": "Complaint receiver", "branch_manager": "Branch manager",
     "legacy_department_staff": "Department staff (legacy access)",

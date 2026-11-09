@@ -9,7 +9,7 @@ from sqlalchemy.orm import sessionmaker
 from test_app import system, login, TEST_PASSWORD
 from app.core.security import _attempts, hash_password
 from app.db.upgrade import upgrade_database
-from app.models.access import Directorate, Role, Permission, User
+from app.models.access import Directorate, Permission, User
 from app.models.user import Citizen, Employee
 from app.models.complaint import Complaint, Attachment, StatusEnum
 from app.models.foundations import (
@@ -30,19 +30,9 @@ def png():
     return stream.getvalue()
 
 
-def grant(client, *permissions):
-    roles = client.get("/api/v1/admin/roles").json()
-    governor = next(role for role in roles if role["code"] == "governor")
-    result = client.put(f"/api/v1/admin/roles/{governor['id']}", json={
-        "name": governor["name"], "description": governor["description"],
-        "permissions": sorted(set(governor["permissions"]) | set(permissions)),
-    })
-    assert result.status_code == 200, result.text
-
-
 def test_dynamic_languages_names_and_priority(system):
     client, factory = system
-    login(client, "governor")
+    login(client, "system_admin")
     result = client.post("/api/v1/admin/languages", json={
         "code": "fr", "name": "Français", "direction": "ltr",
     })
@@ -71,20 +61,22 @@ def test_translation_fallback_edit_delete_and_authorization(system):
     assert client.get("/api/v1/admin/translations/roles/1").status_code == 401
     login(client, "services")
     assert client.post("/api/v1/admin/languages", json={"code": "fr", "name": "French"}).status_code == 403
-    login(client, "governor")
+    login(client, "system_admin")
     roles = client.get("/api/v1/admin/roles").json()
-    role = next(row for row in roles if row["code"] == "governor")
+    role = next(row for row in roles if row["code"] == "system_admin")
     assert client.put(f"/api/v1/admin/translations/roles/{role['id']}/en", json={
-        "name": "Governor office", "description": "Administrative role",
+        "name": "System administrator office", "description": "Technical administrator",
     }).status_code == 200
-    assert client.get("/api/v1/auth/me?lang=en").json()["roles"][0]["name"] == "Governor office"
+    roles = client.get("/api/v1/auth/me?lang=en").json()["roles"]
+    assert next(row for row in roles if row["code"] == "system_admin")["name"] == "System administrator office"
     assert client.put("/api/v1/admin/translations/permissions/complaints.view/en", json={
         "name": "Read complaints",
     }).status_code == 200
     assert next(row for row in client.get("/api/v1/admin/permissions?lang=en").json()
                 if row["code"] == "complaints.view")["name"] == "Read complaints"
     assert client.delete(f"/api/v1/admin/translations/roles/{role['id']}/en").status_code == 200
-    assert client.get("/api/v1/auth/me?lang=en").json()["roles"][0]["name"] == "المحافظ"
+    roles = client.get("/api/v1/auth/me?lang=en").json()["roles"]
+    assert next(row for row in roles if row["code"] == "system_admin")["name"] == "مدير النظام"
     assert client.delete(f"/api/v1/admin/translations/roles/{role['id']}/ar").status_code == 409
     assert client.put("/api/v1/admin/languages/ar", json={
         "name": "Arabic", "direction": "rtl", "is_active": False,
@@ -99,7 +91,7 @@ def test_translation_fallback_edit_delete_and_authorization(system):
 
 def test_arabic_compatibility_writes_sync_without_duplicate_translations(system):
     client, factory = system
-    login(client, "governor")
+    login(client, "system_admin")
     result = client.post("/api/v1/admin/directorates", json={"name": "مديرية جديدة"})
     assert result.status_code == 201, result.text
     identifier = result.json()["id"]
@@ -177,8 +169,7 @@ def test_invalid_content_and_failed_commit_do_not_leave_files(system, monkeypatc
 
 def test_history_composite_updates_transfer_and_private_fields(system):
     client, factory = system
-    login(client, "governor")
-    grant(client, "complaints.transfer", "audit.view")
+    login(client, "system_admin")
     response = client.patch("/api/v1/complaints/2/status?new_status=IN_PROGRESS", json={
         "progress": 45, "admin_notes": "ملاحظة خاصة لا تسجل بالتدقيق",
     })
@@ -311,7 +302,7 @@ def test_versioned_legacy_migration_backups_repeat_and_restore(tmp_path, monkeyp
         assert not db.execute(text("PRAGMA foreign_key_check")).all()
         assert (
             db.execute(text("SELECT version_num FROM alembic_version")).scalar()
-            == "0003_directorate_hierarchy"
+            == "0004_system_admin"
         )
         assert all(row.parent_id is None for row in db.query(Directorate).all())
         parent_foreign_key = next(

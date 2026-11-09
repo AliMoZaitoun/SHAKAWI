@@ -7,7 +7,7 @@ from test_app import system, login, TEST_PASSWORD
 from app.core.security import hash_password, verify_password
 from app.db.base import Base
 from app.db.migrations import migrate
-from app.models.access import AccessAudit, Directorate, Role, RoleAssignment, User
+from app.models.access import AccessAudit, Directorate, Permission, Role, RoleAssignment, User
 from app.models.user import Citizen, Employee
 from app.services.access import bootstrap_access
 
@@ -21,7 +21,7 @@ def isolated_rate_limits():
 
 
 def admin(client):
-    login(client, "governor")
+    login(client, "system_admin")
     return client
 
 
@@ -59,17 +59,19 @@ def test_catalog_and_new_roles_are_not_a_guessed_permission_matrix(system):
     roles = {row["code"]: row for row in client.get("/api/v1/admin/roles").json()}
     for code in ("technical_assistant", "complaint_receiver", "branch_manager"):
         assert roles[code]["permissions"] == []
-    assert "rbac.manage" in roles["governor"]["permissions"]
+    assert "rbac.manage" in roles["system_admin"]["permissions"]
+    assert "rbac.manage" not in roles["governor"]["permissions"]
+    assert "employees.manage" not in roles["governor"]["permissions"]
     assert "rbac.manage" not in roles["legacy_department_staff"]["permissions"]
     with factory() as db:
-        assert db.query(User).count() == 3
+        assert db.query(User).count() == 4
         assert db.get(Citizen, 1).user.phone == "0912345678"
         employee = db.get(Employee, 1)
         assert verify_password(TEST_PASSWORD, employee.user.hashed_password)
         assert employee.user.needs_profile_completion is True
         bootstrap_access(db)
-        assert db.query(User).count() == 3
-        assert db.query(RoleAssignment).count() == 2
+        assert db.query(User).count() == 4
+        assert db.query(RoleAssignment).count() == 3
 
 
 def test_explicit_grants_filter_queries_and_revoke_live(system):
@@ -113,17 +115,21 @@ def test_new_employee_has_no_inherited_legacy_rights_and_no_escalation(system):
 def test_last_admin_guards_and_failed_mutations_rollback(system):
     client, factory = system
     admin(client)
-    role = next(row for row in client.get("/api/v1/admin/roles").json() if row["code"] == "governor")
+    role = next(row for row in client.get("/api/v1/admin/roles").json() if row["code"] == "system_admin")
     assert client.put(f"/api/v1/admin/roles/{role['id']}", json={
         "name": "المحافظ", "permissions": [],
     }).status_code == 409
     assert "rbac.manage" in next(row for row in client.get("/api/v1/admin/roles").json()
                                if row["id"] == role["id"])["permissions"]
     with factory() as db:
-        assignment = db.query(RoleAssignment).filter_by(employee_id=1).one()
+        system_admin = db.query(Employee).filter_by(username="system_admin").one()
+        assignment = db.query(RoleAssignment).filter_by(employee_id=system_admin.id).one()
         assignment_id = assignment.id
-    assert client.delete(f"/api/v1/admin/employees/1/roles/{assignment_id}").status_code == 409
-    assert client.put("/api/v1/admin/employees/1", json={
+        system_admin_id = system_admin.id
+    assert client.delete(
+        f"/api/v1/admin/employees/{system_admin_id}/roles/{assignment_id}"
+    ).status_code == 409
+    assert client.put(f"/api/v1/admin/employees/{system_admin_id}", json={
         "first_name": "مدير", "last_name": "تجريبي", "phone": "0998887766",
         "directorate_id": None, "is_active": False,
     }).status_code == 409
@@ -131,6 +137,46 @@ def test_last_admin_guards_and_failed_mutations_rollback(system):
     assert client.delete(f"/api/v1/admin/roles/{role['id']}").status_code == 409
     with factory() as db:
         assert db.query(AccessAudit).count() == 0
+
+
+def test_system_admin_migration_removes_technical_grants_from_existing_governor(
+    tmp_path, monkeypatch,
+):
+    from app.db.upgrade import upgrade_database
+
+    monkeypatch.chdir(tmp_path)
+    engine = create_engine("sqlite:///admin-migration.sqlite")
+    Base.metadata.create_all(engine)
+    with engine.begin() as connection:
+        connection.exec_driver_sql(
+            "CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL)"
+        )
+        connection.exec_driver_sql(
+            "INSERT INTO alembic_version (version_num) VALUES ('0003_directorate_hierarchy')"
+        )
+    factory = sessionmaker(bind=engine)
+    with factory() as db:
+        permissions = [
+            Permission(code=code, name=code)
+            for code in (
+                "complaints.view",
+                "rbac.manage",
+                "employees.manage",
+                "directorates.manage",
+                "audit.view",
+                "files.identity.read",
+            )
+        ]
+        governor = Role(code="governor", name="المحافظ", is_system=True, permissions=permissions)
+        db.add(governor)
+        db.commit()
+
+    upgrade_database(engine)
+
+    with factory() as db:
+        remaining = {row.code for row in db.query(Role).filter_by(code="governor").one().permissions}
+        assert remaining == {"complaints.view"}
+    engine.dispose()
 
 
 def test_duplicate_scope_and_branch_admin_cannot_manage_global_access(system):
@@ -201,7 +247,7 @@ def test_employee_can_have_citizen_profile_only_with_account_ownership(system):
     with factory() as db:
         citizen = db.get(Citizen, response.json()["id"])
         assert citizen.user_id == employee["user_id"]
-        assert db.query(User).count() == 4
+        assert db.query(User).count() == 5
     client.post("/api/v1/auth/logout")
     assert client.post("/api/v1/citizens/", json=data).status_code == 409
 

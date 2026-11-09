@@ -35,7 +35,8 @@ def bootstrap_access(db):
             db.add(Permission(code=code, name=name))
     db.flush()
     definitions = [
-        ("governor", "المحافظ", set(PERMISSIONS)),
+        ("system_admin", "مدير النظام", set(PERMISSIONS)),
+        ("governor", "المحافظ", set(PERMISSIONS) - ADMIN_PERMISSIONS),
         ("technical_assistant", "المساعد التقني", set()),
         ("complaint_receiver", "مستلم الشكاوى", set()),
         ("branch_manager", "مدير الفرع", set()),
@@ -49,9 +50,18 @@ def bootstrap_access(db):
             role.permissions = [db.get(Permission, permission) for permission in sorted(permissions)]
             db.add(role)
             db.flush()
+        elif code == "system_admin":
+            existing_codes = {permission.code for permission in role.permissions}
+            role.permissions.extend(
+                db.get(Permission, permission)
+                for permission in sorted(set(PERMISSIONS) - existing_codes)
+            )
         roles[code] = role
     for employee in db.query(Employee).filter_by(rbac_initialized=False).all():
-        if employee.role == UserRole.GOVERNOR:
+        if employee.username == "system_admin":
+            db.add(RoleAssignment(employee=employee, role=roles["system_admin"],
+                                  scope_type="global", scope_key=0))
+        elif employee.role == UserRole.GOVERNOR:
             db.add(RoleAssignment(employee=employee, role=roles["governor"],
                                   scope_type="global", scope_key=0))
         elif employee.role == UserRole.EMPLOYEE and employee.directorate_id:

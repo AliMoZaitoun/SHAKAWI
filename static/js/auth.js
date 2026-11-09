@@ -39,7 +39,10 @@ export function renderAuthControls() {
     document.querySelectorAll(".staff-tab").forEach((tab) => tab.classList.add("visible"));
     const identity = document.createElement("span");
     identity.className = "hidden md:inline text-xs text-gray-600";
-    identity.textContent = `${currentUser.full_name} · ${currentUser.role === "governor" ? "المحافظة" : "موظف"}`;
+    const roleLabel = currentUser.role === "system_admin"
+      ? "مدير النظام"
+      : currentUser.role === "governor" ? "المحافظة" : "موظف";
+    identity.textContent = `${currentUser.full_name} · ${roleLabel}`;
     const changePassword = document.createElement("button");
     changePassword.type = "button";
     changePassword.className = "text-xs font-bold text-brand-dark px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50";

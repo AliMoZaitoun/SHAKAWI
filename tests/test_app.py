@@ -248,6 +248,7 @@ def system(monkeypatch, tmp_path):
     factory = sessionmaker(bind=engine)
     monkeypatch.setattr(main, "engine", engine)
     monkeypatch.setattr(main, "SessionLocal", factory)
+    monkeypatch.setenv("SYSTEM_ADMIN_PASSWORD", TEST_PASSWORD)
     monkeypatch.delenv("GOVERNOR_PASSWORD", raising=False)
     monkeypatch.delenv("SERVICES_PASSWORD", raising=False)
     monkeypatch.delenv("BOT_TOKEN", raising=False)
@@ -301,9 +302,17 @@ def test_auth_and_role_boundaries(system):
     assert client.post("/api/v1/complaints/1/notes", json={"note": "ملاحظة"}).status_code == 403
     assert client.post("/api/v1/complaints/1/notes/1/retry").status_code == 403
     assert client.patch("/api/v1/complaints/2/status?new_status=IN_PROGRESS", json={"progress": 30}).status_code == 200
-    login(client, "governor")
+    governor = login(client, "governor")
+    assert "rbac.manage" not in governor["permissions"]
     assert len(client.get("/api/v1/complaints/").json()) == 2
     assert client.get("/api/v1/complaints/1").status_code == 200
+    assert client.get("/api/v1/admin/roles").status_code == 403
+    assert client.post("/api/v1/auth/logout").status_code == 200
+    admin = login(client, "system_admin")
+    assert admin["role"] == "system_admin"
+    assert admin["permissions"]["rbac.manage"]["scope_type"] == "global"
+    assert client.get("/api/v1/admin/roles").status_code == 200
+    assert client.get("/api/v1/complaints/").status_code == 200
     assert client.post("/api/v1/auth/logout").status_code == 200
     assert client.get("/api/v1/auth/me").status_code == 401
 
@@ -742,20 +751,29 @@ def test_progress_rules_and_reopening(system):
 
 def test_demo_accounts_only_in_development_and_no_password_resets(monkeypatch):
     from app.api.v1.endpoints.auth import provision_accounts
-    for key in ["REPLIT_DEPLOYMENT", "APP_ENV", "GOVERNOR_PASSWORD", "SERVICES_PASSWORD"]:
+    from app.services.access import bootstrap_access
+    for key in ["REPLIT_DEPLOYMENT", "APP_ENV", "GOVERNOR_PASSWORD",
+                "SERVICES_PASSWORD", "SYSTEM_ADMIN_PASSWORD"]:
         monkeypatch.delenv(key, raising=False)
     monkeypatch.setenv("ENABLE_DEMO_ACCOUNTS", "1")
     engine = create_engine("sqlite://")
     Base.metadata.create_all(engine)
     with sessionmaker(bind=engine)() as db:
+        bootstrap_access(db)
+        with pytest.raises(RuntimeError, match="SYSTEM_ADMIN_PASSWORD"):
+            provision_accounts(db)
+        monkeypatch.setenv("SYSTEM_ADMIN_PASSWORD", TEST_PASSWORD)
         provision_accounts(db)
         rows = db.query(Employee).all()
-        assert {row.username for row in rows} == {"governor", "services"}
-        assert all(row.is_demo and verify_password("123456", row.hashed_password) for row in rows)
+        assert {row.username for row in rows} == {"governor", "services", "system_admin"}
+        assert all(row.is_demo and verify_password("123456", row.hashed_password)
+                   for row in rows if row.username in {"governor", "services"})
+        system_admin = next(row for row in rows if row.username == "system_admin")
+        assert not system_admin.is_demo and verify_password(TEST_PASSWORD, system_admin.hashed_password)
         assert all(row.hashed_password != "123456" for row in rows)
-        original = rows[0].hashed_password
+        original = system_admin.hashed_password
         provision_accounts(db)
-        assert db.get(Employee, rows[0].id).hashed_password == original
+        assert db.get(Employee, system_admin.id).hashed_password == original
         monkeypatch.setenv("REPLIT_DEPLOYMENT", "1")
         with pytest.raises(RuntimeError, match="disabled"):
             provision_accounts(db)
