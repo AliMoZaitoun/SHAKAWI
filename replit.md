@@ -9,6 +9,9 @@ FastAPI serves the built SPA and deep links on the existing port 5000.
 `pnpm dev` optionally runs Vite on 5173 with a same-origin API proxy for local
 development. Do not create another backend/auth/database for the frontend.
 Keep the old UI at `/legacy`; `SHAKWA_UI=legacy` selects it at `/` for regression.
+React is the primary interface for all new UI work. Do not duplicate new features
+in the legacy UI unless the user explicitly asks; keep legacy only for compatibility
+and regression checks.
 Never expose secrets through VITE_* or persist citizen credentials in browser
 storage. Removing the legacy interface needs separate approval after parity.
 
