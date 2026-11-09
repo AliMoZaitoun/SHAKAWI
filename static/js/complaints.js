@@ -1,12 +1,13 @@
 import { api, postFile } from "./api.js";
 import { getUser, maySeeDirectorate } from "./auth.js";
+import { getDirectorateLabel } from "./directorates.js";
 
 export let complaints = [];
 export let activeComplaint = null;
 let loadEpoch = 0;
 export const statusLabels = { PENDING: "جديدة", IN_PROGRESS: "جاري العمل", RESOLVED: "تمت المعالجة", REJECTED: "مرفوضة" };
 export const priorityLabels = { LOW: "منخفضة", MEDIUM: "عادي", HIGH: "عالية", URGENT: "مستعجل" };
-export const entityLabel = (id) => Number(id) === 1 ? "المحافظة" : "مديرية الخدمات الفنية";
+export const entityLabel = getDirectorateLabel;
 
 export async function loadComplaints() {
   const epoch = ++loadEpoch;

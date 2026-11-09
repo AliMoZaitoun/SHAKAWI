@@ -5,6 +5,7 @@ import { populateProcessDropdown, loadComplaintForProcessing, saveComplaintProce
 import { loadPublicComplaints, changePublicPage, handlePublicHash, initPublicBrowse } from "./public.js";
 import { loadStatistics, initStatistics, clearStatistics } from "./statistics.js";
 import { initRecovery, refreshCitizenAccess } from "./recovery.js";
+import { initDirectorates } from "./directorates.js";
 
 let pendingSubmission = null;
 let submissionInProgress = false;
@@ -269,7 +270,7 @@ window.addEventListener("shakwa:logout", () => {
   updateSliderProgress(0);
   document.getElementById("resolution-fields").classList.add("hidden");
   document.getElementById("processing-card").classList.add("opacity-50");
-  if (["list","process","statistics"].includes(location.hash.replace("#",""))) window.switchTab("submit");
+  if (["list","process","statistics","directorates"].includes(location.hash.replace("#",""))) window.switchTab("submit");
   else { document.querySelectorAll(".tab-content").forEach((section) => section.classList.add("hidden")); document.getElementById("sec-submit").classList.remove("hidden"); }
   window.showNotice("تم تسجيل الخروج.", "info");
 });
@@ -291,12 +292,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   catch (error) { window.showNotice(error.message, "error"); }
   try { await loadAuthState(); }
   catch (error) { window.showNotice(`تعذر التحقق من جلسة الموظف: ${error.message}`, "error"); }
+  try { await initDirectorates(); }
+  catch (error) { window.showNotice(`تعذر تحميل المديريات: ${error.message}`, "error"); }
   if (location.hash.startsWith("#public")) handlePublicHash();
   else if (location.hash === "#statistics") window.switchTab("statistics");
-  else if (location.hash === "#list" || location.hash === "#process") window.switchTab(location.hash.slice(1));
+  else if (["#list", "#process", "#directorates"].includes(location.hash)) window.switchTab(location.hash.slice(1));
   else checkUrlForCode();
 });
 window.addEventListener("hashchange", () => {
   if (location.hash.startsWith("#public")) handlePublicHash();
-  else if (["#statistics", "#list", "#process"].includes(location.hash)) window.switchTab(location.hash.slice(1));
+  else if (["#statistics", "#list", "#process", "#directorates"].includes(location.hash)) window.switchTab(location.hash.slice(1));
 });

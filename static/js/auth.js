@@ -9,7 +9,13 @@ export function setUnauthorizedHandler(handler) { unauthorizedHandler = handler;
 export function getUser() { return currentUser; }
 export function isStaff() { return Boolean(currentUser); }
 export function maySeeDirectorate(directorateId) {
-  return currentUser?.role === "governor" || (currentUser?.role === "employee" && Number(directorateId) === Number(currentUser.directorate_id));
+  const grant = currentUser?.permissions?.["complaints.view"];
+  if (grant?.scope_type === "global" || currentUser?.role === "governor") return true;
+  if (Array.isArray(grant?.directorate_ids)) {
+    return grant.directorate_ids.includes(Number(directorateId));
+  }
+  return currentUser?.role === "employee"
+    && Number(directorateId) === Number(currentUser.directorate_id);
 }
 
 export async function loadAuthState() {

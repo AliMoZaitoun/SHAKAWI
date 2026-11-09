@@ -83,6 +83,7 @@ def run():
                     page.locator("#login-password").fill("123456")
                     page.locator("#login-form button[type=submit]").click()
                     expect(page.locator("#sec-list")).to_be_visible()
+                    expect(page.locator("#tab-directorates")).not_to_be_visible()
                     expect(page.locator("#complaints-table-body")).to_contain_text("إصلاح الطريق الرئيسي")
                     expect(page.locator("#complaints-table-body")).not_to_contain_text("شكوى خاصة للمحافظة")
                     expect(page.locator("#complaints-table-body")).to_contain_text("بلاغات: 1")
@@ -202,9 +203,39 @@ def run():
                     expect(page.locator("#stats-results")).to_be_visible()
                     expect(page.locator("#stats-summary")).to_contain_text("2")
                     page.screenshot(path=str(output / "governor-statistics.png"), full_page=True)
+                    expect(page.locator("#tab-directorates")).to_be_visible()
+                    page.locator("#tab-directorates").click()
+                    parent_name = "مديرية اختبار الواجهة"
+                    child_name = "فرع الاختبار"
+                    page.locator("#directorate-name").fill(parent_name)
+                    page.locator("#directorate-save").click()
+                    parent_id = page.locator("#directorate-parent option").filter(
+                        has_text=parent_name
+                    ).get_attribute("value")
+                    parent_row = page.locator(f'#directorates-table-body tr[data-id="{parent_id}"]')
+                    expect(parent_row).to_be_visible()
+                    page.locator("#directorate-name").fill(child_name)
+                    page.locator("#directorate-parent").select_option(parent_id)
+                    page.locator("#directorate-save").click()
+                    child_path = f"{parent_name} / {child_name}"
+                    child_row = page.locator("#directorates-table-body tr").filter(has_text=child_path)
+                    expect(child_row).to_be_visible()
+                    expect(page.locator("#comp-entity option").filter(has_text=child_path)).to_be_attached()
+                    child_id = page.locator("#comp-entity option").filter(
+                        has_text=child_path
+                    ).get_attribute("value")
+                    parent_row.get_by_role("button", name="تعديل").click()
+                    parent_options = page.locator("#directorate-parent option").evaluate_all(
+                        "(options) => options.map((option) => option.value)"
+                    )
+                    assert child_id not in parent_options
+                    page.locator("#directorate-cancel").click()
+                    page.once("dialog", lambda dialog: dialog.accept())
+                    parent_row.get_by_role("button", name="حذف").click()
+                    expect(page.locator("#directorates-state")).to_contain_text("لها مديريات تابعة")
                     assert not errors, errors
                     browser.close()
-                print("Browser checks passed: public desktop/mobile, report/hide/owner notice/objection/restore, both roles, statistics, password change, logout.")
+                print("Browser checks passed: public desktop/mobile, reports, both roles, statistics, password change/logout, legacy directorate hierarchy CRUD.")
             finally:
                 server.terminate()
                 server.wait(timeout=15)

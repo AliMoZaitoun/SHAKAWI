@@ -1,4 +1,5 @@
 import { api } from "./api.js";
+import { getDirectorateLabel } from "./directorates.js";
 import { getUser, logoutUser } from "./auth.js";
 
 const byId = (id) => document.getElementById(id);
@@ -72,8 +73,11 @@ function render(data) {
   byId("stats-category").replaceChildren(table(["التصنيف", "العدد"], (data.counts_by_category || []).map((item) => [item.label || "غير محدد", Number(item.count) || 0]), "لا توجد بيانات للتصنيفات."));
   byId("stats-priority").replaceChildren(table(["الأولوية", "العدد"], Object.entries(priorityNames).map(([key, label]) => [label, Number((data.counts_by_priority || {})[key]) || 0]), "لا توجد بيانات للأولويات."));
   byId("stats-daily").replaceChildren(table(["التاريخ", "عدد الشكاوى"], (data.daily || []).map((item) => [item.date || "—", Number(item.count) || 0]), "لا توجد بيانات يومية للفترة المحددة."));
-  const role = data.scope?.role === "governor" ? "المحافظة" : "مديرية الخدمات الفنية";
-  byId("stats-scope").textContent = `نطاق البيانات: ${role}${data.filters?.directorate_id ? ` · الجهة رقم ${data.filters.directorate_id}` : ""} · من ${data.filters?.start_date || "—"} إلى ${data.filters?.end_date || "—"}.`;
+  const user = getUser();
+  const role = user?.role === "governor"
+    ? "المحافظة"
+    : getDirectorateLabel(data.filters?.directorate_id || user?.directorate_id);
+  byId("stats-scope").textContent = `نطاق البيانات: ${role}${data.filters?.directorate_id ? ` · الجهة ${getDirectorateLabel(data.filters.directorate_id)}` : ""} · من ${data.filters?.start_date || "—"} إلى ${data.filters?.end_date || "—"}.`;
   const definitions = data.definitions || {};
   byId("stats-definitions").textContent = [
     definitions.resolution_rate || "نسبة المعالجة = عدد الشكاوى المعالجة ÷ إجمالي الشكاوى × 100.",

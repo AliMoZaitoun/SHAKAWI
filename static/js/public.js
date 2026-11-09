@@ -1,10 +1,11 @@
 import { api } from "./api.js";
 import { reportForm } from "./public-review.js";
+import { getDirectorateLabel, loadPublicDirectorates } from "./directorates.js";
 
 const byId = (id) => document.getElementById(id);
 const statusLabels = { PENDING: "جديدة", IN_PROGRESS: "جاري العمل", RESOLVED: "تمت المعالجة", REJECTED: "مرفوضة" };
 const priorityLabels = { LOW: "منخفضة", MEDIUM: "عادية", HIGH: "عالية", URGENT: "مستعجلة" };
-const directorateLabel = (id) => Number(id) === 1 ? "المحافظة" : Number(id) === 2 ? "مديرية الخدمات الفنية" : "—";
+const directorateLabel = getDirectorateLabel;
 let page = 1;
 let pages = 1;
 let requestToken = 0;
@@ -57,6 +58,8 @@ function renderList(items) {
   byId("public-next").disabled = page >= pages;
 }
 export async function loadPublicComplaints() {
+  try { await loadPublicDirectorates(); }
+  catch (error) { setState(`تعذر تحميل قائمة المديريات: ${error.message}`, "error"); }
   const token = ++requestToken;
   page = Math.max(1, page);
   byId("public-detail").classList.add("hidden");

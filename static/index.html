@@ -95,6 +95,9 @@
         <button onclick="switchTab('statistics')" id="tab-statistics" class="tab-btn staff-tab">
           <i class="fa-solid fa-table-list"></i> الإحصائيات
         </button>
+        <button onclick="switchTab('directorates')" id="tab-directorates" class="tab-btn" aria-controls="sec-directorates">
+          <i class="fa-solid fa-sitemap"></i> إدارة المديريات
+        </button>
       </nav>
     </div>
   </header>
@@ -230,9 +233,8 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label class="field-label" for="comp-entity">الجهة المشتكى عليها</label>
-                <select id="comp-entity" class="field">
-                  <option value="2">مديرية الخدمات الفنية</option>
-                  <option value="1">المحافظة</option>
+                <select id="comp-entity" class="field" required>
+                  <option value="">جارٍ تحميل المديريات…</option>
                 </select>
               </div>
               <div>
@@ -278,7 +280,7 @@
         <div class="bg-brand-bg p-4 rounded-xl mb-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div><label class="field-label" for="public-category">التصنيف</label><select id="public-category" class="field"><option value="">كل التصنيفات</option><option>طرق</option><option>مخالفات بناء</option><option>حفريات</option><option>فتح طرق</option><option>أخرى</option></select></div>
           <div><label class="field-label" for="public-status">الحالة</label><select id="public-status" class="field"><option value="">كل الحالات</option><option value="PENDING">جديدة</option><option value="IN_PROGRESS">جاري العمل</option><option value="RESOLVED">تمت المعالجة</option><option value="REJECTED">مرفوضة</option></select></div>
-          <div><label class="field-label" for="public-directorate">الجهة</label><select id="public-directorate" class="field"><option value="">كل الجهات</option><option value="1">المحافظة</option><option value="2">مديرية الخدمات الفنية</option></select></div>
+          <div><label class="field-label" for="public-directorate">الجهة</label><select id="public-directorate" class="field"><option value="">كل الجهات</option></select></div>
         </div>
         <div id="public-state" class="state-panel" role="status" aria-live="polite">جارٍ تحميل الشكاوى المنشورة…</div>
         <div id="public-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
@@ -437,7 +439,7 @@
         <div class="bg-brand-bg p-4 rounded-xl mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
           <div><label class="field-label" for="stats-start">من تاريخ</label><input id="stats-start" type="date" class="field"></div>
           <div><label class="field-label" for="stats-end">إلى تاريخ</label><input id="stats-end" type="date" class="field"></div>
-          <div id="stats-directorate-wrap"><label class="field-label" for="stats-directorate">الجهة</label><select id="stats-directorate" class="field"><option value="">كل الجهات</option><option value="1">المحافظة</option><option value="2">مديرية الخدمات الفنية</option></select></div>
+          <div id="stats-directorate-wrap"><label class="field-label" for="stats-directorate">الجهة</label><select id="stats-directorate" class="field"><option value="">كل الجهات</option></select></div>
           <button id="stats-load" type="button" onclick="loadStatistics()" class="primary-button sm:col-span-3">تطبيق الفلاتر</button>
         </div>
         <div id="stats-state" class="state-panel" role="status" aria-live="polite">اختر الفترة لعرض الإحصائيات.</div>
@@ -451,6 +453,60 @@
             <section><h3 class="font-bold text-brand-dark mb-2">الاتجاه اليومي</h3><div id="stats-daily"></div></section>
           </div>
           <p id="stats-definitions" class="text-xs text-gray-500 border-t pt-4 leading-relaxed"></p>
+        </div>
+      </div>
+    </section>
+    <section id="sec-directorates" class="tab-content hidden">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
+        <div class="mb-6">
+          <h2 class="text-xl font-bold text-brand-dark">إدارة المديريات</h2>
+          <p class="text-sm text-gray-500 mt-1">أنشئ مديرية رئيسية أو اربط مديرية بمديريتها الأب. المديريات التابعة تظهر ضمن نطاق الشكاوى للمديرية الأعلى.</p>
+        </div>
+        <form id="directorate-form" class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-brand-bg p-4 rounded-xl mb-6">
+          <input id="directorate-id" type="hidden">
+          <div>
+            <label class="field-label" for="directorate-name">اسم المديرية</label>
+            <input id="directorate-name" class="field" minlength="2" maxlength="150" required>
+          </div>
+          <div>
+            <label class="field-label" for="directorate-parent">المديرية الأب</label>
+            <select id="directorate-parent" class="field">
+              <option value="">بدون أب — مديرية رئيسية</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label" for="directorate-location">الموقع</label>
+            <input id="directorate-location" class="field" maxlength="500">
+          </div>
+          <div>
+            <label class="field-label" for="directorate-description">الوصف</label>
+            <input id="directorate-description" class="field" maxlength="4000">
+          </div>
+          <label class="flex items-center gap-2 text-sm">
+            <input id="directorate-active" type="checkbox" checked>
+            المديرية مفعّلة
+          </label>
+          <div class="flex items-center gap-2">
+            <button id="directorate-save" type="submit" class="primary-button">إضافة مديرية</button>
+            <button id="directorate-cancel" type="button" class="secondary-button hidden">إلغاء التعديل</button>
+          </div>
+          <p id="directorate-form-state" class="sm:col-span-2 text-sm hidden" role="alert"></p>
+        </form>
+        <p id="directorates-state" class="state-panel" role="status" aria-live="polite">جارٍ تحميل المديريات…</p>
+        <div class="overflow-x-auto">
+          <table class="w-full text-right text-sm">
+            <thead>
+              <tr class="border-b text-gray-500">
+                <th class="p-3">المديرية والمسار</th>
+                <th class="p-3">المديرية الأب</th>
+                <th class="p-3">الموقع</th>
+                <th class="p-3">المسؤول الحالي</th>
+                <th class="p-3">الحالة</th>
+                <th class="p-3">الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="directorates-table-body" class="divide-y divide-gray-100"></tbody>
+          </table>
         </div>
       </div>
     </section>
