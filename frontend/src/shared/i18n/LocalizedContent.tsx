@@ -69,6 +69,10 @@ export const english: Record<string, string> = {
   التصنيف: "Category",
   الجهة: "Directorate",
   المديرية: "Directorate",
+  "المديرية الأب": "Parent directorate",
+  "بدون مديرية أب": "No parent directorate",
+  "المديرية الأعلى تشمل المديريات التابعة في نطاق صلاحياتها.":
+    "A directorate's scope includes its child directorates.",
   الاسم: "Name",
   الوصف: "Description",
   الموقع: "Location",

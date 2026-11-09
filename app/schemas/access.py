@@ -31,6 +31,7 @@ class DirectorateInput(CleanInput):
     description: str = Field(default="", max_length=4000)
     location: str = Field(default="", max_length=500)
     is_active: bool = True
+    parent_id: int | None = Field(default=None, gt=0)
 
 
 class AssignmentInput(CleanInput):

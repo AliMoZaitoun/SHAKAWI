@@ -82,7 +82,7 @@ export function Statistics() {
                 <option value="">{tText("وفق نطاقي")}</option>
                 {directorates.data?.map((item) => (
                   <option key={item.id} value={item.id}>
-                    {item.name}
+                    {item.hierarchy_path ?? item.name}
                   </option>
                 ))}
               </select>

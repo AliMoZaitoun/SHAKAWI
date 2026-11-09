@@ -101,7 +101,8 @@ export function EmployeesAdmin() {
                   </td>
                   <td>{employee.username}</td>
                   <td>
-                    {directorates.data?.find((item) => item.id === employee.directorate_id)?.name ??
+                    {directorates.data?.find((item) => item.id === employee.directorate_id)?.hierarchy_path ??
+                      directorates.data?.find((item) => item.id === employee.directorate_id)?.name ??
                       "—"}
                   </td>
                   <td>
@@ -184,7 +185,7 @@ export function EmployeesAdmin() {
                             <option value="">{tText("اختر مديرية")}</option>
                             {directorates.data?.map((item) => (
                               <option key={item.id} value={item.id}>
-                                {item.name}
+                                {item.hierarchy_path ?? item.name}
                               </option>
                             ))}
                           </select>

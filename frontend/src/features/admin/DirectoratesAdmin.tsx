@@ -11,7 +11,13 @@ export function DirectoratesAdmin() {
   const query = useResource<Directorate[]>("/admin/directorates", lang);
   const save = useAdminSave();
   const [editing, setEditing] = useState<Directorate | null>(null);
-  const [form, setForm] = useState({ name: "", description: "", location: "", is_active: true });
+  const [form, setForm] = useState({
+    name: "",
+    description: "",
+    location: "",
+    is_active: true,
+    parent_id: "",
+  });
   const [show, setShow] = useState(false);
 
   function begin(directorate?: Directorate) {
@@ -24,9 +30,25 @@ export function DirectoratesAdmin() {
             description: directorate.description,
             location: directorate.location,
             is_active: directorate.is_active,
+            parent_id: directorate.parent_id ? String(directorate.parent_id) : "",
           }
-        : { name: "", description: "", location: "", is_active: true },
+        : { name: "", description: "", location: "", is_active: true, parent_id: "" },
     );
+  }
+
+  function descendantsOf(rootId: number) {
+    const descendants = new Set([rootId]);
+    let foundNew = true;
+    while (foundNew) {
+      foundNew = false;
+      for (const item of query.data ?? []) {
+        if (item.parent_id && descendants.has(item.parent_id) && !descendants.has(item.id)) {
+          descendants.add(item.id);
+          foundNew = true;
+        }
+      }
+    }
+    return descendants;
   }
 
   return (
@@ -52,7 +74,7 @@ export function DirectoratesAdmin() {
           <table>
             <thead>
               <tr>
-                {["المديرية", "الموقع", "الحالة", "المدير الحالي", "إجراء"].map((heading) => (
+                {["المديرية", "المديرية الأب", "الموقع", "الحالة", "المدير الحالي", "إجراء"].map((heading) => (
                   <th key={heading}>
                     <UiText source={heading} />
                   </th>
@@ -63,9 +85,10 @@ export function DirectoratesAdmin() {
               {query.data?.map((directorate) => (
                 <tr key={directorate.id}>
                   <td>
-                    <b>{directorate.name}</b>
+                    <b>{directorate.hierarchy_path ?? directorate.name}</b>
                     <div className="muted">{directorate.description}</div>
                   </td>
+                  <td>{directorate.parent_name ?? tText("بدون مديرية أب")}</td>
                   <td>{directorate.location}</td>
                   <td>
                     <UiText source={directorate.is_active ? "نشطة" : "معطلة"} />
@@ -120,7 +143,10 @@ export function DirectoratesAdmin() {
             void save.run(() =>
               api(editing ? `/admin/directorates/${editing.id}` : "/admin/directorates", {
                 method: editing ? "PUT" : "POST",
-                body: form,
+                body: {
+                  ...form,
+                  parent_id: form.parent_id ? Number(form.parent_id) : null,
+                },
               }),
             );
           }}
@@ -139,6 +165,32 @@ export function DirectoratesAdmin() {
               />
             </label>
           ))}
+          <label className="field-label">
+            <UiText source="المديرية الأب" />
+            <select
+              className="field"
+              value={form.parent_id}
+              onChange={(event) => setForm({ ...form, parent_id: event.target.value })}
+            >
+              <option value="">
+                <UiText source="بدون مديرية أب" />
+              </option>
+              {(query.data ?? [])
+                .filter((item) => !editing || !descendantsOf(editing.id).has(item.id))
+                .map((item) => (
+                  <option
+                    key={item.id}
+                    value={item.id}
+                    disabled={!item.is_active && editing?.parent_id !== item.id}
+                  >
+                    {item.hierarchy_path ?? item.name}
+                  </option>
+                ))}
+            </select>
+            <span className="muted">
+              <UiText source="المديرية الأعلى تشمل المديريات التابعة في نطاق صلاحياتها." />
+            </span>
+          </label>
           <label>
             <input
               type="checkbox"

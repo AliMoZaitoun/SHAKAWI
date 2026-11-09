@@ -31,11 +31,19 @@ class User(Base):
 class Directorate(Base):
     __tablename__ = "directorates"
     id = Column(Integer, primary_key=True)
+    parent_id = Column(
+        Integer,
+        ForeignKey("directorates.id", ondelete="RESTRICT"),
+        nullable=True,
+        index=True,
+    )
     name = Column(String(150), nullable=False)
     description = Column(Text, nullable=False, default="", server_default="")
     location = Column(String(500), nullable=False, default="", server_default="")
     is_active = Column(Boolean, nullable=False, default=True, server_default="1")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    parent = relationship("Directorate", remote_side=[id], back_populates="children")
+    children = relationship("Directorate", back_populates="parent")
 
 
 role_permissions = Table(

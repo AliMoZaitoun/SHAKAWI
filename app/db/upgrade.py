@@ -2,13 +2,14 @@
 from pathlib import Path
 from alembic import command
 from alembic.config import Config
+from alembic.script import ScriptDirectory
 from sqlalchemy import inspect, text
 
 ROOT = Path(__file__).resolve().parents[2]
 PRESERVED_TABLES = {
     "citizens", "employees", "complaints", "attachments", "complaint_notes",
     "evidence_requests", "evidence_replies", "evidence_files",
-    "citizen_recovery_keys", "citizen_ownership_challenges",
+    "citizen_recovery_keys", "citizen_ownership_challenges", "directorates",
     "public_complaint_reports", "public_complaint_reviews",
 }
 
@@ -19,10 +20,11 @@ def upgrade_database(engine):
     if "alembic_version" in tables:
         with engine.connect() as conn:
             current = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
-    if current != "0002_foundations" and any(name in tables for name in ("users", "citizens", "complaints")):
+    config = Config(str(ROOT / "alembic.ini"))
+    head = ScriptDirectory.from_config(config).get_current_head()
+    if current != head and any(name in tables for name in ("users", "citizens", "complaints")):
         from app.db.backup import create_backup
         create_backup(engine)
-    config = Config(str(ROOT / "alembic.ini"))
     with engine.begin() as conn:
         if engine.dialect.name == "sqlite" and not conn.connection.driver_connection.in_transaction:
             conn.exec_driver_sql("BEGIN IMMEDIATE")

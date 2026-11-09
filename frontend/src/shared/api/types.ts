@@ -2,6 +2,9 @@ export type Status = "PENDING" | "IN_PROGRESS" | "RESOLVED" | "REJECTED";
 export type Priority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
 export interface Directorate {
   id: number;
+  parent_id: number | null;
+  parent_name: string | null;
+  hierarchy_path: string;
   name: string;
   description: string;
   location: string;

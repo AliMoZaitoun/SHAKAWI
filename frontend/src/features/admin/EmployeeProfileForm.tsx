@@ -114,7 +114,7 @@ export function EmployeeProfileForm({
           <option value="">{tText("بدون مديرية")}</option>
           {directorates.map((directorate) => (
             <option key={directorate.id} value={directorate.id}>
-              {directorate.name}
+              {directorate.hierarchy_path ?? directorate.name}
             </option>
           ))}
         </select>

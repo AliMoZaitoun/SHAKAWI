@@ -268,7 +268,7 @@ function ComplaintDetail({ id, session }: { id: string; session?: SessionEmploye
                 </option>
                 {directorates.data?.map((directorate) => (
                   <option key={directorate.id} value={directorate.id}>
-                    {directorate.name}
+                    {directorate.hierarchy_path ?? directorate.name}
                   </option>
                 ))}
               </select>

@@ -28,7 +28,10 @@ export function TranslationManager() {
       ? (roles.data ?? []).map((role) => ({ id: String(role.id), label: role.name }))
       : entity === "permissions"
         ? (permissions.data ?? []).map((item) => ({ id: item.code, label: item.name }))
-        : (directorates.data ?? []).map((item) => ({ id: String(item.id), label: item.name }));
+        : (directorates.data ?? []).map((item) => ({
+            id: String(item.id),
+            label: item.hierarchy_path ?? item.name,
+          }));
   const query = useQuery({
     queryKey: ["translations", entity, recordId],
     queryFn: () =>

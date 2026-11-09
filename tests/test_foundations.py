@@ -9,7 +9,7 @@ from sqlalchemy.orm import sessionmaker
 from test_app import system, login, TEST_PASSWORD
 from app.core.security import _attempts, hash_password
 from app.db.upgrade import upgrade_database
-from app.models.access import Role, Permission, User
+from app.models.access import Directorate, Role, Permission, User
 from app.models.user import Citizen, Employee
 from app.models.complaint import Complaint, Attachment, StatusEnum
 from app.models.foundations import (
@@ -309,7 +309,18 @@ def test_versioned_legacy_migration_backups_repeat_and_restore(tmp_path, monkeyp
         assert db.query(StoredFile).count() == 2
         assert db.query(ComplaintHistory).one().event == "imported_snapshot"
         assert not db.execute(text("PRAGMA foreign_key_check")).all()
-        assert db.execute(text("SELECT version_num FROM alembic_version")).scalar() == "0002_foundations"
+        assert (
+            db.execute(text("SELECT version_num FROM alembic_version")).scalar()
+            == "0003_directorate_hierarchy"
+        )
+        assert all(row.parent_id is None for row in db.query(Directorate).all())
+        parent_foreign_key = next(
+            foreign_key
+            for foreign_key in inspect(engine).get_foreign_keys("directorates")
+            if foreign_key["constrained_columns"] == ["parent_id"]
+        )
+        assert parent_foreign_key["referred_table"] == "directorates"
+        assert parent_foreign_key["options"]["ondelete"] == "RESTRICT"
     backups = list(Path("generated-artifacts/backups").iterdir())
     assert len(backups) == 1 and verify_backup(backups[0])
     restored = restore_to_new_directory(backups[0], tmp_path / "restored")

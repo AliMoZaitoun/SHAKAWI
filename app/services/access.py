@@ -1,7 +1,8 @@
 """Permission catalog, conservative legacy grants, and live scope evaluation."""
 from fastapi import Depends, HTTPException
+from sqlalchemy.orm import object_session
 
-from app.models.access import Permission, Role, RoleAssignment
+from app.models.access import Directorate, Permission, Role, RoleAssignment
 from app.models.user import Employee, UserRole
 
 PERMISSIONS = {
@@ -62,17 +63,44 @@ def bootstrap_access(db):
 
 
 def permission_scopes(employee, permission):
-    """None means an explicit global grant; an empty set means no grant."""
+    """None is global; directorate grants flow down the active tree only."""
     if not employee.user or not employee.user.is_active:
         return set()
-    scopes = set()
+    assigned_scopes = set()
     for assignment in employee.role_assignments:
         if not any(item.code == permission for item in assignment.role.permissions):
             continue
         if assignment.scope_type == "global":
             return None
-        if assignment.directorate and assignment.directorate.is_active:
-            scopes.add(assignment.directorate_id)
+        if assignment.directorate_id:
+            assigned_scopes.add(assignment.directorate_id)
+    if not assigned_scopes:
+        return set()
+
+    db = object_session(employee)
+    if db is None:
+        # Detached objects fail closed to their explicit assignments.
+        return assigned_scopes
+
+    active_ids = set()
+    children_by_parent = {}
+    for directorate_id, parent_id, is_active in db.query(
+        Directorate.id, Directorate.parent_id, Directorate.is_active
+    ).all():
+        if not is_active:
+            continue
+        active_ids.add(directorate_id)
+        if parent_id is not None:
+            children_by_parent.setdefault(parent_id, []).append(directorate_id)
+
+    scopes = set()
+    pending = [identifier for identifier in assigned_scopes if identifier in active_ids]
+    while pending:
+        directorate_id = pending.pop()
+        if directorate_id in scopes:
+            continue
+        scopes.add(directorate_id)
+        pending.extend(children_by_parent.get(directorate_id, ()))
     return scopes
 
 
