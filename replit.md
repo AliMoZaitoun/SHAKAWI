@@ -12,6 +12,10 @@ Keep the old UI at `/legacy`; `SHAKWA_UI=legacy` selects it at `/` for regressio
 React is the primary interface for all new UI work. Do not duplicate new features
 in the legacy UI unless the user explicitly asks; keep legacy only for compatibility
 and regression checks.
+Keep the citizen and employee interfaces in separate layouts. Citizen navigation
+must not link to the employee portal; employee login remains at `/employee/login`.
+The staff browser session uses the signed HTTP-only session cookie, not a JWT
+stored in browser storage.
 Never expose secrets through VITE_* or persist citizen credentials in browser
 storage. Removing the legacy interface needs separate approval after parity.
 

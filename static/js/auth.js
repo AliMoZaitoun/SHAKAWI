@@ -61,17 +61,6 @@ export function renderAuthControls() {
     }
   } else {
     document.querySelectorAll(".staff-tab").forEach((tab) => tab.classList.remove("visible"));
-    const login = document.createElement("button");
-    login.type = "button"; login.className = "text-xs font-bold text-brand-dark px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50";
-    login.textContent = "دخول الموظفين"; login.addEventListener("click", openLogin);
-    root.append(login);
-    if (demoMode) {
-      const warning = document.createElement("p");
-      warning.className = "text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2";
-      warning.textContent = "حسابات تجريبية مفعّلة. على الموظف تغيير كلمة المرور من إجراء الحساب بعد تسجيل الدخول.";
-      warning.setAttribute("role", "status");
-      root.append(warning);
-    }
   }
 }
 

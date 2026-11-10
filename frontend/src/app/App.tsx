@@ -1,6 +1,7 @@
 import { Link, Route, Routes } from "react-router-dom";
 import { I18nProvider, useI18n } from "../shared/i18n/I18n";
 import { Shell } from "../layouts/Shell";
+import { EmployeeShell } from "../layouts/EmployeeShell";
 import { AccessPage } from "../features/citizen/AccessPage";
 import { HomePage } from "../features/citizen/HomePage";
 import { NewComplaintPage } from "../features/citizen/NewComplaintPage";
@@ -44,6 +45,10 @@ export default function App() {
           <Route path="/public" element={<PublicPage />} />
           <Route path="/public/:id" element={<PublicDetailPage />} />
           <Route path="/access" element={<AccessPage />} />
+          <Route path="*" element={<NotFound />} />
+        </Route>
+        <Route path="/employee/login" element={<EmployeeLogin />} />
+        <Route element={<EmployeeShell />}>
           <Route path="/employee/complaints" element={<EmployeeHome />} />
           <Route path="/employee/complaints/:id" element={<EmployeeComplaintDetail />} />
           <Route path="/employee/complaints/:id/tools" element={<ComplaintToolsPage />} />
@@ -55,9 +60,7 @@ export default function App() {
           <Route path="/employee/admin/languages" element={<LanguagesAdmin />} />
           <Route path="/employee/admin/translations" element={<TranslationsAdmin />} />
           <Route path="/employee/admin/audit" element={<AuditAdmin />} />
-          <Route path="*" element={<NotFound />} />
         </Route>
-        <Route path="/employee/login" element={<EmployeeLogin />} />
       </Routes>
     </I18nProvider>
   );

@@ -41,7 +41,6 @@ export function Shell() {
             <NavLink to="/track">{t("track")}</NavLink>
             <NavLink to="/public">{t("public")}</NavLink>
             <NavLink to="/access">{lang === "ar" ? "استعادة الوصول" : "Recover access"}</NavLink>
-            <NavLink to="/employee/complaints">{t("staff")}</NavLink>
           </nav>
         </div>
       </header>
@@ -49,12 +48,10 @@ export function Shell() {
         <Outlet />
       </main>
       <footer className="footer">
-        <div className="shell row" style={{ justifyContent: "space-between" }}>
+        <div className="shell">
           <span>
             SHAKWA — {lang === "ar" ? "منصة الشكاوى الحكومية" : "Government complaints service"}
           </span>
-          <a href="/legacy">{lang === "ar" ? "الواجهة الاحتياطية" : "Legacy backup interface"}</a>
-          <Link to="/employee/login">{t("login")}</Link>
         </div>
       </footer>
     </div>
