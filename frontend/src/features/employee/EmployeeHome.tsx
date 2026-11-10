@@ -137,6 +137,7 @@ function ComplaintList() {
                 <th>{tText("الحالة")}</th>
                 <th>{tText("التقدم")}</th>
                 <th>{tText("تاريخ الإنشاء")}</th>
+                <th>{tText("إجراء")}</th>
               </tr>
             </thead>
             <tbody>
@@ -154,6 +155,11 @@ function ComplaintList() {
                   </td>
                   <td>{complaint.progress}%</td>
                   <td>{new Date(complaint.created_at).toLocaleDateString(lang)}</td>
+                  <td>
+                    <Link className="btn secondary" to={`/employee/complaints/${complaint.id}`}>
+                      <UiText source="فتح التفاصيل" />
+                    </Link>
+                  </td>
                 </tr>
               ))}
             </tbody>

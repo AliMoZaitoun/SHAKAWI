@@ -128,6 +128,7 @@ export const english: Record<string, string> = {
   "العودة للقائمة": "Back to list",
   "العودة إلى معالجة الشكوى": "Back to complaint processing",
   "سجل الشكاوى": "Complaint register",
+  "فتح التفاصيل": "Open details",
   "معالجة الشكوى": "Process complaint",
   "سجل الأحداث": "Event history",
   "إضافة دور": "Add role",
