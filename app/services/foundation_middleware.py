@@ -1,8 +1,9 @@
 """Resolve language and safe audit context once per request."""
 from uuid import uuid4
+from fastapi import HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.models.foundations import Language, UserLanguage
-from app.models.user import Citizen, Employee
+from app.models.user import Citizen
 from app.services.request_context import language_context, request_context
 
 
@@ -29,10 +30,14 @@ class FoundationMiddleware(BaseHTTPMiddleware):
         db = next(iterator) if iterator else SessionLocal()
         actor = preferred = None
         try:
-            employee = db.get(Employee, request.session.get("employee_id")) if request.session.get("employee_id") else None
-            if employee and employee.user and employee.user.is_active and (
-                request.session.get("password_version") == employee.password_version
-            ):
+            from app.core.security import employee_if_authenticated
+            try:
+                employee = employee_if_authenticated(request, db)
+            except HTTPException:
+                # Protected endpoints return the 401 themselves; public pages
+                # should not fail just because an old bearer token was sent.
+                employee = None
+            if employee and employee.user and employee.user.is_active:
                 actor = employee.user_id
             elif request.session.get("citizen_ownership") and request.session.get("citizen_id"):
                 citizen = db.get(Citizen, request.session["citizen_id"])

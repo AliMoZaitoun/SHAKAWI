@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.security import (authorize_complaint, authorize_owner, authorize_reader,
-                               current_employee, is_bot)
+                               current_employee, employee_if_authenticated, is_bot)
 from app.db.session import get_db
 from app.models.complaint import Complaint, EvidenceRequest, EvidenceReply, EvidenceFile
 from app.services.evidence import request_data, reply_data, validate_files, payload_digest, store_file
@@ -91,7 +91,7 @@ async def create(cid: int, data: RequestInput, employee=Depends(current_employee
 def listing(cid: int, request: Request, db: Session = Depends(get_db)):
     complaint = find(db, cid)
     authorize_reader(request, db, complaint)
-    staff = bool(request.session.get("employee_id")) and not is_bot(request)
+    staff = employee_if_authenticated(request, db) is not None and not is_bot(request)
     if staff:
         authorize_complaint(current_employee(request, db), complaint, "evidence.read")
     return [request_data(r, staff) for r in complaint.evidence_requests]
@@ -158,7 +158,7 @@ def download(fid: int, request: Request, db: Session = Depends(get_db)):
     reply = db.get(EvidenceReply, item.reply_id)
     row = db.get(EvidenceRequest, reply.request_id)
     authorize_reader(request, db, find(db, row.complaint_id))
-    if request.session.get("employee_id") and not is_bot(request):
+    if employee_if_authenticated(request, db) is not None and not is_bot(request):
         authorize_complaint(current_employee(request, db), find(db, row.complaint_id), "evidence.files.read")
     from app.models.foundations import EvidenceReplyFile, StoredFile
     from app.services.file_catalog import protected_path

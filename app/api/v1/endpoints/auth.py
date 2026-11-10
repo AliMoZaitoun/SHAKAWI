@@ -6,6 +6,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.security import check_login_rate, current_employee, hash_password, verify_password
+from app.core.tokens import create_access_token
 from app.db.session import get_db
 from app.models.access import Role, RoleAssignment
 from app.models.user import Employee, UserRole
@@ -136,12 +137,26 @@ def login(data: LoginInput, request: Request, db: Session = Depends(get_db)):
     request.session.clear()
     request.session["employee_id"] = employee.id
     request.session["password_version"] = employee.password_version
-    return employee_data(employee)
+    return {**employee_data(employee), **create_access_token(employee)}
 
 
 @router.get("/me")
-def me(employee=Depends(current_employee)):
-    return employee_data(employee)
+def me(request: Request, employee=Depends(current_employee)):
+    result = employee_data(employee)
+    # A browser reload has a valid HttpOnly session cookie but no in-memory
+    # access token, so issue a fresh JWT only for cookie-authenticated requests.
+    if request.headers.get("Authorization") is None:
+        result.update(create_access_token(employee))
+    return result
+
+
+@router.post("/refresh")
+def refresh_access_token(request: Request, employee=Depends(current_employee)):
+    # Refresh is deliberately cookie-only; a bearer token cannot refresh itself.
+    if request.headers.get("Authorization") is not None \
+            or request.session.get("employee_id") != employee.id:
+        raise HTTPException(401, "يلزم تجديد الرمز من جلسة المتصفح")
+    return create_access_token(employee)
 
 
 @router.post("/logout")

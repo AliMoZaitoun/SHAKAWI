@@ -317,6 +317,41 @@ def test_auth_and_role_boundaries(system):
     assert client.get("/api/v1/auth/me").status_code == 401
 
 
+def test_employee_jwt_bearer_auth_and_cookie_refresh(system):
+    client, _factory = system
+    session = login(client, "services")
+    token = session["access_token"]
+    assert session["token_type"] == "bearer"
+    assert session["expires_in"] == 900
+
+    client.cookies.clear()
+    headers = {"Authorization": f"Bearer {token}"}
+    profile = client.get("/api/v1/auth/me", headers=headers)
+    assert profile.status_code == 200
+    assert profile.json()["role"] == "employee"
+    assert "access_token" not in profile.json()
+    assert len(client.get("/api/v1/complaints/", headers=headers).json()) == 1
+    assert client.get("/api/v1/admin/roles", headers=headers).status_code == 403
+    assert client.get("/api/v1/auth/me", headers={
+        "Authorization": "Bearer not-a-valid-jwt",
+    }).status_code == 401
+    assert client.post("/api/v1/auth/refresh", headers=headers).status_code == 401
+
+    login(client, "services")
+    refreshed = client.post("/api/v1/auth/refresh")
+    assert refreshed.status_code == 200
+    assert refreshed.json()["token_type"] == "bearer"
+    assert refreshed.json()["access_token"]
+
+    changed = client.post("/api/v1/auth/change-password", json={
+        "current_password": TEST_PASSWORD,
+        "new_password": "a-new-long-test-password",
+    })
+    assert changed.status_code == 200
+    client.cookies.clear()
+    assert client.get("/api/v1/auth/me", headers=headers).status_code == 401
+
+
 def test_notes_persist_even_when_notification_fails(system, monkeypatch):
     client, factory = system
     login(client, "governor")

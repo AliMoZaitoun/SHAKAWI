@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.foundations import Language, UserLanguage
-from app.core.security import current_employee, owns_citizen
+from app.core.security import current_employee, employee_if_authenticated, owns_citizen
 from app.models.user import Citizen
 from app.services.access import require_permission
 from app.services.access_admin import begin_change, finish_change
@@ -150,8 +150,9 @@ class PreferenceInput(BaseModel):
 @router.put("/language-preference")
 def set_preference(data: PreferenceInput, request: Request, db: Session = Depends(get_db)):
     language_row(db, data.language_code)
-    if request.session.get("employee_id"):
-        user_id = current_employee(request, db).user_id
+    employee = employee_if_authenticated(request, db)
+    if employee:
+        user_id = employee.user_id
     else:
         citizen_id = request.session.get("citizen_id")
         if not citizen_id or not owns_citizen(request, citizen_id):

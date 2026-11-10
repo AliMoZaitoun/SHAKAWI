@@ -14,8 +14,9 @@ in the legacy UI unless the user explicitly asks; keep legacy only for compatibi
 and regression checks.
 Keep the citizen and employee interfaces in separate layouts. Citizen navigation
 must not link to the employee portal; employee login remains at `/employee/login`.
-The staff browser session uses the signed HTTP-only session cookie, not a JWT
-stored in browser storage.
+Staff APIs accept 15-minute JWT Bearer access tokens. React keeps them in memory
+and renews through the signed HTTP-only session cookie; never store JWTs in
+browser storage. The backend still accepts the session cookie for compatibility.
 Never expose secrets through VITE_* or persist citizen credentials in browser
 storage. Removing the legacy interface needs separate approval after parity.
 

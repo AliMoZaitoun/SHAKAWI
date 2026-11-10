@@ -12,7 +12,7 @@ from app.services.access import require_permission, check_permission
 from app.services.file_catalog import protected_path
 from app.services.access_admin import directorate_or_422
 from app.core.security import (
-    current_employee, authorize_reader, authorize_owner, authorize_complaint,
+    current_employee, employee_if_authenticated, authorize_reader, authorize_owner, authorize_complaint,
     owns_citizen, is_bot, require_bot_owner,
 )
 
@@ -54,8 +54,9 @@ def download(identifier: int, request: Request, db: Session = Depends(get_db)):
         for link in links:
             complaint = complaint_row(db, link.complaint_id)
             try:
-                if request.session.get("employee_id") and not is_bot(request):
-                    authorize_complaint(current_employee(request, db), complaint, "complaints.files.read")
+                employee = employee_if_authenticated(request, db)
+                if employee and not is_bot(request):
+                    authorize_complaint(employee, complaint, "complaints.files.read")
                 else:
                     authorize_owner(request, db, complaint)
                 authorized = True
@@ -69,8 +70,9 @@ def download(identifier: int, request: Request, db: Session = Depends(get_db)):
                 complaint = complaint_row(db, evidence.complaint_id)
                 try:
                     authorize_reader(request, db, complaint)
-                    if request.session.get("employee_id") and not is_bot(request):
-                        authorize_complaint(current_employee(request, db), complaint, "evidence.files.read")
+                    employee = employee_if_authenticated(request, db)
+                    if employee and not is_bot(request):
+                        authorize_complaint(employee, complaint, "evidence.files.read")
                     authorized = True
                     break
                 except HTTPException:
@@ -104,7 +106,7 @@ def history(identifier: int, request: Request, page: int = Query(1, ge=1),
             page_size: int = Query(25, ge=1, le=100), db: Session = Depends(get_db)):
     complaint = complaint_row(db, identifier)
     authorize_reader(request, db, complaint)
-    staff = bool(request.session.get("employee_id")) and not is_bot(request)
+    staff = employee_if_authenticated(request, db) is not None and not is_bot(request)
     query = db.query(ComplaintHistory).filter_by(complaint_id=identifier)
     fields = ["id", "event", "old_status", "new_status", "old_directorate_id",
               "new_directorate_id", "old_progress", "new_progress", "created_at"]

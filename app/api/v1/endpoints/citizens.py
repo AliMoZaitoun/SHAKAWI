@@ -2,7 +2,9 @@ from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.security import current_employee, is_bot, owns_citizen, require_bot, require_bot_owner
+from app.core.security import (
+    current_employee, employee_if_authenticated, is_bot, owns_citizen, require_bot, require_bot_owner,
+)
 from app.db.session import get_db
 from app.models.user import Citizen
 from app.schemas.user import CitizenCreate, CitizenResponse
@@ -35,8 +37,9 @@ def create(data: CitizenCreate, request: Request, db: Session = Depends(get_db))
     # A staff member can act as a citizen without a duplicate person record,
     # but only the authenticated staff session proves the account link.
     staff_user = None
-    if not trusted_bot and request.session.get("employee_id"):
-        staff_user = current_employee(request, db).user
+    employee = employee_if_authenticated(request, db) if not trusted_bot else None
+    if employee:
+        staff_user = employee.user
         if not all(getattr(staff_user, field) == getattr(data, field)
                    for field in ("first_name", "last_name", "phone")):
             staff_user = None

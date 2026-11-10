@@ -8,9 +8,11 @@ import time
 from collections import defaultdict, deque
 
 from fastapi import Depends, HTTPException, Request
+from jwt import InvalidTokenError
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.user import Citizen, Employee
+from app.core.tokens import decode_access_token
 
 _attempts = defaultdict(deque)
 
@@ -90,16 +92,48 @@ def owns_citizen(request: Request, citizen_id: int) -> bool:
 
 
 def current_employee(request: Request, db: Session = Depends(get_db)) -> Employee:
-    employee = db.get(Employee, request.session.get("employee_id")) if request.session.get("employee_id") else None
+    authorization = request.headers.get("Authorization")
+    token_password_version = None
+    if authorization is not None:
+        scheme, separator, token = authorization.partition(" ")
+        if scheme.lower() != "bearer" or not separator or not token or " " in token:
+            raise HTTPException(401, "رمز الدخول غير صالح",
+                                headers={"WWW-Authenticate": "Bearer"})
+        try:
+            claims = decode_access_token(token)
+            employee_id = int(claims["sub"])
+            token_password_version = claims["pwdv"]
+            if employee_id < 1 or str(employee_id) != claims["sub"] \
+                    or type(token_password_version) is not int:
+                raise ValueError("Invalid employee claims")
+        except (InvalidTokenError, KeyError, TypeError, ValueError):
+            raise HTTPException(401, "رمز الدخول غير صالح أو منتهي الصلاحية",
+                                headers={"WWW-Authenticate": "Bearer"})
+    else:
+        employee_id = request.session.get("employee_id")
+    employee = db.get(Employee, employee_id) if employee_id else None
     if not employee:
-        raise HTTPException(401, "يرجى تسجيل الدخول")
+        raise HTTPException(401, "يرجى تسجيل الدخول",
+                            headers={"WWW-Authenticate": "Bearer"})
     if not employee.user or not employee.user.is_active:
-        request.session.clear()
+        if authorization is None:
+            request.session.clear()
         raise HTTPException(401, "الحساب غير مفعل")
-    if request.session.get("password_version") != employee.password_version:
-        request.session.clear()
-        raise HTTPException(401, "تغيرت كلمة المرور، يرجى تسجيل الدخول مجددًا")
+    expected_version = (token_password_version if authorization is not None
+                        else request.session.get("password_version"))
+    if expected_version != employee.password_version:
+        if authorization is None:
+            request.session.clear()
+        raise HTTPException(401, "تغيرت كلمة المرور، يرجى تسجيل الدخول مجددًا",
+                            headers={"WWW-Authenticate": "Bearer"})
     return employee
+
+
+def employee_if_authenticated(request: Request, db: Session) -> Employee | None:
+    """Resolve staff auth for mixed citizen/staff routes, if credentials exist."""
+    if request.headers.get("Authorization") is None and not request.session.get("employee_id"):
+        return None
+    return current_employee(request, db)
 
 
 def authorize_complaint(employee: Employee, complaint, permission="complaints.view"):
@@ -117,8 +151,9 @@ def authorize_owner(request: Request, db: Session, complaint):
 
 
 def authorize_reader(request: Request, db: Session, complaint):
-    if request.session.get("employee_id") and not is_bot(request):
-        authorize_complaint(current_employee(request, db), complaint)
+    employee = employee_if_authenticated(request, db)
+    if employee and not is_bot(request):
+        authorize_complaint(employee, complaint)
     else:
         authorize_owner(request, db, complaint)
 
