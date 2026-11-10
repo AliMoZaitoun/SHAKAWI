@@ -242,25 +242,144 @@ def test_bot_directory_uses_database_ids_and_localized_names():
     import asyncio
     from types import SimpleNamespace
     from unittest.mock import AsyncMock
-    from bot.handlers.complaint_flow import show_directorates, process_directorate
+    from bot.handlers.complaint_flow import (
+        ComplaintForm, complaint_detail_sections, evidence_reply_keyboard, process_directorate,
+    )
     from bot.keyboards.inline import get_directorates_keyboard
-    from aiogram import Router
-    rows = [{"id": 7, "name": "Direction française"}]
+    rows = [
+        {"id": 7, "parent_id": None, "name": "Direction française"},
+        {"id": 8, "parent_id": 7, "name": "Service enfant"},
+    ]
     keyboard = get_directorates_keyboard("fr", rows)
-    assert keyboard.inline_keyboard[0][0].callback_data == "dir_7"
+    assert keyboard.inline_keyboard[0][0].callback_data == "dir_open_7"
     assert keyboard.inline_keyboard[0][0].text == "Direction française"
+    child_keyboard = get_directorates_keyboard("fr", rows, selected_id=7)
+    assert child_keyboard.inline_keyboard[0][0].callback_data == "dir_select_7"
+    assert child_keyboard.inline_keyboard[1][0].callback_data == "dir_open_8"
     with pytest.raises(ValueError):
         get_directorates_keyboard("en")
     state = SimpleNamespace(get_data=AsyncMock(return_value={
-        "lang": "en", "allowed_directorates": [7],
+        "lang": "en", "allowed_directorates": [7, 8], "directorate_catalog": rows,
     }), update_data=AsyncMock(), set_state=AsyncMock())
-    callback = SimpleNamespace(data="dir_7", message=SimpleNamespace(edit_text=AsyncMock()), answer=AsyncMock())
+    callback = SimpleNamespace(
+        data="dir_open_7",
+        message=SimpleNamespace(edit_text=AsyncMock()),
+        answer=AsyncMock(),
+    )
     asyncio.run(process_directorate(callback, state))
-    state.update_data.assert_awaited_once_with(directorate_id=7)
-    callback.data = "dir_999"
+    state.update_data.assert_awaited_once_with(current_directorate_id=7)
+    assert callback.message.edit_text.call_args.kwargs["reply_markup"].inline_keyboard[1][0].callback_data == "dir_open_8"
+    state.update_data.reset_mock()
+    callback.data = "dir_select_7"
+    asyncio.run(process_directorate(callback, state))
+    state.update_data.assert_awaited_once_with(directorate_id=7, current_directorate_id=None)
+    state.set_state.assert_awaited_once_with(ComplaintForm.category)
+    callback.data = "dir_open_999"
     state.update_data.reset_mock()
     asyncio.run(process_directorate(callback, state))
     state.update_data.assert_not_called()
+
+
+def test_bot_complaint_detail_includes_owner_evidence_and_reply_actions():
+    from bot.handlers.complaint_flow import complaint_detail_sections, evidence_reply_keyboard
+    complaint = {
+        "id": 20, "title": "Title <&>", "details": "Description <text>",
+        "tracking_code": "CMP-20", "category": "roads", "status": "IN_PROGRESS",
+        "priority": "HIGH", "progress": 65, "is_public": False,
+        "attachments": [{"name": "site.png", "file_type": "image/png"}],
+        "notes": [
+            {"note": "internal staff-only note", "audience": "internal", "is_internal": True},
+            {"note": "private citizen update", "audience": "private", "is_internal": False},
+        ],
+        "evidence_requests": [{
+            "id": 8, "status": "answered", "prompt": "Send a clear photo",
+            "replies": [{
+                "text": "Here is the photo",
+                "attachments": [{"name": "reply.pdf", "file_type": "application/pdf"}],
+            }],
+        }],
+    }
+    summary, sections = complaint_detail_sections(complaint, "en")
+    rendered = "\n".join([summary, *(body for _, body in sections)])
+    assert "Title &lt;&amp;&gt;" in summary
+    assert "Description <text>" in rendered
+    assert "site.png" in rendered and "reply.pdf" in rendered
+    assert "private citizen update" in rendered
+    assert "internal staff-only note" not in rendered
+    keyboard = evidence_reply_keyboard({
+        **complaint,
+        "evidence_requests": [{"id": 9, "status": "pending"}],
+    }, "en", enabled=True)
+    assert keyboard.inline_keyboard[0][0].callback_data == "evidence_20_9"
+    assert evidence_reply_keyboard(complaint, "en", enabled=True) is None
+
+
+def test_bot_detail_downloads_files_only_from_its_api_origin(monkeypatch):
+    import asyncio
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock
+    import bot.handlers.complaint_flow as flow
+
+    monkeypatch.setattr(flow, "API_BASE_URL", "https://api.example.test/api/v1")
+    requested = []
+
+    class Content:
+        async def read(self, limit):
+            return b"file bytes"
+
+    class Response:
+        status = 200
+        headers = {"Content-Length": "10"}
+        content = Content()
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            pass
+
+    class Session:
+        def get(self, url):
+            requested.append(url)
+            return Response()
+
+    message = SimpleNamespace(
+        answer=AsyncMock(),
+        edit_text=AsyncMock(),
+        answer_document=AsyncMock(),
+    )
+    complaint = {
+        "id": 20, "title": "Issue", "details": "Details",
+        "tracking_code": "CMP-20", "category": "roads", "status": "PENDING",
+        "priority": "MEDIUM", "progress": 0, "is_public": False,
+        "attachments": [{
+            "name": "site-photo.png", "file_type": "image/png",
+            "file_url": "/api/v1/files/12/download",
+        }],
+        "evidence_requests": [],
+    }
+    asyncio.run(flow.send_complaint_detail(message, complaint, "en", session=Session()))
+    assert requested == ["https://api.example.test/api/v1/files/12/download"]
+    sent_file = message.answer_document.await_args.args[0]
+    assert sent_file.filename == "site-photo.png"
+    assert flow._safe_file_url("https://attacker.test/file") is None
+    assert flow._safe_file_url("/api/v1/evidence-files/9/download") == (
+        "https://api.example.test/api/v1/evidence-files/9/download"
+    )
+
+
+def test_bot_complaint_private_chat_guard_and_directorate_button_limits():
+    from types import SimpleNamespace
+    from bot.handlers.complaint_flow import in_private_chat
+    from bot.keyboards.inline import get_directorates_keyboard
+
+    assert in_private_chat(SimpleNamespace(chat=SimpleNamespace(type="private")))
+    assert not in_private_chat(SimpleNamespace(chat=SimpleNamespace(type="group")))
+    long_name = "مديرية " + ("أ" * 100)
+    keyboard = get_directorates_keyboard(
+        "ar", [{"id": 80, "parent_id": None, "name": long_name}],
+    )
+    assert len(keyboard.inline_keyboard[0][0].text) <= 64
 
 
 def legacy_database(tmp_path):

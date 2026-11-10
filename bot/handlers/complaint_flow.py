@@ -2,8 +2,12 @@ import random
 import secrets
 import aiohttp
 from html import escape
+from urllib.parse import urlsplit
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import (
+    Message, CallbackQuery, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove,
+    InlineKeyboardMarkup, InlineKeyboardButton, BufferedInputFile,
+)
 from aiogram.fsm.context import FSMContext
 from bot.states.complaint_states import ComplaintForm
 from bot.keyboards.inline import get_directorates_keyboard, get_categories_keyboard
@@ -11,10 +15,181 @@ from bot.config import API_BASE_URL, API_HEADERS
 from bot.locales import get_txt
 
 router = Router()
+MAX_EVIDENCE_DOWNLOAD_BYTES = 10 * 1024 * 1024
+MAX_EVIDENCE_FILES_PER_DETAIL = 20
 
 def actor_headers(event):
     # Telegram identity comes from the authenticated update, never from FSM data.
     return {**API_HEADERS, "X-Telegram-Id": str(event.from_user.id)}
+
+
+def in_private_chat(event):
+    message = getattr(event, "message", None) or event
+    chat = getattr(message, "chat", None)
+    return chat is None or getattr(chat, "type", None) == "private"
+
+
+def _chunks(text, limit=3500):
+    text = str(text or "")
+    return [text[index:index + limit] for index in range(0, len(text), limit)] or [""]
+
+
+def complaint_detail_sections(complaint, lang):
+    status = get_txt(lang, f"status_{str(complaint.get('status', '')).lower()}")
+    priority = get_txt(lang, f"priority_{str(complaint.get('priority', '')).lower()}")
+    visibility = get_txt(
+        lang, "visibility_public" if complaint.get("is_public") else "visibility_private",
+    )
+    summary = (
+        f"{get_txt(lang, 'complaint_details_title')}\n\n"
+        f"{get_txt(lang, 'comp_title_label')} {escape(str(complaint.get('title', '')))}\n"
+        f"{get_txt(lang, 'comp_cat_label')} {escape(str(complaint.get('category', '')))}\n"
+        f"{get_txt(lang, 'comp_status_label')} <b>{escape(status)}</b>\n"
+        f"{get_txt(lang, 'comp_priority_label')} <b>{escape(priority)}</b>\n"
+        f"{get_txt(lang, 'comp_code_label')} <code>{escape(str(complaint.get('tracking_code', '')))}</code>\n"
+        f"{get_txt(lang, 'comp_progress_label')} <b>{complaint.get('progress', 0)}%</b>\n"
+        f"{get_txt(lang, 'comp_privacy_label')} <b>{escape(visibility)}</b>"
+    )
+
+    sections = [
+        (get_txt(lang, "comp_details_label"), str(complaint.get("details") or "")),
+    ]
+    visible_notes = [
+        note for note in complaint.get("notes") or []
+        if note.get("audience") != "internal" and not note.get("is_internal")
+    ]
+    if visible_notes:
+        notes_text = "\n\n".join(
+            f"{get_txt(lang, 'note_audience_public' if note.get('audience') == 'public' else 'note_audience_private')}\n"
+            f"{note.get('note', '')}"
+            for note in visible_notes
+        )
+        sections.append((get_txt(lang, "updates_label"), notes_text))
+    elif complaint.get("admin_notes"):
+        sections.append((get_txt(lang, "admin_note_label"), str(complaint["admin_notes"])))
+    if complaint.get("resolution_report"):
+        sections.append((get_txt(lang, "resolution_report_label"), str(complaint["resolution_report"])))
+
+    attachments = complaint.get("attachments") or []
+    attachment_text = "\n".join(
+        f"• {item.get('name') or get_txt(lang, 'evidence_file_label')} "
+        f"({item.get('file_type') or 'unknown'})"
+        for item in attachments
+    ) or get_txt(lang, "no_attachments")
+    sections.append((get_txt(lang, "attachments_label"), attachment_text))
+
+    requests = complaint.get("evidence_requests") or []
+    evidence_lines = []
+    for request in requests:
+        status_key = f"evidence_status_{str(request.get('status', '')).lower()}"
+        request_status = get_txt(lang, status_key) or str(request.get("status", ""))
+        evidence_lines.extend([
+            f"{get_txt(lang, 'evidence_request_label')} · {request_status}",
+            str(request.get("prompt") or ""),
+        ])
+        for reply in request.get("replies") or []:
+            if reply.get("text"):
+                evidence_lines.extend([
+                    get_txt(lang, "evidence_reply_label"),
+                    str(reply["text"]),
+                ])
+            for item in reply.get("attachments") or []:
+                evidence_lines.append(
+                    f"• {item.get('name') or get_txt(lang, 'evidence_file_label')} "
+                    f"({item.get('file_type') or 'unknown'})"
+                )
+    evidence_text = "\n\n".join(evidence_lines) or get_txt(lang, "no_evidence_requests")
+    sections.append((get_txt(lang, "evidence_requests_label"), evidence_text))
+    return summary, sections
+
+
+def evidence_reply_keyboard(complaint, lang, enabled):
+    if not enabled:
+        return None
+    pending = [
+        request for request in complaint.get("evidence_requests") or []
+        if request.get("status") == "pending"
+    ]
+    if not pending:
+        return None
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(
+            text=get_txt(lang, "btn_reply_evidence"),
+            callback_data=f"evidence_{complaint['id']}_{request['id']}",
+        )]
+        for request in pending
+    ])
+
+
+def _safe_file_url(file_url):
+    if not isinstance(file_url, str):
+        return None
+    api = urlsplit(API_BASE_URL)
+    path = urlsplit(file_url)
+    if (api.scheme not in {"http", "https"} or not api.netloc or path.scheme or path.netloc
+            or path.query or path.fragment
+            or not path.path.startswith(("/api/v1/files/", "/api/v1/evidence-files/"))):
+        return None
+    return f"{api.scheme}://{api.netloc}{path.path}"
+
+
+def complaint_evidence_files(complaint):
+    files = list(complaint.get("attachments") or [])
+    for request in complaint.get("evidence_requests") or []:
+        for reply in request.get("replies") or []:
+            files.extend(reply.get("attachments") or [])
+    return files
+
+
+async def send_complaint_evidence_files(message, session, complaint, lang):
+    files = complaint_evidence_files(complaint)
+    failed = 0
+    for item in files[:MAX_EVIDENCE_FILES_PER_DETAIL]:
+        url = _safe_file_url(item.get("file_url"))
+        if not url:
+            failed += 1
+            continue
+        try:
+            async with session.get(url) as response:
+                if response.status != 200:
+                    failed += 1
+                    continue
+                content_length = int(response.headers.get("Content-Length", "0") or 0)
+                if content_length > MAX_EVIDENCE_DOWNLOAD_BYTES:
+                    failed += 1
+                    continue
+                content = await response.content.read(MAX_EVIDENCE_DOWNLOAD_BYTES + 1)
+            if not content or len(content) > MAX_EVIDENCE_DOWNLOAD_BYTES:
+                failed += 1
+                continue
+            filename = str(item.get("name") or "evidence")
+            filename = filename.replace("\\", "/").rsplit("/", 1)[-1]
+            filename = "".join(char for char in filename if ord(char) >= 32)[:120] or "evidence"
+            await message.answer_document(BufferedInputFile(content, filename=filename))
+        except Exception:
+            failed += 1
+    omitted = max(0, len(files) - MAX_EVIDENCE_FILES_PER_DETAIL)
+    if failed or omitted:
+        await message.answer(get_txt(
+            lang, "evidence_delivery_partial", failed=failed, omitted=omitted,
+        ))
+
+
+async def send_complaint_detail(
+    message, complaint, lang, *, session=None, edit=False, allow_evidence_reply=False,
+):
+    summary, sections = complaint_detail_sections(complaint, lang)
+    keyboard = evidence_reply_keyboard(complaint, lang, allow_evidence_reply)
+    if edit:
+        await message.edit_text(summary, reply_markup=keyboard, parse_mode="HTML")
+    else:
+        await message.answer(summary, reply_markup=keyboard, parse_mode="HTML")
+    for label, body in sections:
+        for index, chunk in enumerate(_chunks(body)):
+            heading = label if index == 0 else get_txt(lang, "continued_label")
+            await message.answer(f"{heading}\n{escape(chunk)}", parse_mode="HTML")
+    if session is not None:
+        await send_complaint_evidence_files(message, session, complaint, lang)
 
 
 async def current_citizen(event, state):
@@ -167,7 +342,11 @@ async def show_directorates(message, state, lang, edit=False):
         if not rows:
             raise RuntimeError("No active directorates")
         keyboard = get_directorates_keyboard(lang, rows)
-        await state.update_data(allowed_directorates=[row["id"] for row in rows])
+        await state.update_data(
+            allowed_directorates=[row["id"] for row in rows],
+            directorate_catalog=rows,
+            current_directorate_id=None,
+        )
         sender = message.edit_text if edit else message.answer
         await sender(get_txt(lang, "ask_directorate"), reply_markup=keyboard, parse_mode="HTML")
         await state.set_state(ComplaintForm.directorate_id)
@@ -354,21 +533,71 @@ async def action_new_complaint(callback: CallbackQuery, state: FSMContext):
 async def process_directorate(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     lang = data.get("lang", "ar")
-    
-    dir_data = callback.data.split("_")[1]
-    # Old buttons may remain in Telegram chat history; validate IDs against the
-    # catalog displayed for the current draft, never map an arbitrary value to 2.
-    dir_id = {"gov": 1, "services": 2}.get(dir_data)
-    if dir_id is None:
+
+    allowed = {int(identifier) for identifier in data.get("allowed_directorates", [])}
+    catalog = data.get("directorate_catalog", [])
+    selected_id = None
+    action = callback.data
+    try:
+        if action.startswith("dir_open_"):
+            selected_id = int(action.removeprefix("dir_open_"))
+            action_type = "open"
+        elif action.startswith("dir_select_"):
+            selected_id = int(action.removeprefix("dir_select_"))
+            action_type = "select"
+        elif action == "dir_root":
+            action_type = "root"
+        else:
+            # Accept numeric buttons sent before the hierarchical keyboard was deployed.
+            selected_id = int(action.removeprefix("dir_"))
+            action_type = "select"
+    except ValueError:
+        selected_id = None
+        action_type = "invalid"
+
+    if action_type == "root":
         try:
-            dir_id = int(dir_data)
+            keyboard = get_directorates_keyboard(lang, catalog)
         except ValueError:
-            dir_id = None
-    if dir_id not in data.get("allowed_directorates", []):
+            await callback.answer(get_txt(lang, "reg_error"), show_alert=True)
+            return
+        await state.update_data(current_directorate_id=None)
+        await callback.message.edit_text(
+            get_txt(lang, "ask_directorate"), reply_markup=keyboard, parse_mode="HTML",
+        )
+        await callback.answer()
+        return
+
+    if action_type not in {"open", "select"} or selected_id not in allowed:
         await callback.answer(get_txt(lang, "reg_error"), show_alert=True)
         return
-    
-    await state.update_data(directorate_id=dir_id)
+
+    directorate = next(
+        (row for row in catalog if int(row["id"]) == selected_id),
+        None,
+    )
+    if action_type == "open":
+        if directorate is None:
+            await callback.answer(get_txt(lang, "reg_error"), show_alert=True)
+            return
+        try:
+            keyboard = get_directorates_keyboard(lang, catalog, selected_id=selected_id)
+        except ValueError:
+            await callback.answer(get_txt(lang, "reg_error"), show_alert=True)
+            return
+        await state.update_data(current_directorate_id=selected_id)
+        await callback.message.edit_text(
+            get_txt(
+                lang, "ask_directorate_children",
+                name=escape(str(directorate.get("name", ""))),
+            ),
+            reply_markup=keyboard,
+            parse_mode="HTML",
+        )
+        await callback.answer()
+        return
+
+    await state.update_data(directorate_id=selected_id, current_directorate_id=None)
     await callback.message.edit_text(
         get_txt(lang, "ask_category"),
         reply_markup=get_categories_keyboard(lang),
@@ -571,6 +800,9 @@ async def finish_attachment_process(message: Message, state: FSMContext):
 async def cmd_track_prompt(message: Message, state: FSMContext):
     data = await state.get_data()
     lang = data.get("lang", "ar")
+    if not in_private_chat(message):
+        await message.answer(get_txt(lang, "private_chat_required"))
+        return
     await message.answer(get_txt(lang, "ask_track_code"), parse_mode="HTML")
     await state.set_state(ComplaintForm.waiting_for_track_code)
 
@@ -578,6 +810,10 @@ async def cmd_track_prompt(message: Message, state: FSMContext):
 async def process_track_code_input(message: Message, state: FSMContext):
     data = await state.get_data()
     lang = data.get("lang", "ar")
+    if not in_private_chat(message):
+        await message.answer(get_txt(lang, "private_chat_required"))
+        await state.clear()
+        return
     tracking_code = message.text.strip()
     
     async with aiohttp.ClientSession(headers=API_HEADERS) as session:
@@ -585,33 +821,7 @@ async def process_track_code_input(message: Message, state: FSMContext):
             async with session.get(f"{API_BASE_URL}/complaints/track/{tracking_code}") as response:
                 if response.status == 200:
                     comp = await response.json()
-                    
-                    admin_note_text = ""
-                    if comp.get('admin_notes'):
-                        admin_note_text = f"\n{get_txt(lang, 'admin_note_label')} {escape(comp['admin_notes'])}"
-                    
-                    resolution_text = ""
-                    if comp.get('resolution_report'):
-                        resolution_text = f"\n{get_txt(lang, 'resolution_report_label')} {escape(comp['resolution_report'])}"
-
-                    status_key = f"status_{comp['status'].lower()}"
-                    priority_key = f"priority_{comp['priority'].lower()}"
-
-                    translated_status = get_txt(lang, status_key)
-                    translated_priority = get_txt(lang, priority_key)
-
-                    detail_text = (
-                        f"{get_txt(lang, 'complaint_details_title')}\n\n"
-                        f"{get_txt(lang, 'comp_title_label')} {comp['title']}\n"
-                        f"{get_txt(lang, 'comp_cat_label')} {comp['category']}\n"
-                        f"{get_txt(lang, 'comp_status_label')} <b>{translated_status}</b>\n"
-                        f"{get_txt(lang, 'comp_priority_label')} <b>{translated_priority}</b>\n"
-                        f"{get_txt(lang, 'comp_code_label')} <code>{comp['tracking_code']}</code>\n"
-                        f"{admin_note_text}"
-                        f"{resolution_text}\n\n"
-                        f"{get_txt(lang, 'comp_details_label')}\n{comp['details']}"
-                    )
-                    await message.answer(detail_text, parse_mode="HTML")
+                    await send_complaint_detail(message, comp, lang, session=session)
                 else:
                     await message.answer(get_txt(lang, "track_not_found"))
         except Exception as e:
@@ -621,11 +831,14 @@ async def process_track_code_input(message: Message, state: FSMContext):
 
 @router.callback_query(F.data == "action_my_complaints")
 async def action_my_complaints(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    lang = data.get("lang", "ar")
+    if not in_private_chat(callback):
+        await callback.answer(get_txt(lang, "private_chat_required"), show_alert=True)
+        return
     if not await current_citizen(callback, state):
         await callback.answer()
         return
-    data = await state.get_data()
-    lang = data.get("lang", "ar")
     citizen_id = data.get("citizen_id")
     
     async with aiohttp.ClientSession(headers=actor_headers(callback)) as session:
@@ -663,11 +876,14 @@ async def action_my_complaints(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data.startswith("comp_detail_"))
 async def show_complaint_detail(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    lang = data.get("lang", "ar")
+    if not in_private_chat(callback):
+        await callback.answer(get_txt(lang, "private_chat_required"), show_alert=True)
+        return
     if not await current_citizen(callback, state):
         await callback.answer()
         return
-    data = await state.get_data()
-    lang = data.get("lang", "ar")
     comp_id = callback.data.split("_")[2]
     
     async with aiohttp.ClientSession(headers=actor_headers(callback)) as session:
@@ -675,33 +891,14 @@ async def show_complaint_detail(callback: CallbackQuery, state: FSMContext):
             async with session.get(f"{API_BASE_URL}/complaints/{comp_id}") as response:
                 if response.status == 200:
                     comp = await response.json()
-
-                    admin_note_text = ""
-                    if comp.get('admin_notes'):
-                        admin_note_text = f"\n{get_txt(lang, 'admin_note_label')} {escape(comp['admin_notes'])}"
-                    
-                    resolution_text = ""
-                    if comp.get('resolution_report'):
-                        resolution_text = f"\n{get_txt(lang, 'resolution_report_label')} {escape(comp['resolution_report'])}"
-
-                    status_key = f"status_{comp['status'].lower()}"
-                    priority_key = f"priority_{comp['priority'].lower()}"
-
-                    translated_status = get_txt(lang, status_key)
-                    translated_priority = get_txt(lang, priority_key)
-
-                    detail_text = (
-                        f"{get_txt(lang, 'complaint_details_title')}\n\n"
-                        f"{get_txt(lang, 'comp_title_label')} {comp['title']}\n"
-                        f"{get_txt(lang, 'comp_cat_label')} {comp['category']}\n"
-                        f"{get_txt(lang, 'comp_status_label')} <b>{translated_status}</b>\n"
-                        f"{get_txt(lang, 'comp_priority_label')} <b>{translated_priority}</b>\n"
-                        f"{get_txt(lang, 'comp_code_label')} <code>{comp['tracking_code']}</code>\n"
-                        f"{admin_note_text}"
-                        f"{resolution_text}\n\n"
-                        f"{get_txt(lang, 'comp_details_label')}\n{comp['details']}"
+                    await send_complaint_detail(
+                        callback.message,
+                        comp,
+                        lang,
+                        session=session,
+                        edit=True,
+                        allow_evidence_reply=True,
                     )
-                    await callback.message.edit_text(detail_text, parse_mode="HTML")
                 else:
                     await callback.message.edit_text("❌ Error.")
         except Exception:
@@ -712,10 +909,13 @@ async def show_complaint_detail(callback: CallbackQuery, state: FSMContext):
 
 @router.message(F.text == "/mystatus")
 async def cmd_mystatus(message: Message, state: FSMContext):
-    if not await current_citizen(message, state):
-        return
     data = await state.get_data()
     lang = data.get("lang", "ar")
+    if not in_private_chat(message):
+        await message.answer(get_txt(lang, "private_chat_required"))
+        return
+    if not await current_citizen(message, state):
+        return
     citizen_id = data.get("citizen_id")
     telegram_id = message.from_user.id
 

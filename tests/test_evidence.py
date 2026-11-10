@@ -43,6 +43,48 @@ def setup_request(client):
     return result.json()["request"]["id"]
 
 
+def test_bot_owner_detail_lists_direct_and_requested_evidence(evidence_system, monkeypatch):
+    client, _ = evidence_system
+    monkeypatch.setenv("BOT_TOKEN", "test-only-bot-token")
+    owner_headers = {
+        "X-Bot-Token": "test-only-bot-token",
+        "X-Telegram-Id": "123456",
+    }
+    uploaded = client.post(
+        "/api/v1/complaints/2/attachments/",
+        headers=owner_headers,
+        files={"file": ("direct-photo.png", png(), "image/png")},
+    )
+    assert uploaded.status_code == 200, uploaded.text
+
+    request_id = setup_request(client)
+    response = reply(
+        client,
+        request_id,
+        cid=2,
+        text="صورة توضيحية جديدة",
+        key="reply-key-0000000020",
+        files=[("files", ("reply-photo.png", png(), "image/png"))],
+        headers=owner_headers,
+    )
+    assert response.status_code == 200, response.text
+
+    detail = client.get("/api/v1/complaints/2", headers=owner_headers)
+    assert detail.status_code == 200, detail.text
+    payload = detail.json()
+    assert payload["attachments"][0]["name"] == "direct-photo.png"
+    evidence = payload["evidence_requests"][0]
+    assert evidence["prompt"] == "أرسل صورة واضحة للموقع"
+    assert evidence["replies"][0]["text"] == "صورة توضيحية جديدة"
+    assert evidence["replies"][0]["attachments"][0]["name"] == "reply-photo.png"
+
+    unauthorized = client.get("/api/v1/complaints/2", headers={
+        "X-Bot-Token": "test-only-bot-token",
+        "X-Telegram-Id": "999999",
+    })
+    assert unauthorized.status_code == 403
+
+
 def test_guest_single_complaint_capability_and_staff_scope(evidence_system):
     client, factory = evidence_system
     assert create(client).status_code == 401

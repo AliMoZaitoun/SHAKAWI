@@ -1,4 +1,5 @@
 - [Complaint access rules](complaint-access.md) — المحافظة تدير كل الشكاوى، والخدمات تدير شكاوى قسمها فقط.
+- [Hierarchical complaint routing](complaint-directories.md) — المواطن يختار الجهة الحالية أو يتابع إلى مديرية تابعة قبل تقديم الشكوى.
 - [Complaint transparency](complaint-transparency.md) — عامة/خاصة مستقلة عن التصنيف؛ الشكاوى العامة للناس، والتحليل للموظفين.
 - [Citizen account linking](citizen-account-linking.md) — تقديم الويب بلا حساب إجباري، بإيصال ورمز سري؛ ربط تيليغرام والحساب لاحقًا اختياري.
 - [Evidence requests](complaint-evidence.md) — طلب أدلة ورد نصّي ومرفقات من الويب أو البوت، حتى للضيف؛ المراسلات خاصة وليست منشورات عامة.

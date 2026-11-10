@@ -70,12 +70,13 @@ def complaint_data(db, complaint, staff=False, employee=None):
             "first_name": citizen.first_name, "last_name": citizen.last_name,
             "phone": citizen.phone, "national_id": citizen.national_id,
         } if citizen else None
+    if not staff or (employee and has_permission(employee, "complaints.files.read", complaint.directorate_id)):
         for item, link in db.query(StoredFile, ComplaintFile).join(
             ComplaintFile, ComplaintFile.file_id == StoredFile.id,
-        ).filter(ComplaintFile.complaint_id == complaint.id).all() if employee and has_permission(
-            employee, "complaints.files.read", complaint.directorate_id) else []:
+        ).filter(ComplaintFile.complaint_id == complaint.id).all():
             data["attachments"].append({
                 "id": link.legacy_attachment_id or item.id, "file_id": item.id,
+                "name": item.original_name,
                 "file_type": item.mime_type,
                 "file_url": f"/api/v1/files/{item.id}/download",
             })
