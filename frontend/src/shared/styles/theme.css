@@ -407,29 +407,66 @@ tbody tr:hover {
   color: var(--muted);
   font-size: 12px;
 }
-.side-layout {
+.employee-workspace {
   display: grid;
-  grid-template-columns: 230px minmax(0, 1fr);
+  grid-template-columns: 248px minmax(0, 1fr);
   gap: 22px;
+  align-items: start;
 }
-.side-nav {
+.employee-sidebar {
   align-self: start;
   position: sticky;
-  top: 130px;
+  top: 92px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: calc(100dvh - 108px);
+  overflow-y: auto;
+}
+.employee-sidebar-user {
+  display: grid;
+  gap: 3px;
+  padding: 2px 9px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.employee-sidebar-user strong {
+  overflow-wrap: anywhere;
+  font-size: 14px;
+}
+.employee-nav {
   display: grid;
   gap: 4px;
 }
-.side-nav a {
-  padding: 10px;
-  border-radius: 9px;
+.employee-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  padding: 10px 11px;
+  border-radius: 10px;
+  border-inline-start: 3px solid transparent;
   color: #55604f;
   font-size: 13px;
   font-weight: 700;
+  transition:
+    background 0.18s,
+    color 0.18s;
 }
-.side-nav a.active,
-.side-nav a:hover {
+.employee-nav-link:hover,
+.employee-nav-link.active {
   background: #edf1e8;
   color: var(--brand-dark);
+}
+.employee-nav-link.active {
+  border-inline-start-color: var(--brand-accent);
+}
+.employee-page-content {
+  min-width: 0;
+}
+.employee-logout {
+  justify-content: flex-start;
+  width: 100%;
+  margin-top: auto;
 }
 .progress {
   height: 7px;
@@ -458,14 +495,33 @@ tbody tr:hover {
   }
   .grid-two,
   .form-grid,
-  .side-layout {
+  .employee-workspace {
     grid-template-columns: 1fr;
   }
-  .side-nav {
-    position: static;
+  .employee-sidebar {
+    position: sticky;
+    top: 68px;
+    z-index: 12;
+    max-height: none;
+    padding: 10px;
+    overflow: visible;
+  }
+  .employee-sidebar-user {
+    display: none;
+  }
+  .employee-nav {
     display: flex;
-    overflow: auto;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+  .employee-nav-link {
+    flex: 0 0 auto;
     white-space: nowrap;
+  }
+  .employee-logout {
+    width: max-content;
+    margin-top: 0;
   }
   .hero {
     border-radius: 18px;

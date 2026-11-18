@@ -1,80 +1,24 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { LogOut, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { api } from "../../shared/api/client";
-import { useSession } from "../../shared/api/hooks";
 import type { Complaint } from "../../shared/api/types";
 import { useI18n } from "../../shared/i18n/I18n";
 import { UiText } from "../../shared/i18n/UiText";
 import { StaffGate } from "./StaffGate";
-import { complaintStatusLabel, hasGlobalPermission, hasPermission } from "./permissions";
+import { complaintStatusLabel } from "./permissions";
 
 export function EmployeeHome() {
-  const session = useSession();
   const { tText } = useI18n();
 
   return (
     <StaffGate>
-      <div className="side-layout">
-        <aside className="side-nav panel">
-          <div className="eyebrow">{session.data?.full_name}</div>
-          <Link to="/employee/complaints">
-            <UiText source="سجل الشكاوى" />
-          </Link>
-          {hasPermission(session.data, "reports.view") && (
-            <Link to="/employee/statistics">
-              <UiText source="الإحصائيات" />
-            </Link>
-          )}
-          <Link to="/employee/account">
-            <UiText source="الحساب" />
-          </Link>
-          {hasGlobalPermission(session.data, "directorates.manage") && (
-            <Link to="/employee/admin/directorates">
-              <UiText source="المديريات" />
-            </Link>
-          )}
-          {hasPermission(session.data, "employees.manage") && (
-            <Link to="/employee/admin/employees">
-              <UiText source="الموظفون" />
-            </Link>
-          )}
-          {hasGlobalPermission(session.data, "rbac.manage") && (
-            <>
-              <Link to="/employee/admin/roles">
-                <UiText source="الأدوار والصلاحيات" />
-              </Link>
-              <Link to="/employee/admin/languages">
-                <UiText source="اللغات" />
-              </Link>
-              <Link to="/employee/admin/translations">
-                <UiText source="الترجمات" />
-              </Link>
-            </>
-          )}
-          {hasGlobalPermission(session.data, "audit.view") && (
-            <Link to="/employee/admin/audit">
-              <UiText source="سجل التدقيق" />
-            </Link>
-          )}
-          <button
-            className="btn ghost"
-            onClick={async () => {
-              await api("/auth/logout", { method: "POST" });
-              window.location.assign("/");
-            }}
-          >
-            <LogOut size={15} />
-            <UiText source="تسجيل الخروج" />
-          </button>
-        </aside>
-        <div className="panel">
-          <div className="eyebrow">DIRECTORATE DESK</div>
-          <h1>{tText("سجل الشكاوى")}</h1>
-          <ComplaintList />
-        </div>
-      </div>
+      <section className="panel">
+        <div className="eyebrow">DIRECTORATE DESK</div>
+        <h1>{tText("سجل الشكاوى")}</h1>
+        <ComplaintList />
+      </section>
     </StaffGate>
   );
 }
