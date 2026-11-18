@@ -498,6 +498,11 @@ tbody tr:hover {
   .employee-workspace {
     grid-template-columns: 1fr;
   }
+  .employee-workspace,
+  .employee-sidebar,
+  .employee-nav {
+    min-width: 0;
+  }
   .employee-sidebar {
     position: sticky;
     top: 68px;

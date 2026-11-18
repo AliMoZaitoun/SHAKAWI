@@ -124,10 +124,55 @@ def run():
                     staff.screenshot(path=str(output / "staff-complaint.png"), full_page=True)
                     staff.goto(base + "/employee/statistics")
                     expect(staff.get_by_text("إجمالي الشكاوى", exact=True)).to_be_visible()
+                    expect(staff.get_by_role("img", name="مخطط أعمدة لحجم الشكاوى")).to_be_visible()
+                    expect(staff.get_by_role("img", name="مخطط دائري يوضح توزيع الشكاوى حسب الحالة")).to_be_visible()
+                    assert staff.locator(".statistics-chart .chart-bar").count() > 0
+                    assert staff.locator(".statistics-summary").evaluate(
+                        "element => getComputedStyle(element).gridTemplateColumns.split(' ').length"
+                    ) == 3
+                    staff.screenshot(path=str(output / "statistics-dashboard.png"), full_page=True)
+                    staff.get_by_role("button", name="Switch language to English", exact=True).click()
+                    expect(staff.get_by_role("heading", name="Complaint statistics")).to_be_visible()
+                    expect(staff.get_by_role("img", name="Complaint volume bar chart")).to_be_visible()
+                    staff.get_by_role("button", name="تغيير اللغة إلى العربية", exact=True).click()
+                    expect(staff.get_by_role("heading", name="إحصائيات الشكاوى")).to_be_visible()
+                    staff.get_by_role("button", name="تاريخ مخصص", exact=True).click()
+                    expect(staff.get_by_label("من تاريخ", exact=True)).to_be_visible()
+                    staff.get_by_role("button", name="إخفاء التواريخ", exact=True).click()
+                    staff.get_by_role("button", name="٩٠ يومًا", exact=True).click()
+                    expect(staff.get_by_role("button", name="٩٠ يومًا", exact=True)).to_have_attribute(
+                        "aria-pressed", "true"
+                    )
+                    staff.set_viewport_size({"width": 390, "height": 844})
+                    page_overflow = staff.evaluate("""() => {
+                      const width = document.documentElement.clientWidth;
+                      return [...document.querySelectorAll("body *")]
+                        .map((element) => ({ element, rect: element.getBoundingClientRect() }))
+                        .filter(({ rect }) => rect.right > width + 1 || rect.left < -1)
+                        .map(({ element, rect }) => ({
+                          tag: element.tagName,
+                          className: typeof element.className === "string" ? element.className : "",
+                          right: Math.round(rect.right),
+                          left: Math.round(rect.left),
+                          width: Math.round(rect.width),
+                        }))
+                        .slice(0, 12);
+                    }""")
+                    if staff.evaluate("document.documentElement.scrollWidth > innerWidth + 1"):
+                        print("Statistics mobile overflow:", page_overflow)
+                        staff.screenshot(path=str(output / "statistics-mobile-overflow.png"), full_page=True)
+                    else:
+                        staff.screenshot(path=str(output / "statistics-mobile.png"), full_page=True)
+                    assert staff.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+                    assert staff.locator(".statistics-summary").evaluate(
+                        "element => getComputedStyle(element).gridTemplateColumns.split(' ').length"
+                    ) == 2
+                    staff.set_viewport_size({"width": 1440, "height": 1000})
                     for route in ("directorates", "employees", "roles", "languages", "audit"):
                         staff.goto(base + f"/employee/admin/{route}")
                         expect(staff.locator("main h1")).to_be_visible()
-                        assert "لا تملك صلاحية" not in staff.locator("main").inner_text()
+                        page_text = staff.locator("main").inner_text()
+                        assert "لا تملك صلاحية" not in page_text, f"{route}: {page_text}"
                     mobile = browser.new_context(viewport={"width": 390, "height": 844})
                     phone = mobile.new_page()
                     phone.on("pageerror", lambda error: errors.append(str(error)))
