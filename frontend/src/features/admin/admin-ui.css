@@ -1,0 +1,372 @@
+.admin-page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 22px;
+}
+
+.admin-page-heading h1 {
+  margin: 5px 0;
+}
+
+.admin-page-heading p {
+  margin: 0;
+}
+
+.admin-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 20px 0 16px;
+}
+
+.admin-toolbar .field {
+  max-width: 360px;
+}
+
+.admin-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: #f3f5ef;
+}
+
+.admin-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 13px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-tab[aria-selected="true"] {
+  background: #fff;
+  color: var(--brand-dark);
+  box-shadow: 0 2px 8px #28312812;
+}
+
+.admin-tab-count {
+  display: inline-grid;
+  min-width: 23px;
+  height: 23px;
+  place-items: center;
+  padding: 0 6px;
+  border-radius: 99px;
+  background: #edf1e8;
+  color: var(--brand-dark);
+  font-size: 11px;
+}
+
+.admin-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.admin-role-card {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+  padding: 18px;
+}
+
+.admin-role-heading,
+.admin-role-meta,
+.admin-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.admin-role-heading h3 {
+  margin: 0;
+}
+
+.admin-role-card p {
+  min-height: 46px;
+  margin: 0;
+}
+
+.admin-permission-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.admin-permission-chip {
+  max-width: 100%;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #f1f4ed;
+  color: #52604e;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.admin-icon-button {
+  display: inline-grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--brand-dark);
+  cursor: pointer;
+}
+
+.admin-icon-button:hover {
+  background: #f3f6f0;
+}
+
+.admin-icon-button.danger {
+  color: #9d392e;
+}
+
+.admin-row-actions {
+  justify-content: flex-start;
+}
+
+.admin-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.admin-pagination-label {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.admin-permission-list {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-permission-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.9fr) minmax(0, 1.4fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #fff;
+}
+
+.admin-permission-row code {
+  color: #52604e;
+  direction: ltr;
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+
+.admin-permission-description {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.admin-empty {
+  padding: 30px 16px;
+  border: 1px dashed #cfd6c8;
+  border-radius: 13px;
+  color: var(--muted);
+  text-align: center;
+}
+
+dialog.admin-dialog {
+  width: min(720px, calc(100% - 28px));
+  max-width: none;
+  max-height: min(90dvh, 860px);
+  margin: auto;
+  padding: 0;
+  overflow: auto;
+  border: 1px solid #e0e7df;
+  border-radius: 18px;
+  background: #fcfdfb;
+  color: var(--ink);
+  box-shadow: 0 24px 70px #16291f3b;
+}
+
+dialog.admin-dialog.admin-dialog-wide {
+  width: min(850px, calc(100% - 28px));
+}
+
+dialog.admin-dialog::backdrop {
+  background: #1f3127a8;
+  backdrop-filter: blur(3px);
+}
+
+.admin-dialog-inner {
+  padding: 24px;
+}
+
+.admin-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.admin-dialog-header h2 {
+  margin: 5px 0 0;
+}
+
+.admin-dialog-close {
+  display: inline-grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.admin-dialog-close:hover {
+  color: var(--brand-dark);
+  background: #f2f5ef;
+}
+
+.admin-dialog-form {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.admin-dialog-intro {
+  margin: -8px 0 16px;
+}
+
+.admin-permission-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  max-height: 38dvh;
+  overflow: auto;
+  padding: 2px 2px 4px;
+}
+
+.admin-permission-option {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.admin-permission-option:has(input:checked) {
+  border-color: #bdcbb3;
+  background: #f4f7f0;
+}
+
+.admin-permission-option input {
+  margin-top: 4px;
+  accent-color: var(--brand-dark);
+}
+
+.admin-permission-option span {
+  min-width: 0;
+}
+
+.admin-permission-option strong,
+.admin-permission-option small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.admin-permission-option small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.admin-translation-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-translation-form {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.admin-translation-form textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.admin-translation-status {
+  margin-top: 14px;
+}
+
+@media (max-width: 760px) {
+  .admin-page-heading,
+  .admin-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-card-grid,
+  .admin-permission-options,
+  .admin-translation-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-toolbar .field {
+    max-width: none;
+  }
+
+  .admin-permission-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .admin-permission-description {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .admin-dialog-inner {
+    padding: 19px;
+  }
+
+  .admin-permission-options {
+    max-height: 42dvh;
+  }
+}

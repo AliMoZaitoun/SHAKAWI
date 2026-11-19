@@ -33,6 +33,7 @@ def run():
             APP_ENV="test",
             BOT_TOKEN="",
             SHAKWA_UI="react",
+            SYSTEM_ADMIN_PASSWORD="test-only-not-a-live-password",
         )
         with (output / "server.log").open("w") as log:
             server = subprocess.Popen(
@@ -168,11 +169,110 @@ def run():
                         "element => getComputedStyle(element).gridTemplateColumns.split(' ').length"
                     ) == 2
                     staff.set_viewport_size({"width": 1440, "height": 1000})
+                    staff.get_by_role("button", name="تسجيل الخروج", exact=True).click()
+                    staff.wait_for_url(base + "/", timeout=5000)
+                    staff.goto(base + "/employee/login")
+                    staff.get_by_label("اسم المستخدم", exact=True).fill("system_admin")
+                    staff.get_by_label("كلمة المرور", exact=True).fill("test-only-not-a-live-password")
+                    staff.get_by_role("button", name="دخول آمن", exact=True).click()
+                    expect(staff).to_have_url(re.compile(r"/employee/complaints$"))
                     for route in ("directorates", "employees", "roles", "languages", "audit"):
                         staff.goto(base + f"/employee/admin/{route}")
                         expect(staff.locator("main h1")).to_be_visible()
                         page_text = staff.locator("main").inner_text()
                         assert "لا تملك صلاحية" not in page_text, f"{route}: {page_text}"
+
+                    staff.goto(base + "/employee/admin/directorates")
+                    staff.get_by_role("button", name="إضافة مديرية", exact=True).click()
+                    expect(staff.get_by_role("dialog")).to_be_visible()
+                    staff.get_by_label("الاسم", exact=True).fill("مديرية اختبار الحوار")
+                    staff.get_by_role("button", name="حفظ", exact=True).click()
+                    expect(staff.get_by_text("مديرية اختبار الحوار", exact=False)).to_be_visible()
+                    staff.get_by_role(
+                        "button", name="تعديل مديرية اختبار الحوار", exact=True
+                    ).click()
+                    staff.get_by_label("الوصف", exact=True).fill("تم تحديثها من نافذة التعديل")
+                    staff.get_by_role("button", name="حفظ", exact=True).click()
+                    expect(staff.get_by_text("تم تحديثها من نافذة التعديل")).to_be_visible()
+                    staff.screenshot(path=str(output / "admin-directorates.png"), full_page=True)
+
+                    staff.goto(base + "/employee/admin/roles")
+                    staff.get_by_role("button", name="Switch language to English", exact=True).click()
+                    expect(staff.get_by_role("heading", name="Roles & permission matrix")).to_be_visible()
+                    expect(staff.get_by_role("button", name="Create role", exact=True)).to_be_visible()
+                    staff.get_by_role("button", name="تغيير اللغة إلى العربية", exact=True).click()
+                    expect(staff.get_by_role("heading", name="الأدوار ومصفوفة الصلاحيات")).to_be_visible()
+                    staff.get_by_role("button", name="إنشاء دور", exact=True).click()
+                    expect(staff.get_by_role("dialog")).to_be_visible()
+                    staff.get_by_label("الرمز", exact=True).fill("qa_role")
+                    staff.get_by_label("الاسم", exact=True).fill("دور اختبار الواجهة")
+                    staff.get_by_label("الوصف", exact=True).fill("دور مخصص لاختبار الواجهة")
+                    staff.get_by_role("checkbox").first.check()
+                    staff.get_by_role("button", name="حفظ الدور", exact=True).click()
+                    expect(staff.get_by_role("dialog")).to_have_count(0)
+                    staff.locator("#role-search").fill("qa_role")
+                    role_card = staff.locator(".admin-role-card").filter(has_text="qa_role")
+                    expect(role_card).to_be_visible()
+                    role_card.get_by_role("button", name="تعديل", exact=True).click()
+                    staff.get_by_label("الاسم", exact=True).fill("دور اختبار محدث")
+                    staff.get_by_role("button", name="حفظ الدور", exact=True).click()
+                    expect(staff.get_by_text("دور اختبار محدث")).to_be_visible()
+                    staff.screenshot(path=str(output / "admin-roles.png"), full_page=True)
+
+                    staff.get_by_role("tab", name=re.compile("الصلاحيات")).click()
+                    staff.get_by_role("button", name="Switch language to English", exact=True).click()
+                    expect(staff.get_by_role("heading", name="Roles & permission matrix")).to_be_visible()
+                    staff.get_by_role("tab", name=re.compile("Permissions")).click()
+                    staff.locator("#permission-search").fill("complaints.view")
+                    permission_row = staff.locator(".admin-permission-row").filter(
+                        has_text="complaints.view"
+                    )
+                    expect(permission_row).to_be_visible()
+                    permission_row.get_by_role("button", name="Edit", exact=True).click()
+                    permission_name = staff.get_by_label("Arabic permission name", exact=True)
+                    expect(permission_name).to_have_value("عرض الشكاوى")
+                    permission_name.fill("صلاحية اختبار الترجمة")
+                    staff.get_by_role("button", name="Update label", exact=True).click()
+                    staff.get_by_role("button", name="تغيير اللغة إلى العربية", exact=True).click()
+                    expect(staff.get_by_role("heading", name="الأدوار ومصفوفة الصلاحيات")).to_be_visible()
+                    expect(staff.get_by_text("صلاحية اختبار الترجمة")).to_be_visible()
+                    staff.screenshot(path=str(output / "admin-permissions.png"), full_page=True)
+
+                    staff.goto(base + "/employee/admin/translations")
+                    record_select = staff.locator(".admin-translation-controls select").nth(1)
+                    record_select.select_option(index=1)
+                    language_select = staff.locator(".admin-translation-controls select").nth(2)
+                    language_select.select_option("en")
+                    translation_name = staff.locator("#translation-name")
+                    translation_name.fill("Temporary English role")
+                    staff.get_by_label("الوصف", exact=True).fill("Translation persistence check")
+                    staff.get_by_role("button", name="حفظ الترجمة", exact=True).click()
+                    expect(staff.get_by_text(re.compile("حُفظت الترجمة|Translation saved"))).to_be_visible()
+                    staff.screenshot(path=str(output / "admin-translations.png"), full_page=True)
+                    staff.once("dialog", lambda dialog: dialog.accept())
+                    staff.get_by_role("button", name="حذف الترجمة", exact=True).click()
+                    expect(staff.get_by_text(re.compile("حُذفت الترجمة|Translation deleted"))).to_be_visible()
+
+                    staff.set_viewport_size({"width": 390, "height": 844})
+                    for route in ("directorates", "roles", "translations"):
+                        staff.goto(base + f"/employee/admin/{route}")
+                        expect(staff.locator("main h1")).to_be_visible()
+                        assert staff.evaluate("document.documentElement.scrollWidth <= innerWidth + 1"), route
+                        if route == "directorates":
+                            staff.get_by_role("button", name="إضافة مديرية", exact=True).click()
+                            dialog = staff.get_by_role("dialog")
+                            expect(dialog).to_be_visible()
+                            assert dialog.evaluate("element => element.getBoundingClientRect().width <= innerWidth")
+                            staff.keyboard.press("Escape")
+                            expect(dialog).to_have_count(0)
+                        elif route == "roles":
+                            staff.get_by_role("button", name="إنشاء دور", exact=True).click()
+                            dialog = staff.get_by_role("dialog")
+                            expect(dialog).to_be_visible()
+                            assert dialog.evaluate("element => element.getBoundingClientRect().width <= innerWidth")
+                            dialog.get_by_role("button", name="إلغاء", exact=True).click()
+                            expect(dialog).to_have_count(0)
+                    staff.set_viewport_size({"width": 1440, "height": 1000})
                     mobile = browser.new_context(viewport={"width": 390, "height": 844})
                     phone = mobile.new_page()
                     phone.on("pageerror", lambda error: errors.append(str(error)))

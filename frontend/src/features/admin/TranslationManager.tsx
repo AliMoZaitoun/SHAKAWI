@@ -1,12 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Languages, Save, Trash2 } from "lucide-react";
 import { api } from "../../shared/api/client";
 import { useResource } from "../../shared/api/hooks";
 import { useI18n } from "../../shared/i18n/I18n";
 import type { Directorate, Language, Permission, Role, Translation } from "../../shared/api/types";
 import { UiText } from "../../shared/i18n/UiText";
+import { AdminAlert } from "./AdminPage";
+import "./admin-ui.css";
 
 type Entity = "roles" | "permissions" | "directorates";
+type TranslationForm = { name: string; description: string; location: string };
+const emptyTranslation: TranslationForm = { name: "", description: "", location: "" };
 
 export function TranslationManager() {
   const { lang, tText } = useI18n();
@@ -17,12 +22,16 @@ export function TranslationManager() {
   const [entity, setEntity] = useState<Entity>("roles");
   const [recordId, setRecordId] = useState("");
   const [languageCode, setLanguageCode] = useState("");
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [location, setLocation] = useState("");
+  const [form, setForm] = useState<TranslationForm>(emptyTranslation);
   const [message, setMessage] = useState("");
+  const [isError, setIsError] = useState(false);
   const [busy, setBusy] = useState(false);
   const queryClient = useQueryClient();
+  const hydratedTarget = useRef("");
+
+  const resources = [roles, permissions, directorates, languages];
+  const listsLoading = resources.some((resource) => resource.isLoading);
+  const listsError = resources.find((resource) => resource.error)?.error;
   const records: { id: string; label: string }[] =
     entity === "roles"
       ? (roles.data ?? []).map((role) => ({ id: String(role.id), label: role.name }))
@@ -32,66 +41,94 @@ export function TranslationManager() {
             id: String(item.id),
             label: item.hierarchy_path ?? item.name,
           }));
+  const translationsKey = ["translations", entity, recordId] as const;
   const query = useQuery({
-    queryKey: ["translations", entity, recordId],
+    queryKey: translationsKey,
     queryFn: () =>
       api<Translation[]>(`/admin/translations/${entity}/${encodeURIComponent(recordId)}`),
     enabled: Boolean(recordId),
     retry: false,
   });
+  const selectedTarget = recordId && languageCode ? `${entity}:${recordId}:${languageCode}` : "";
   const activeTranslation = query.data?.find((item) => item.language_code === languageCode);
   const otherLanguages = (languages.data ?? []).filter(
     (language) => language.code !== "ar" && language.is_active !== false,
   );
 
   useEffect(() => {
+    if (!selectedTarget || query.isLoading || hydratedTarget.current === selectedTarget) return;
     const translation = query.data?.find((item) => item.language_code === languageCode);
-    setName(translation?.name ?? "");
-    setDescription(translation?.description ?? "");
-    setLocation(translation?.location ?? "");
-  }, [entity, recordId, languageCode, query.data]);
+    setForm({
+      name: translation?.name ?? "",
+      description: translation?.description ?? "",
+      location: translation?.location ?? "",
+    });
+    hydratedTarget.current = selectedTarget;
+  }, [languageCode, query.data, query.isLoading, selectedTarget]);
 
-  function chooseLanguage(code: string) {
-    setLanguageCode(code);
-    const translation = query.data?.find((item) => item.language_code === code);
-    setName(translation?.name ?? "");
-    setDescription(translation?.description ?? "");
-    setLocation(translation?.location ?? "");
+  function resetSelection(next: { entity?: Entity; recordId?: string; languageCode?: string }) {
+    hydratedTarget.current = "";
+    setForm(emptyTranslation);
+    setMessage("");
+    setIsError(false);
+    if (next.entity !== undefined) setEntity(next.entity);
+    if (next.recordId !== undefined) setRecordId(next.recordId);
+    if (next.languageCode !== undefined) setLanguageCode(next.languageCode);
   }
 
-  async function save(event: React.FormEvent<HTMLFormElement>) {
+  function setResult(text: string, error = false) {
+    setMessage(text);
+    setIsError(error);
+  }
+
+  async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!recordId || !languageCode) return;
     setBusy(true);
-    setMessage("");
+    setResult("");
     try {
-      await api(`/admin/translations/${entity}/${encodeURIComponent(recordId)}/${languageCode}`, {
-        method: "PUT",
-        body: entity === "directorates" ? { name, description, location } : { name, description },
+      const saved = await api<Translation>(
+        `/admin/translations/${entity}/${encodeURIComponent(recordId)}/${languageCode}`,
+        {
+          method: "PUT",
+          body: entity === "directorates" ? form : { name: form.name, description: form.description },
+        },
+      );
+      queryClient.setQueryData<Translation[]>(translationsKey, (current = []) => [
+        ...current.filter((item) => item.language_code !== languageCode),
+        saved,
+      ]);
+      hydratedTarget.current = selectedTarget;
+      setForm({
+        name: saved.name,
+        description: saved.description,
+        location: saved.location ?? "",
       });
-      await queryClient.invalidateQueries({ queryKey: ["translations", entity, recordId] });
-      setMessage("حُفظت الترجمة.");
+      setResult(tText("حُفظت الترجمة."));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "تعذر حفظ الترجمة.");
+      setResult(error instanceof Error ? error.message : tText("تعذر حفظ الترجمة."), true);
     } finally {
       setBusy(false);
     }
   }
 
   async function removeTranslation() {
-    if (!activeTranslation || !window.confirm("حذف هذه الترجمة؟")) return;
+    if (!activeTranslation || !window.confirm(tText("حذف هذه الترجمة؟"))) return;
     setBusy(true);
-    setMessage("");
+    setResult("");
     try {
-      await api(`/admin/translations/${entity}/${encodeURIComponent(recordId)}/${languageCode}`, {
-        method: "DELETE",
-      });
-      await queryClient.invalidateQueries({ queryKey: ["translations", entity, recordId] });
-      setName("");
-      setDescription("");
-      setLocation("");
-      setMessage("حُذفت الترجمة.");
+      await api(
+        `/admin/translations/${entity}/${encodeURIComponent(recordId)}/${languageCode}`,
+        { method: "DELETE" },
+      );
+      queryClient.setQueryData<Translation[]>(translationsKey, (current = []) =>
+        current.filter((item) => item.language_code !== languageCode),
+      );
+      hydratedTarget.current = selectedTarget;
+      setForm(emptyTranslation);
+      setResult(tText("حُذفت الترجمة."));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "تعذر حذف الترجمة.");
+      setResult(error instanceof Error ? error.message : tText("تعذر حذف الترجمة."), true);
     } finally {
       setBusy(false);
     }
@@ -99,26 +136,23 @@ export function TranslationManager() {
 
   return (
     <section className="panel" aria-labelledby="translation-heading">
-      <div className="eyebrow">LOCALIZED RECORDS</div>
+      <div className="eyebrow">{tText("إدارة السجلات المترجمة")}</div>
       <h2 id="translation-heading">{tText("إدارة الترجمات")}</h2>
       <p className="muted">
-        العربية أساسية ولا يمكن حذف ترجمتها. اختر سجلًا ولغة لعرض القيمة الحالية أو حفظ ترجمة جديدة.
+        {tText("العربية أساسية ولا يمكن حذف ترجمتها. اختر سجلًا ولغة لعرض القيمة الحالية أو حفظ ترجمة جديدة.")}
       </p>
-      <div className="form-grid">
+      <div className="admin-translation-controls">
         <label className="field-label">
           {tText("نوع السجل")}
           <select
             className="field"
             value={entity}
-            onChange={(event) => {
-              setEntity(event.target.value as Entity);
-              setRecordId("");
-              setLanguageCode("");
-            }}
+            disabled={listsLoading || busy}
+            onChange={(event) => resetSelection({ entity: event.target.value as Entity, recordId: "", languageCode: "" })}
           >
-            <option value="roles">الأدوار</option>
-            <option value="permissions">الصلاحيات</option>
-            <option value="directorates">المديريات</option>
+            <option value="roles">{tText("الأدوار")}</option>
+            <option value="permissions">{tText("الصلاحيات")}</option>
+            <option value="directorates">{tText("المديريات")}</option>
           </select>
         </label>
         <label className="field-label">
@@ -126,7 +160,8 @@ export function TranslationManager() {
           <select
             className="field"
             value={recordId}
-            onChange={(event) => setRecordId(event.target.value)}
+            disabled={listsLoading || !!listsError || !records.length || busy}
+            onChange={(event) => resetSelection({ recordId: event.target.value })}
           >
             <option value="">{tText("اختر سجلًا")}</option>
             {records.map((record) => (
@@ -141,7 +176,8 @@ export function TranslationManager() {
           <select
             className="field"
             value={languageCode}
-            onChange={(event) => chooseLanguage(event.target.value)}
+            disabled={!recordId || listsLoading || !!listsError || busy}
+            onChange={(event) => resetSelection({ languageCode: event.target.value })}
           >
             <option value="">{tText("اختر لغة")}</option>
             {otherLanguages.map((language) => (
@@ -152,72 +188,94 @@ export function TranslationManager() {
           </select>
         </label>
       </div>
-      {query.isLoading && <div className="skeleton" aria-label="تحميل الترجمات" />}
-      {query.error && (
+
+      {listsLoading && <div className="skeleton" aria-label={tText("جارٍ التحميل")} />}
+      {!listsLoading && listsError && (
         <div className="status error" role="alert">
+          {tText("تعذر تحميل قوائم الترجمات.")}
+        </div>
+      )}
+      {!listsLoading && !listsError && !records.length && (
+        <div className="admin-empty">{tText("لا توجد سجلات من هذا النوع.")}</div>
+      )}
+      {!listsLoading && !listsError && recordId && !otherLanguages.length && (
+        <div className="status info">{tText("أضف لغة مفعلة من صفحة اللغات أولًا.")}</div>
+      )}
+
+      {recordId && languageCode && query.isLoading && (
+        <div className="skeleton admin-translation-status" aria-label={tText("جارٍ تحميل الترجمة")} />
+      )}
+      {recordId && languageCode && query.error && (
+        <div className="status error admin-translation-status" role="alert">
           {tText("تعذر تحميل الترجمات.")}
           <button className="btn secondary" type="button" onClick={() => void query.refetch()}>
             <UiText source="إعادة المحاولة" />
           </button>
         </div>
       )}
+
       {recordId && languageCode && !query.isLoading && !query.error && (
-        <form className="form-grid" onSubmit={(event) => void save(event)}>
-          <p className="muted form-field full">
+        <>
+          <div className={`status ${activeTranslation ? "success" : "info"} admin-translation-status`}>
+            <Languages size={16} aria-hidden="true" />
             {activeTranslation
-              ? `${tText("تعديل ترجمة")} ${languageCode}`
-              : `${tText("إضافة ترجمة")} ${languageCode}`}
-          </p>
-          <label className="field-label">
-            {tText("الاسم")}
-            <input
-              className="field"
-              required
-              minLength={2}
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-            />
-          </label>
-          <label className="field-label">
-            {tText("الوصف")}
-            <textarea
-              className="field"
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-            />
-          </label>
-          {entity === "directorates" && (
+              ? `${tText("توجد ترجمة لهذه اللغة.")} ${languageCode}`
+              : `${tText("لا توجد ترجمة بعد. يمكنك إضافتها الآن.")} ${languageCode}`}
+          </div>
+          <form className="form-grid admin-translation-form" onSubmit={(event) => void save(event)}>
             <label className="field-label">
-              {tText("الموقع")}
+              {tText("الاسم")}
               <input
+                id="translation-name"
                 className="field"
-                value={location}
-                onChange={(event) => setLocation(event.target.value)}
+                required
+                minLength={2}
+                value={form.name}
+                onChange={(event) => setForm({ ...form, name: event.target.value })}
               />
             </label>
-          )}
-          <div className="row form-field full">
-            <button className="btn" disabled={busy}>
-              {busy ? tText("جارٍ الحفظ…") : tText("حفظ الترجمة")}
-            </button>
-            {activeTranslation && (
-              <button
-                className="btn danger"
-                type="button"
-                disabled={busy}
-                onClick={() => void removeTranslation()}
-              >
-                {tText("حذف الترجمة")}
-              </button>
+            <label className="field-label">
+              {tText("الوصف")}
+              <textarea
+                id="translation-description"
+                className="field"
+                value={form.description}
+                onChange={(event) => setForm({ ...form, description: event.target.value })}
+              />
+            </label>
+            {entity === "directorates" && (
+              <label className="field-label">
+                {tText("الموقع")}
+                <input
+                  className="field"
+                  value={form.location}
+                  onChange={(event) => setForm({ ...form, location: event.target.value })}
+                />
+              </label>
             )}
-          </div>
-        </form>
+            <div className="row form-field full">
+              <button className="btn" disabled={busy}>
+                <Save size={16} aria-hidden="true" />
+                {busy ? tText("جارٍ الحفظ…") : tText("حفظ الترجمة")}
+              </button>
+              {activeTranslation && (
+                <button
+                  className="btn danger"
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void removeTranslation()}
+                >
+                  <Trash2 size={16} aria-hidden="true" />
+                  {tText("حذف الترجمة")}
+                </button>
+              )}
+            </div>
+          </form>
+        </>
       )}
-      {message && (
-        <div className="status info" role="status">
-          {message}
-        </div>
-      )}
+      <div className="admin-translation-status">
+        <AdminAlert text={message} isError={isError} />
+      </div>
     </section>
   );
 }

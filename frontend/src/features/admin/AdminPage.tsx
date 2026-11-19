@@ -46,9 +46,9 @@ export function AdminPage({
   );
 }
 
-export function AdminAlert({ text }: { text: string }) {
+export function AdminAlert({ text, isError = false }: { text: string; isError?: boolean }) {
   return text ? (
-    <div className="status info" role="status">
+    <div className={`status ${isError ? "error" : "success"}`} role={isError ? "alert" : "status"}>
       {text}
     </div>
   ) : null;
@@ -66,7 +66,7 @@ export function useAdminSave() {
     setIsError(false);
   }
 
-  async function run(action: () => Promise<unknown>) {
+  async function run(action: () => Promise<unknown>): Promise<boolean> {
     setBusy(true);
     setMessageState("");
     setIsError(false);
@@ -74,9 +74,11 @@ export function useAdminSave() {
       await action();
       await cache.invalidateQueries();
       setMessageState(tText("تم حفظ التغيير."));
+      return true;
     } catch (error) {
       setMessageState(error instanceof Error ? error.message : tText("تعذر حفظ التغيير"));
       setIsError(true);
+      return false;
     } finally {
       setBusy(false);
     }

@@ -457,14 +457,14 @@ export function EmployeesAdmin() {
           busy={save.busy}
           setForm={setForm}
           close={() => setShowForm(false)}
-          submit={(body) =>
-            save.run(() =>
+          submit={async (body) => {
+            await save.run(() =>
               api(editing ? `/admin/employees/${editing.id}` : "/admin/employees", {
                 method: editing ? "PUT" : "POST",
                 body,
               }),
-            )
-          }
+            );
+          }}
           tText={tText}
           message={save.message}
           messageIsError={save.isError}
