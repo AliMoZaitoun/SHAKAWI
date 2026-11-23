@@ -66,7 +66,15 @@ def run():
                     page.get_by_label("اسم العائلة", exact=True).fill("تجريبي")
                     page.get_by_label("رقم الهاتف", exact=True).fill("0900000042")
                     page.get_by_label("الرقم الوطني", exact=True).fill("00000000042")
-                    page.get_by_label("صورة الهوية (مطلوبة)", exact=True).set_input_files(image)
+                    identity_image = {
+                        **image,
+                        "name": "citizen-identity.png",
+                    }
+                    complaint_image = {
+                        **image,
+                        "name": "complaint-evidence.png",
+                    }
+                    page.get_by_label("صورة الهوية (مطلوبة)", exact=True).set_input_files(identity_image)
                     page.get_by_role("button", name=re.compile("متابعة التفاصيل")).click()
                     try:
                         page.get_by_label("عنوان الشكوى", exact=True).wait_for(timeout=3000)
@@ -77,11 +85,19 @@ def run():
                         ))
                         page.screenshot(path=str(output / "submission-failure.png"), full_page=True)
                         raise
+                    attachment_input = page.get_by_label("مرفقات اختيارية", exact=True)
+                    assert attachment_input.evaluate("input => input.files.length") == 0, (
+                        "The identity image must not appear as a complaint attachment"
+                    )
                     page.get_by_label("عنوان الشكوى", exact=True).fill("طلب صيانة إنارة الحديقة")
                     page.get_by_role("combobox").select_option(index=1)
                     page.get_by_label("نوع الشكوى", exact=True).fill("إنارة")
                     page.get_by_label("التفاصيل", exact=True).fill("طلب تجريبي لإصلاح الإنارة في الطريق الرئيسي.")
-                    page.get_by_label("مرفقات اختيارية", exact=True).set_input_files(image)
+                    attachment_input.set_input_files(complaint_image)
+                    selected_attachments = page.get_by_role("list", name="مرفقات الشكوى المحددة")
+                    expect(selected_attachments.get_by_text("complaint-evidence.png")).to_be_visible()
+                    assert "citizen-identity.png" not in selected_attachments.inner_text()
+                    page.screenshot(path=str(output / "submission-step-two.png"), full_page=True)
                     page.locator('input[type="checkbox"]').check()
                     page.get_by_role("button", name=re.compile("إرسال الشكوى")).click()
                     expect(page.get_by_role("heading", name="تم استلام شكواك")).to_be_visible(timeout=15000)
@@ -122,6 +138,7 @@ def run():
                         base + f"/api/v1/complaints/{complaint_id}"
                     ).json()
                     assert len(staff_complaint["attachments"]) == 1
+                    assert staff_complaint["attachments"][0]["name"] == "complaint-evidence.png"
                     staff.screenshot(path=str(output / "staff-complaint.png"), full_page=True)
                     staff.goto(base + "/employee/statistics")
                     expect(staff.get_by_text("إجمالي الشكاوى", exact=True)).to_be_visible()

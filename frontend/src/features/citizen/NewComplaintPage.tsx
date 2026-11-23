@@ -150,6 +150,7 @@ export function NewComplaintPage() {
       )}
       {step === 1 ? (
         <form
+          key="citizen-identity-step"
           className="form-grid"
           onSubmit={(event) => {
             event.preventDefault();
@@ -227,6 +228,7 @@ export function NewComplaintPage() {
         </form>
       ) : (
         <form
+          key="complaint-details-step"
           className="form-grid"
           onSubmit={(event) => {
             event.preventDefault();
@@ -292,6 +294,28 @@ export function NewComplaintPage() {
               onChange={(event) => setFiles(Array.from(event.target.files ?? []))}
             />
           </Field>
+          <div className="form-field full">
+            <p className="muted">
+              <UiText source="مرفقات الشكوى منفصلة عن صورة الهوية." />
+            </p>
+            {files.length > 0 && (
+              <ul className="file-selection-list" aria-label={tText("مرفقات الشكوى المحددة")}>
+                {files.map((file, index) => (
+                  <li key={`${file.name}-${file.lastModified}-${index}`}>
+                    <span dir="auto">{file.name}</span>
+                    <button
+                      type="button"
+                      className="btn secondary"
+                      aria-label={`${tText("إزالة مرفق")} ${file.name}`}
+                      onClick={() => setFiles((selected) => selected.filter((_, i) => i !== index))}
+                    >
+                      <UiText source="إزالة" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
           <label className="form-field full status info">
             <input
               type="checkbox"
