@@ -4,6 +4,7 @@ from alembic import command
 from alembic.config import Config
 from alembic.script import ScriptDirectory
 from sqlalchemy import inspect, text
+from app.db.base import Base
 
 ROOT = Path(__file__).resolve().parents[2]
 PRESERVED_TABLES = {
