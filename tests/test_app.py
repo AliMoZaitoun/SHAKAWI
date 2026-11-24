@@ -786,18 +786,22 @@ def test_progress_rules_and_reopening(system):
 
 def test_demo_accounts_only_in_development_and_no_password_resets(monkeypatch):
     from app.api.v1.endpoints.auth import provision_accounts
+    from app.models.access import Directorate
     from app.services.access import bootstrap_access
     for key in ["REPLIT_DEPLOYMENT", "APP_ENV", "GOVERNOR_PASSWORD",
-                "SERVICES_PASSWORD", "SYSTEM_ADMIN_PASSWORD"]:
+                "SERVICES_PASSWORD", "SERVICES_DIRECTORATE_ID", "SYSTEM_ADMIN_PASSWORD"]:
         monkeypatch.delenv(key, raising=False)
     monkeypatch.setenv("ENABLE_DEMO_ACCOUNTS", "1")
     engine = create_engine("sqlite://")
     Base.metadata.create_all(engine)
     with sessionmaker(bind=engine)() as db:
+        db.add(Directorate(id=2, name="قسم الخدمات"))
+        db.commit()
         bootstrap_access(db)
         with pytest.raises(RuntimeError, match="SYSTEM_ADMIN_PASSWORD"):
             provision_accounts(db)
         monkeypatch.setenv("SYSTEM_ADMIN_PASSWORD", TEST_PASSWORD)
+        monkeypatch.setenv("SERVICES_DIRECTORATE_ID", "2")
         provision_accounts(db)
         rows = db.query(Employee).all()
         assert {row.username for row in rows} == {"governor", "services", "system_admin"}
@@ -815,6 +819,26 @@ def test_demo_accounts_only_in_development_and_no_password_resets(monkeypatch):
         monkeypatch.setenv("ENABLE_DEMO_ACCOUNTS", "0")
         with pytest.raises(RuntimeError, match="temporary"):
             provision_accounts(db)
+    engine.dispose()
+
+
+def test_services_account_waits_for_an_explicit_existing_directorate(monkeypatch):
+    from app.api.v1.endpoints.auth import provision_accounts
+    from app.services.access import bootstrap_access
+
+    for key in ["REPLIT_DEPLOYMENT", "APP_ENV", "GOVERNOR_PASSWORD",
+                "SERVICES_DIRECTORATE_ID", "SYSTEM_ADMIN_PASSWORD"]:
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv("ENABLE_DEMO_ACCOUNTS", "0")
+    monkeypatch.setenv("SYSTEM_ADMIN_PASSWORD", TEST_PASSWORD)
+    monkeypatch.setenv("SERVICES_PASSWORD", TEST_PASSWORD)
+    engine = create_engine("sqlite://")
+    Base.metadata.create_all(engine)
+    with sessionmaker(bind=engine)() as db:
+        bootstrap_access(db)
+        provision_accounts(db)
+        assert db.query(Employee).filter_by(username="system_admin").one()
+        assert db.query(Employee).filter_by(username="services").first() is None
     engine.dispose()
 
 

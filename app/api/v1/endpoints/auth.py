@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.security import check_login_rate, current_employee, hash_password, verify_password
 from app.core.tokens import create_access_token
 from app.db.session import get_db
-from app.models.access import Role, RoleAssignment
+from app.models.access import Directorate, Role, RoleAssignment
 from app.models.user import Employee, UserRole
 
 router = APIRouter()
@@ -92,10 +92,33 @@ def provision_accounts(db: Session):
             scope_key=0,
         ))
         db.commit()
-    for username, secret_key, role, directorate_id, name in [
+    accounts = [
         ("governor", "GOVERNOR_PASSWORD", UserRole.GOVERNOR, None, "حساب المحافظة"),
-        ("services", "SERVICES_PASSWORD", UserRole.EMPLOYEE, 2, "حساب الخدمات"),
-    ]:
+    ]
+    services_directorate_id = os.environ.get("SERVICES_DIRECTORATE_ID", "").strip()
+    if services_directorate_id:
+        try:
+            parsed_directorate_id = int(services_directorate_id)
+        except ValueError as exc:
+            raise RuntimeError("SERVICES_DIRECTORATE_ID must be a numeric directorate id") from exc
+        if db.get(Directorate, parsed_directorate_id) is not None:
+            accounts.append((
+                "services", "SERVICES_PASSWORD", UserRole.EMPLOYEE,
+                parsed_directorate_id, "حساب الخدمات",
+            ))
+        elif os.environ.get("SERVICES_PASSWORD") or demo_enabled():
+            print(
+                "Skipping default services account: SERVICES_DIRECTORATE_ID does not exist yet.",
+                flush=True,
+            )
+    elif os.environ.get("SERVICES_PASSWORD") or demo_enabled():
+        print(
+            "Skipping default services account: create a directorate and set SERVICES_DIRECTORATE_ID, "
+            "or create the employee from the admin portal.",
+            flush=True,
+        )
+
+    for username, secret_key, role, directorate_id, name in accounts:
         if db.query(Employee).filter_by(username=username).first():
             continue
         password = os.environ.get(secret_key)
