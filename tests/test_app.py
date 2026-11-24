@@ -842,6 +842,19 @@ def test_services_account_waits_for_an_explicit_existing_directorate(monkeypatch
     engine.dispose()
 
 
+def test_trusted_frontend_origin_can_use_employee_login(system, monkeypatch):
+    client, _ = system
+    monkeypatch.setenv("TRUSTED_FRONTEND_ORIGINS", "https://shakawi-nine.vercel.app")
+
+    response = client.post(
+        "/api/v1/auth/login",
+        headers={"Origin": "https://shakawi-nine.vercel.app"},
+        json={"username": "missing", "password": "not-the-password"},
+    )
+
+    assert response.status_code == 401
+
+
 def test_password_change_and_other_session_revocation(system):
     client, factory = system
     login(client, "services")

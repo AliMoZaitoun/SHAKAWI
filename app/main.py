@@ -57,11 +57,16 @@ secret = os.environ.get("SESSION_SECRET")
 if not secret:
     raise RuntimeError("SESSION_SECRET must be configured in Secrets")
 app.add_middleware(FoundationMiddleware)
+is_https_deployment = bool(
+    os.environ.get("REPLIT_DEV_DOMAIN")
+    or os.environ.get("REPLIT_DEPLOYMENT")
+    or os.environ.get("APP_ENV") == "production"
+)
 app.add_middleware(
     SessionMiddleware, secret_key=secret,
     same_site="none" if os.environ.get("REPLIT_DEV_DOMAIN") or os.environ.get("REPLIT_DEPLOYMENT") else "strict",
     max_age=8 * 3600,
-    https_only=bool(os.environ.get("REPLIT_DEV_DOMAIN") or os.environ.get("REPLIT_DEPLOYMENT")),
+    https_only=is_https_deployment,
 )
 
 
@@ -69,7 +74,16 @@ app.add_middleware(
 async def security_headers(request: Request, call_next):
     if request.method not in {"GET", "HEAD", "OPTIONS"}:
         origin = request.headers.get("Origin")
-        if origin and urlparse(origin).netloc != request.headers.get("host"):
+        trusted_origins = {
+            value.strip().rstrip("/")
+            for value in os.environ.get("TRUSTED_FRONTEND_ORIGINS", "").split(",")
+            if value.strip()
+        }
+        if (
+            origin
+            and urlparse(origin).netloc != request.headers.get("host")
+            and origin.rstrip("/") not in trusted_origins
+        ):
             return JSONResponse({"detail": "Cross-origin requests are not allowed"}, status_code=403)
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
