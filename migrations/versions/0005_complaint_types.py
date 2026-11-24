@@ -67,9 +67,22 @@ def upgrade():
 
     columns = {column["name"] for column in inspect(connection).get_columns("complaints")}
     if {"complaint_type_id", "sla_duration_minutes"} - columns:
-        with op.batch_alter_table("complaints") as batch:
+        if connection.dialect.name == "sqlite":
+            # SQLite can add a nullable FK column directly. Batch mode rebuilds
+            # complaints and fails when existing notes/files refer to its rows.
             if "complaint_type_id" not in columns:
-                batch.add_column(
+                connection.exec_driver_sql(
+                    "ALTER TABLE complaints ADD COLUMN complaint_type_id "
+                    "INTEGER REFERENCES complaint_types(id)"
+                )
+            if "sla_duration_minutes" not in columns:
+                connection.exec_driver_sql(
+                    "ALTER TABLE complaints ADD COLUMN sla_duration_minutes INTEGER"
+                )
+        else:
+            if "complaint_type_id" not in columns:
+                op.add_column(
+                    "complaints",
                     Column(
                         "complaint_type_id",
                         Integer(),
@@ -81,7 +94,9 @@ def upgrade():
                     ),
                 )
             if "sla_duration_minutes" not in columns:
-                batch.add_column(Column("sla_duration_minutes", Integer(), nullable=True))
+                op.add_column(
+                    "complaints", Column("sla_duration_minutes", Integer(), nullable=True)
+                )
 
     indexes = {index["name"] for index in inspect(connection).get_indexes("complaint_types")}
     if "ix_complaint_types_code" not in indexes:

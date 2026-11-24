@@ -77,6 +77,7 @@ def test_complaint_saves_type_and_sla_snapshot_without_rewriting_history(system)
     assert result["category"] == "Road repair"
     assert result["complaint_type"]["sla_duration_minutes"] == 20160
 
+    login(client, "system_admin")
     assert client.put(f"/api/v1/admin/complaint-types/{complaint_type['id']}", json={
         "name": "معالجة الطرق", "description": "اذكر الشارع",
         "sla_duration_minutes": 30240, "is_active": True,

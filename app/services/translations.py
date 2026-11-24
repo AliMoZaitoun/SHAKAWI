@@ -38,7 +38,9 @@ def localized(row, language=None):
 
 
 def seed_translations(db):
-    existing_tables = set(inspect(db.get_bind()).get_table_names())
+    # Inspect the checked-out connection. Opening another SQLite in-memory
+    # connection during startup can detach a session's uncommitted seed rows.
+    existing_tables = set(inspect(db.connection()).get_table_names())
     from app.services.translation_defaults import (
         ENGLISH_COMPLAINT_TYPES,
         ENGLISH_PERMISSIONS,

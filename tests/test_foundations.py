@@ -241,7 +241,7 @@ def test_audit_rollback_append_only_and_canonical_user(system):
 def test_bot_directory_uses_database_ids_and_localized_names(monkeypatch):
     import asyncio
     from types import SimpleNamespace
-    from unittest.mock import AsyncMock
+    from unittest.mock import AsyncMock, call
     import bot.handlers.complaint_flow as flow
     from bot.handlers.complaint_flow import (
         ComplaintForm, complaint_detail_sections, evidence_reply_keyboard, process_directorate,
@@ -308,12 +308,13 @@ def test_bot_directory_uses_database_ids_and_localized_names(monkeypatch):
     state.update_data.reset_mock()
     callback.data = "dir_select_7"
     asyncio.run(process_directorate(callback, state))
-    state.update_data.assert_awaited_once_with(
-        directorate_id=7,
-        current_directorate_id=None,
-        complaint_types=complaint_types,
-        complaint_type_page=0,
-    )
+    state.update_data.assert_has_awaits([
+        call(directorate_id=7, current_directorate_id=None),
+        call(
+            complaint_types=complaint_types,
+            complaint_type_page=0,
+        ),
+    ])
     state.set_state.assert_awaited_once_with(ComplaintForm.category)
     assert callback.message.edit_text.call_args.kwargs["reply_markup"].inline_keyboard[0][0].callback_data == "ct_4"
     callback.data = "dir_open_999"
@@ -328,6 +329,10 @@ def test_bot_complaint_detail_includes_owner_evidence_and_reply_actions():
         "id": 20, "title": "Title <&>", "details": "Description <text>",
         "tracking_code": "CMP-20", "category": "roads", "status": "IN_PROGRESS",
         "priority": "HIGH", "progress": 65, "is_public": False,
+        "complaint_type": {
+            "name": "Road repair", "description": "Include the street",
+            "sla_duration_minutes": 20160,
+        },
         "attachments": [{"name": "site.png", "file_type": "image/png"}],
         "notes": [
             {"note": "internal staff-only note", "audience": "internal", "is_internal": True},
@@ -346,6 +351,8 @@ def test_bot_complaint_detail_includes_owner_evidence_and_reply_actions():
     assert "Title &lt;&amp;&gt;" in summary
     assert "Description <text>" in rendered
     assert "site.png" in rendered and "reply.pdf" in rendered
+    assert "2 weeks" in rendered
+    assert "Include the street" in rendered
     assert "private citizen update" in rendered
     assert "internal staff-only note" not in rendered
     keyboard = evidence_reply_keyboard({
@@ -512,6 +519,43 @@ def test_mid_upgrade_failure_rolls_back_schema_and_data(tmp_path, monkeypatch):
         assert "alembic_version" not in inspect(conn).get_table_names()
     upgrade_database(engine)
     assert "files" in inspect(engine).get_table_names()
+    engine.dispose()
+
+
+def test_complaint_type_migration_preserves_existing_foreign_key_children(tmp_path, monkeypatch):
+    from alembic import command
+    from alembic.config import Config
+    from app.db.upgrade import ROOT
+
+    monkeypatch.chdir(tmp_path)
+    engine = legacy_database(tmp_path)
+    config = Config(str(ROOT / "alembic.ini"))
+    with engine.begin() as connection:
+        config.attributes["connection"] = connection
+        command.upgrade(config, "0004_system_admin")
+    with engine.connect() as connection:
+        connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+        connection.commit()
+        before = connection.execute(text(
+            "SELECT COUNT(*) FROM complaint_history WHERE complaint_id=901"
+        )).scalar()
+        assert before == 1
+
+    upgrade_database(engine)
+    with engine.connect() as connection:
+        assert connection.exec_driver_sql("PRAGMA foreign_key_check").all() == []
+        assert connection.execute(text(
+            "SELECT COUNT(*) FROM complaint_history WHERE complaint_id=901"
+        )).scalar() == before
+        assert {"complaint_type_id", "sla_duration_minutes"}.issubset(
+            {column["name"] for column in inspect(engine).get_columns("complaints")}
+        )
+        foreign_key = next(
+            row for row in connection.exec_driver_sql(
+                "PRAGMA foreign_key_list('complaints')"
+            ).all() if row[3] == "complaint_type_id"
+        )
+        assert foreign_key[2] == "complaint_types"
     engine.dispose()
 
 
