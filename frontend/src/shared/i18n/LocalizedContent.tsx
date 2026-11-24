@@ -91,7 +91,6 @@ export const english: Record<string, string> = {
   "حفظ اللغة": "Save language",
   "حفظ الترجمة": "Save translation",
   إلغاء: "Cancel",
-  إغلاق: "Close",
   "إضافة موظف": "Add employee",
   "إضافة ملاحظة": "Add note",
   "إرسال بلاغ": "Submit report",
@@ -690,8 +689,8 @@ export const english: Record<string, string> = {
   "تاريخ التقديم": "Submission date",
   "التحديثات العامة": "Updates",
   "بيانات التواصل": "Contact details",
-  جديدة: "New",
-  مرفوضة: "Rejected",
+  "ملخص الشكوى": "Complaint summary",
+  "خدمة الشكاوى": "Complaints service",
   "يجب ألا يتجاوز حجم الشعار 2 ميبيبايت.": "The logo must be 2 MiB or smaller.",
 };
 

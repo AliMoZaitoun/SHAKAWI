@@ -3,9 +3,20 @@ import { complaints, loadComplaints, updateComplaintStatus, retryNotification, s
 import { logoutUser } from "./auth.js";
 import { renderStaffReview } from "./public-review.js";
 import { renderEvidence } from "./evidence.js";
+import { openComplaintPrintPreview } from "./complaint-print.js";
 
 const byId = (id) => document.getElementById(id);
 let previousStatus = null;
+let selectedComplaintForPrint = null;
+
+byId("p-print-button")?.addEventListener("click", () => {
+  if (!selectedComplaintForPrint) return;
+  void openComplaintPrintPreview(
+    selectedComplaintForPrint,
+    "staff",
+    entityLabel(selectedComplaintForPrint.directorate_id),
+  );
+});
 
 function attachmentLink(file) {
   const link = document.createElement("a");
@@ -70,6 +81,8 @@ export function populateProcessDropdown(selectedId = null) {
     if (previous) active.unshift(previous);
   }
   if (!active.length) {
+    selectedComplaintForPrint = null;
+    byId("p-print-button").hidden = true;
     const opt = document.createElement("option"); opt.value = ""; opt.textContent = "لا توجد شكاوى متاحة للمعالجة"; select.append(opt);
     byId("processing-card").classList.add("opacity-50"); return;
   }
@@ -86,7 +99,13 @@ export function populateProcessDropdown(selectedId = null) {
 export function loadComplaintForProcessing() {
   const id = byId("process-select-id").value;
   const complaint = complaints.find((item) => String(item.id) === String(id));
-  if (!complaint) return;
+  if (!complaint) {
+    selectedComplaintForPrint = null;
+    byId("p-print-button").hidden = true;
+    return;
+  }
+  selectedComplaintForPrint = complaint;
+  byId("p-print-button").hidden = false;
   byId("p-title").textContent = complaint.title || "";
   byId("p-code-badge").textContent = complaint.tracking_code || String(complaint.id);
   byId("p-details").textContent = complaint.details || "";

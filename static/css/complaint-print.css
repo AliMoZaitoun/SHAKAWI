@@ -1,0 +1,437 @@
+.complaint-print-dialog [hidden],
+#v-print-button[hidden],
+#p-print-button[hidden] {
+  display: none !important;
+}
+
+.complaint-print-dialog {
+  width: min(1120px, calc(100vw - 32px));
+  max-width: none;
+  max-height: min(94vh, 980px);
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #dce4dd;
+  border-radius: 18px;
+  background: #f3f5f1;
+  color: #26372d;
+  box-shadow: 0 24px 80px rgb(17 31 23 / 25%);
+}
+
+.complaint-print-dialog::backdrop {
+  background: rgb(22 35 27 / 65%);
+  backdrop-filter: blur(3px);
+}
+
+.complaint-print-header,
+.complaint-print-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px;
+  background: #fff;
+}
+
+.complaint-print-header {
+  border-bottom: 1px solid #dce4dd;
+}
+
+.complaint-print-header h2 {
+  margin: 0;
+  color: var(--brand-dark, #3b4b32);
+  font-size: 17px;
+}
+
+.complaint-print-layout {
+  display: grid;
+  min-height: 0;
+  max-height: calc(min(94vh, 980px) - 130px);
+  grid-template-columns: 270px minmax(0, 1fr);
+}
+
+.complaint-print-controls {
+  min-width: 0;
+  padding: 18px;
+  overflow-y: auto;
+  border-inline-end: 1px solid #dce4dd;
+  background: #fff;
+}
+
+.complaint-print-label,
+.complaint-print-section-options legend {
+  display: block;
+  margin: 0 0 8px;
+  color: #34483b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.complaint-print-input {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid #cfd9d1;
+  border-radius: 8px;
+  background: #fff;
+  color: #24362b;
+}
+
+.complaint-print-section-options {
+  display: grid;
+  gap: 3px;
+  margin: 18px 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.complaint-print-check {
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 8px;
+  color: #45564b;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.complaint-print-check input {
+  accent-color: var(--brand-primary, #4a5d3f);
+}
+
+.complaint-print-logo-controls,
+.complaint-print-save-area {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8e2;
+}
+
+.complaint-print-logo-controls strong {
+  font-size: 12px;
+}
+
+.complaint-print-logo-controls small,
+.complaint-print-message {
+  margin: 0;
+  color: #738078;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.complaint-print-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.complaint-print-button-secondary,
+.complaint-print-button-primary {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border: 1px solid #d2dcd3;
+  border-radius: 8px;
+  background: #fff;
+  color: #43574a;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.complaint-print-button-primary {
+  border-color: var(--brand-dark, #3b4b32);
+  background: var(--brand-dark, #3b4b32);
+  color: #fff;
+}
+
+.complaint-print-button-secondary:hover {
+  background: #f2f5f1;
+}
+
+.complaint-print-preview-area {
+  min-width: 0;
+  padding: 22px;
+  overflow: auto;
+  background: #e9ede8;
+}
+
+.complaint-print-paper {
+  width: min(100%, 730px);
+  min-height: 680px;
+  margin: 0 auto;
+  padding: 40px;
+  background: #fffefa;
+  color: #2d3b32;
+  box-shadow: 0 6px 24px rgb(25 40 30 / 13%);
+}
+
+.complaint-print-paper-header,
+.complaint-print-paper-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.complaint-print-paper-header {
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.complaint-print-paper-brand {
+  min-width: 0;
+}
+
+.complaint-print-brand-text {
+  display: grid;
+  gap: 2px;
+}
+
+.complaint-print-brand-text strong {
+  color: var(--brand-dark, #3b4b32);
+  font-size: 13px;
+}
+
+.complaint-print-brand-text span,
+.complaint-print-document-date {
+  color: #78847c;
+  font-size: 10px;
+}
+
+.complaint-print-logo {
+  display: block;
+  width: auto;
+  max-width: 98px;
+  max-height: 48px;
+  object-fit: contain;
+}
+
+.complaint-print-divider {
+  height: 1px;
+  margin: 22px 0 26px;
+  background: #d8e0d8;
+}
+
+.complaint-print-paper h1 {
+  margin: 0 0 22px;
+  color: var(--brand-dark, #3b4b32);
+  font-size: 27px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.complaint-print-content {
+  display: grid;
+}
+
+.complaint-print-section {
+  padding: 13px 0;
+  border-top: 1px solid #e5eae4;
+  break-inside: avoid;
+}
+
+.complaint-print-section h2 {
+  margin: 0 0 6px;
+  color: #738078;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.complaint-print-section p {
+  margin: 0;
+  color: #344139;
+  font-size: 13px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+
+.complaint-print-preserve {
+  white-space: pre-wrap;
+}
+
+.complaint-print-code {
+  font-family: ui-monospace, monospace;
+  font-weight: 800;
+}
+
+.complaint-print-updates {
+  display: grid;
+}
+
+.complaint-print-update {
+  display: grid;
+  gap: 6px;
+  padding: 10px 0;
+  border-bottom: 1px dashed #dfe6df;
+  break-inside: avoid;
+}
+
+.complaint-print-update:last-child {
+  border-bottom: 0;
+}
+
+.complaint-print-update time {
+  color: #838e85;
+  font-size: 10px;
+}
+
+.complaint-print-empty {
+  padding: 30px 0;
+  color: #7b877e;
+  font-size: 12px;
+  text-align: center;
+}
+
+.complaint-print-paper-footer {
+  display: grid;
+  gap: 5px;
+  margin-top: 28px;
+  padding-top: 12px;
+  border-top: 1px solid #e4e9e3;
+  color: #818d84;
+  font-size: 9px;
+  line-height: 1.6;
+}
+
+.complaint-print-footer {
+  border-top: 1px solid #dce4dd;
+}
+
+.complaint-print-footer p {
+  margin: 0;
+  color: #718078;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.complaint-print-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.complaint-print-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+@media (max-width: 760px) {
+  .complaint-print-dialog {
+    width: calc(100vw - 16px);
+    max-height: calc(100vh - 16px);
+    border-radius: 13px;
+  }
+
+  .complaint-print-layout {
+    max-height: calc(100vh - 132px);
+    grid-template-columns: minmax(0, 1fr);
+    overflow-y: auto;
+  }
+
+  .complaint-print-controls {
+    padding: 14px;
+    overflow: visible;
+    border-inline-end: 0;
+    border-bottom: 1px solid #dce4dd;
+  }
+
+  .complaint-print-section-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .complaint-print-preview-area {
+    padding: 14px;
+    overflow: visible;
+  }
+
+  .complaint-print-paper {
+    min-height: 0;
+    padding: 24px 20px;
+  }
+
+  .complaint-print-footer {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 12px 14px;
+  }
+
+  .complaint-print-actions > button {
+    flex: 1;
+  }
+}
+
+@media print {
+  body > * {
+    visibility: hidden !important;
+  }
+
+  #complaint-print-dialog[open] {
+    position: absolute !important;
+    inset: 0 !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    border: 0 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    visibility: visible !important;
+  }
+
+  #complaint-print-dialog * {
+    visibility: hidden !important;
+  }
+
+  #complaint-print-paper,
+  #complaint-print-paper * {
+    visibility: visible !important;
+  }
+
+  #complaint-print-paper {
+    position: absolute !important;
+    inset-block-start: 0 !important;
+    inset-inline: 0 !important;
+    width: 100% !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    color: #222 !important;
+  }
+
+  .complaint-print-header,
+  .complaint-print-controls,
+  .complaint-print-preview-area,
+  .complaint-print-footer {
+    display: contents !important;
+  }
+
+  .complaint-print-paper-header,
+  .complaint-print-content,
+  .complaint-print-paper-footer,
+  .complaint-print-paper h1,
+  .complaint-print-section,
+  .complaint-print-section *,
+  .complaint-print-update,
+  .complaint-print-update * {
+    visibility: visible !important;
+  }
+
+  .complaint-print-section,
+  .complaint-print-update {
+    break-inside: avoid;
+  }
+
+  @page {
+    size: auto;
+    margin: 16mm;
+  }
+}

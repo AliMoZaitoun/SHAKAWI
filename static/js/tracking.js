@@ -2,8 +2,10 @@ import { api } from "./api.js";
 import { renderOwnerReview } from "./public-review.js";
 import { entityLabel, priorityLabels, statusLabels } from "./complaints.js";
 import { renderEvidence } from "./evidence.js";
+import { openComplaintPrintPreview } from "./complaint-print.js";
 
 function text(id, value) { document.getElementById(id).textContent = value ?? ""; }
+let currentTrackedComplaint = null;
 function renderNotes(notes = []) {
   const box = document.getElementById("v-notes-history");
   box.replaceChildren();
@@ -24,8 +26,11 @@ export async function searchComplaint() {
   const card = document.getElementById("view-card");
   const notFound = document.getElementById("view-not-found");
   card.classList.add("hidden"); notFound.classList.add("hidden");
+  document.getElementById("v-print-button").hidden = true;
+  currentTrackedComplaint = null;
   try {
     const complaint = await api(`/complaints/track/${encodeURIComponent(code)}`);
+    currentTrackedComplaint = complaint;
     const status = complaint.status || "PENDING";
     const progress = Math.max(0, Math.min(100, Number(complaint.progress) || 0));
     text("v-code", complaint.tracking_code || code);
@@ -62,12 +67,22 @@ export async function searchComplaint() {
     const report = complaint.resolution_report || "";
     text("v-report", report);
     document.getElementById("v-resolution-box").classList.toggle("hidden", status !== "RESOLVED" || !report);
+    document.getElementById("v-print-button").hidden = false;
     card.classList.remove("hidden");
   } catch (error) {
     notFound.textContent = error.status === 404 ? "لم يتم العثور على شكوى بهذا الرمز. تحقق من الرمز وحاول مجدداً." : `تعذر جلب بيانات المتابعة: ${error.message}`;
     notFound.classList.remove("hidden");
   } finally { button.disabled = false; }
 }
+document.getElementById("v-print-button")?.addEventListener("click", () => {
+  if (currentTrackedComplaint) {
+    void openComplaintPrintPreview(
+      currentTrackedComplaint,
+      "citizen",
+      entityLabel(currentTrackedComplaint.directorate_id),
+    );
+  }
+});
 export async function copyComplaintLink() {
   const code = document.getElementById("v-code").textContent;
   const url = new URL("/", window.location.origin); url.searchParams.set("code", code);

@@ -136,7 +136,10 @@ export function ComplaintPrintPreview({
 
   const direction = lang === "ar" ? "rtl" : "ltr";
   const filteredNotes = useMemo(
-    () => (complaint.notes ?? []).filter((note) => !note.is_internal),
+    () =>
+      (complaint.notes ?? []).filter(
+        (note) => !note.is_internal && note.audience !== "internal",
+      ),
     [complaint.notes],
   );
   const directorateName =
@@ -381,16 +384,21 @@ export function ComplaintPrintPreview({
             </div>
           </section>
         );
-      case "citizen_contact":
+      case "citizen_contact": {
         if (audience !== "staff") return null;
+        const citizenName = [
+          complaint.citizen?.first_name,
+          complaint.citizen?.last_name,
+        ].filter(Boolean).join(" ");
         return (
           <section className="cpp-print-section" key={section}>
             <h2>{heading}</h2>
-            <p dir="ltr" className="cpp-contact-value">
-              {complaint.citizen?.phone || "—"}
+            <p className="cpp-preserve-lines">
+              {[citizenName, complaint.citizen?.phone].filter(Boolean).join("\n") || "—"}
             </p>
           </section>
         );
+      }
     }
   }
 
@@ -514,7 +522,7 @@ export function ComplaintPrintPreview({
                   <div className="cpp-default-save">
                     <button
                       className="cpp-save-button"
-                      disabled={savingDefaults}
+                      disabled={savingDefaults || selectedSections.length === 0}
                       onClick={() => void saveDefaults()}
                       type="button"
                     >
