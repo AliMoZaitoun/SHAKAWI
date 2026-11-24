@@ -25,7 +25,7 @@ function renderHistory(complaint) {
     const time = document.createElement("time"); time.textContent = `${note.author_name || ""}${note.created_at ? ` · ${new Date(note.created_at).toLocaleString("ar")}` : ""}`;
     item.append(title, content, time); root.append(item);
     if (note.notification_status === "failed") {
-      const retry = document.createElement("button"); retry.type = "button"; retry.className = "text-xs text-brand-accent font-bold mt-2"; retry.textContent = "إعادة محاولة الإشعار";
+      const retry = document.createElement("button"); retry.type = "button"; retry.className = "text-xs text-brand-accent-ink font-bold mt-2"; retry.textContent = "إعادة محاولة الإشعار";
       retry.addEventListener("click", async () => {
         try {
           const result = await retryNotification(complaint.id, note.id);

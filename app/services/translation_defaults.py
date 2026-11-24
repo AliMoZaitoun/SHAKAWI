@@ -17,6 +17,7 @@ ENGLISH_PERMISSIONS = {
     "complaints.transfer": "Transfer complaints between directorates",
     "complaint_types.manage": "Manage complaint types",
     "files.manage": "Manage file limits and retention",
+    "branding.manage": "Manage site branding",
 }
 
 ENGLISH_COMPLAINT_TYPES = {

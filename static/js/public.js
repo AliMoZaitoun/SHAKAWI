@@ -54,7 +54,7 @@ function makeCard(item) {
   progress.textContent = `الإنجاز التقديري: ${Math.max(0, Math.min(100, Number(item.progress) || 0))}%`;
   const open = document.createElement("button");
   open.type = "button";
-  open.className = "text-brand-accent font-bold text-sm mt-3";
+  open.className = "text-brand-accent-ink font-bold text-sm mt-3";
   open.textContent = "عرض التفاصيل والملاحظات";
   open.addEventListener("click", () => openPublicComplaint(item.id, true));
   card.append(title, meta, details, progress, open);
@@ -105,7 +105,7 @@ export async function loadPublicComplaints() {
     byId("public-list").replaceChildren();
     setState(`تعذر تحميل الشكاوى: ${error.message}`, "error");
     const retry = document.createElement("button");
-    retry.type = "button"; retry.className = "text-brand-accent font-bold mt-2"; retry.textContent = "إعادة المحاولة";
+    retry.type = "button"; retry.className = "text-brand-accent-ink font-bold mt-2"; retry.textContent = "إعادة المحاولة";
     retry.addEventListener("click", loadPublicComplaints);
     byId("public-state").append(document.createElement("br"), retry);
   }

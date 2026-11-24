@@ -19,6 +19,7 @@ import { api } from "../shared/api/client";
 import { useSession } from "../shared/api/hooks";
 import { hasGlobalPermission, hasPermission } from "../features/employee/permissions";
 import { StaffGate } from "../features/employee/StaffGate";
+import { BrandMark } from "../shared/branding/Branding";
 
 function EmployeeNavLink({
   to,
@@ -49,7 +50,7 @@ export function EmployeeShell() {
             <div className="topbar-inner">
               <Link to="/employee/complaints" className="brand">
                 <span className="brand-mark">
-                  <MessageSquareText size={22} />
+                  <BrandMark />
                 </span>
                 <span>
                   شكوى
@@ -114,6 +115,13 @@ export function EmployeeShell() {
                   <EmployeeNavLink
                     to="/employee/admin/settings/files"
                     label={tText("حدود الملفات والاحتفاظ")}
+                    icon={Settings2}
+                  />
+                )}
+                {hasGlobalPermission(session.data, "branding.manage") && (
+                  <EmployeeNavLink
+                    to="/employee/admin/settings/branding"
+                    label={tText("هوية الموقع")}
                     icon={Settings2}
                   />
                 )}

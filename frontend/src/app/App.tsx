@@ -22,6 +22,8 @@ import { TranslationsAdmin } from "../features/admin/TranslationsAdmin";
 import { ComplaintToolsPage } from "../features/employee/EvidenceDesk";
 import { ComplaintTypesAdmin } from "../features/admin/ComplaintTypesAdmin";
 import { FileSettingsAdmin } from "../features/admin/FileSettingsAdmin";
+import { BrandingSettings } from "../features/admin/brand-settings/BrandingSettings";
+import { BrandingRuntime } from "../shared/branding/Branding";
 
 function NotFound() {
   const { tText } = useI18n();
@@ -39,6 +41,7 @@ function NotFound() {
 export default function App() {
   return (
     <I18nProvider>
+      <BrandingRuntime />
       <Routes>
         <Route element={<Shell />}>
           <Route index element={<HomePage />} />
@@ -59,6 +62,7 @@ export default function App() {
           <Route path="/employee/admin/directorates" element={<DirectoratesAdmin />} />
           <Route path="/employee/admin/complaint-types" element={<ComplaintTypesAdmin />} />
           <Route path="/employee/admin/settings/files" element={<FileSettingsAdmin />} />
+          <Route path="/employee/admin/settings/branding" element={<BrandingSettings />} />
           <Route path="/employee/admin/employees" element={<EmployeesAdmin />} />
           <Route path="/employee/admin/roles" element={<RolesAdmin />} />
           <Route path="/employee/admin/languages" element={<LanguagesAdmin />} />

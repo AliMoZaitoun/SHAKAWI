@@ -136,7 +136,7 @@ export async function loadStatistics() {
     }
     setState(`تعذر تحميل الإحصائيات: ${error.message}`, true);
     const retry = document.createElement("button");
-    retry.type = "button"; retry.className = "text-brand-accent font-bold mt-2"; retry.textContent = "إعادة المحاولة";
+    retry.type = "button"; retry.className = "text-brand-accent-ink font-bold mt-2"; retry.textContent = "إعادة المحاولة";
     retry.addEventListener("click", loadStatistics);
     byId("stats-state").append(document.createElement("br"), retry);
   } finally {

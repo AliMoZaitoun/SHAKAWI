@@ -84,6 +84,22 @@ class FilePolicy(Base):
     updated_by_user_id = Column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=True)
 
 
+class BrandSettings(Base):
+    __tablename__ = "brand_settings"
+    id = Column(Integer, primary_key=True)
+    brand_dark = Column(String(7), nullable=False, default="#3b4b32")
+    brand_primary = Column(String(7), nullable=False, default="#4a5d3f")
+    brand_light = Column(String(7), nullable=False, default="#657b57")
+    brand_accent = Column(String(7), nullable=False, default="#b88d4b")
+    brand_gold = Column(String(7), nullable=False, default="#d4a860")
+    brand_bg = Column(String(7), nullable=False, default="#f7f8f4")
+    brand_card = Column(String(7), nullable=False, default="#ffffff")
+    logo_path = Column(String(500), nullable=True)
+    logo_version = Column(Integer, nullable=False, default=0, server_default="0")
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    updated_by_user_id = Column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=True)
+
+
 class RetentionPreview(Base):
     __tablename__ = "retention_previews"
     token_hash = Column(String(64), primary_key=True)

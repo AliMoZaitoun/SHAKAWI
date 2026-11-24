@@ -55,7 +55,7 @@ function renderPermissionChecks(selected = []) {
   root.replaceChildren();
   permissions.forEach((permission) => {
     const label = document.createElement("label");
-    label.className = "flex gap-2 items-start bg-white border rounded-lg p-3 text-sm";
+    label.className = "flex gap-2 items-start bg-brand-card border rounded-lg p-3 text-sm";
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.value = permission.code;

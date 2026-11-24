@@ -25,10 +25,11 @@ PERMISSIONS = {
     "complaints.transfer": "تحويل الشكاوى بين المديريات",
     "complaint_types.manage": "إدارة أنواع الشكاوى",
     "files.manage": "إدارة حدود الملفات والاحتفاظ",
+    "branding.manage": "إدارة هوية الموقع",
 }
 ADMIN_PERMISSIONS = {"rbac.manage", "employees.manage", "directorates.manage",
                      "audit.view", "files.identity.read", "complaint_types.manage",
-                     "files.manage"}
+                     "files.manage", "branding.manage"}
 
 
 def bootstrap_access(db):

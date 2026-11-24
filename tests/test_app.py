@@ -838,3 +838,92 @@ def test_password_change_and_other_session_revocation(system):
     assert client.post("/api/v1/auth/login", json={"username": "services", "password": TEST_PASSWORD}).status_code == 401
     assert client.post("/api/v1/auth/login", json={"username": "services", "password": "a-new-long-test-password"}).status_code == 200
     old_client.close()
+
+
+def test_brand_settings_are_public_but_admin_changes_are_permission_gated(system):
+    from app.models.foundations import BrandSettings
+    from app.core.security import _attempts
+
+    _attempts.clear()
+    client, factory = system
+    public = client.get("/api/v1/branding")
+    assert public.status_code == 200
+    assert public.json()["colors"]["brand_dark"] == "#3b4b32"
+    assert public.json()["logo_url"] is None
+    assert "logo_path" not in public.json()
+    assert client.get("/api/v1/admin/settings/branding").status_code == 401
+
+    login(client, "services")
+    assert client.get("/api/v1/admin/settings/branding").status_code == 403
+
+    client.post("/api/v1/auth/logout")
+    login(client, "system_admin")
+    current = client.get("/api/v1/admin/settings/branding")
+    assert current.status_code == 200
+    colors = current.json()["colors"]
+    colors["brand_dark"] = "#263724"
+    updated = client.put("/api/v1/admin/settings/branding", json={"colors": colors})
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["colors"]["brand_dark"] == "#263724"
+    with factory() as db:
+        assert db.get(BrandSettings, 1).brand_dark == "#263724"
+
+    unsafe = {**colors, "brand_primary": "red; color: black"}
+    assert client.put("/api/v1/admin/settings/branding", json={"colors": unsafe}).status_code == 422
+    low_contrast = {**colors, "brand_primary": "#ffffff"}
+    assert client.put("/api/v1/admin/settings/branding", json={"colors": low_contrast}).status_code == 422
+
+
+def test_brand_logo_is_sanitized_isolated_and_resettable(system):
+    from io import BytesIO
+    from PIL import Image
+    from app.core.security import _attempts
+    from app.models.foundations import BrandSettings, StoredFile
+
+    _attempts.clear()
+    client, factory = system
+    login(client, "system_admin")
+    buffer = BytesIO()
+    Image.new("RGBA", (24, 18), (20, 90, 40, 128)).save(buffer, format="PNG")
+    raw_logo = buffer.getvalue()
+    uploaded = client.post(
+        "/api/v1/admin/settings/branding/logo",
+        files={"file": ("custom.png", raw_logo, "image/png")},
+    )
+    assert uploaded.status_code == 200, uploaded.text
+    response_data = uploaded.json()
+    assert response_data["logo_url"].startswith("/api/v1/branding/logo?v=")
+    assert "uploads" not in uploaded.text
+
+    image_response = client.get(response_data["logo_url"])
+    assert image_response.status_code == 200
+    assert image_response.headers["content-type"] == "image/png"
+    assert image_response.headers["x-content-type-options"] == "nosniff"
+    with Image.open(BytesIO(image_response.content)) as image:
+        assert image.size == (24, 18)
+        assert image.mode == "RGBA"
+    with factory() as db:
+        row = db.get(BrandSettings, 1)
+        assert Path(row.logo_path).parent == Path("uploads/branding")
+        assert Path(row.logo_path).is_file()
+        assert db.query(StoredFile).count() == 0
+        saved_path = Path(row.logo_path)
+
+    assert client.post(
+        "/api/v1/admin/settings/branding/logo",
+        files={"file": ("vector.svg", b"<svg/>", "image/svg+xml")},
+    ).status_code == 415
+    assert client.post(
+        "/api/v1/admin/settings/branding/logo",
+        files={"file": ("mismatch.jpg", raw_logo, "image/jpeg")},
+    ).status_code == 415
+    assert client.post(
+        "/api/v1/admin/settings/branding/logo",
+        files={"file": ("large.png", b"x" * (2 * 1024 * 1024 + 1), "image/png")},
+    ).status_code == 413
+
+    reset = client.delete("/api/v1/admin/settings/branding/logo")
+    assert reset.status_code == 200, reset.text
+    assert reset.json()["logo_url"] is None
+    assert not saved_path.exists()
+    assert client.get("/api/v1/branding/logo").status_code == 404

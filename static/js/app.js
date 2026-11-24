@@ -9,6 +9,7 @@ import { initDirectorates } from "./directorates.js";
 import { initRoles } from "./roles.js";
 import { initComplaintTypes, findComplaintType } from "./complaint-types.js";
 import { initComplaintTypesAdmin } from "./complaint-types-admin.js";
+import { loadLegacyBranding } from "./branding.js";
 
 let pendingSubmission = null;
 let submissionInProgress = false;
@@ -303,6 +304,8 @@ initRecovery();
 document.getElementById("filter-visibility").addEventListener("change", renderComplaintsTable);
 document.getElementById("stats-directorate").addEventListener("change", () => { if (isStaff()) loadStatistics(); });
 document.addEventListener("DOMContentLoaded", async () => {
+  try { await loadLegacyBranding(); }
+  catch (error) { console.error("Could not load site branding:", error); }
   try { await refreshCitizenAccess(); }
   catch (error) { window.showNotice(error.message, "error"); }
   try { await loadAuthState(); }

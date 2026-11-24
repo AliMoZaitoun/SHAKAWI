@@ -13,6 +13,7 @@ PRESERVED_TABLES = {
     "public_complaint_reports", "public_complaint_reviews", "complaint_types",
     "complaint_type_translations", "files", "complaint_files", "evidence_reply_files",
     "audit_events", "complaint_history", "file_policies", "retention_previews", "retention_runs",
+    "brand_settings",
 }
 
 

@@ -1,6 +1,7 @@
 import { Link, NavLink, Outlet } from "react-router-dom";
-import { Languages, MessageSquareText, ShieldCheck } from "lucide-react";
+import { Languages, ShieldCheck } from "lucide-react";
 import { useI18n } from "../shared/i18n/I18n";
+import { BrandMark } from "../shared/branding/Branding";
 
 export function Shell() {
   const { lang, t, setLang } = useI18n();
@@ -11,7 +12,7 @@ export function Shell() {
           <div className="topbar-inner">
             <Link to="/" className="brand">
               <span className="brand-mark">
-                <MessageSquareText size={22} />
+                <BrandMark />
               </span>
               <span>
                 شكوى <small>SHAKWA · صوتك يصل</small>
