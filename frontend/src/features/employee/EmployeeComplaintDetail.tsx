@@ -16,7 +16,8 @@ import { UiText } from "../../shared/i18n/UiText";
 import { NotesPanel } from "./NotesPanel";
 import { EmployeeLoadError } from "./EmployeeLoadError";
 import { StaffGate } from "./StaffGate";
-import { complaintStatusLabel, hasPermission } from "./permissions";
+import { complaintStatusLabel, hasGlobalPermission, hasPermission } from "./permissions";
+import { ComplaintPrintPreview } from "./complaint-print/ComplaintPrintPreview";
 
 export function EmployeeComplaintDetail() {
   const { id } = useParams();
@@ -81,6 +82,11 @@ function ComplaintDetail({ id, session }: { id: string; session?: SessionEmploye
         <ArrowLeft size={15} />
         <UiText source="سجل الشكاوى" />
       </Link>
+      <ComplaintPrintPreview
+        complaint={complaint}
+        audience="staff"
+        canSaveDefaults={hasGlobalPermission(session, "branding.manage")}
+      />
       {(hasPermission(session, "evidence.read", complaint.directorate_id) ||
         hasPermission(session, "evidence.request", complaint.directorate_id) ||
         hasPermission(session, "public.review", complaint.directorate_id)) && (

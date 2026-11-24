@@ -927,3 +927,44 @@ def test_brand_logo_is_sanitized_isolated_and_resettable(system):
     assert reset.json()["logo_url"] is None
     assert not saved_path.exists()
     assert client.get("/api/v1/branding/logo").status_code == 404
+
+
+def test_print_template_defaults_are_public_and_changes_are_admin_only(system):
+    from app.core.security import _attempts
+    from app.models.foundations import PrintTemplateSettings
+
+    _attempts.clear()
+    client, factory = system
+    defaults = client.get("/api/v1/print-template")
+    assert defaults.status_code == 200
+    assert defaults.json()["titles"] == {"ar": "ملخص الشكوى", "en": "Complaint summary"}
+    assert "citizen_contact" not in defaults.json()["default_sections"]
+    assert client.get("/api/v1/admin/settings/print-template").status_code == 401
+
+    login(client, "services")
+    assert client.put("/api/v1/admin/settings/print-template", json={}).status_code == 403
+    client.post("/api/v1/auth/logout")
+    login(client, "system_admin")
+    response = client.put("/api/v1/admin/settings/print-template", json={
+        "titles": {"ar": "نسخة متابعة الشكوى", "en": "Complaint follow-up copy"},
+        "default_sections": [
+            "tracking_code", "title", "details", "directorate", "created_at",
+            "status", "progress", "resolution_report", "public_updates",
+            "citizen_contact",
+        ],
+    })
+    assert response.status_code == 200, response.text
+    assert response.json()["titles"]["en"] == "Complaint follow-up copy"
+    assert "citizen_contact" in response.json()["default_sections"]
+    assert client.put("/api/v1/admin/settings/print-template", json={
+        "titles": {"ar": "عنوان", "en": "Title"},
+        "default_sections": ["tracking_code", "title", "identity", "attachments"],
+    }).status_code == 422
+    assert client.put("/api/v1/admin/settings/print-template", json={
+        "titles": {"ar": "عنوان", "en": "Title"},
+        "default_sections": ["tracking_code", "title", "title"],
+    }).status_code == 422
+    with factory() as db:
+        settings = db.get(PrintTemplateSettings, 1)
+        assert settings.titles["ar"] == "نسخة متابعة الشكوى"
+        assert "citizen_contact" in settings.default_sections

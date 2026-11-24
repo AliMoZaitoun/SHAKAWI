@@ -183,7 +183,7 @@ window.submitComplaintForm = async () => {
         directorate_id: submission.draft.directorateId,
         title: submission.draft.title,
         details: submission.draft.details,
-         complaint_type_id: Number(submission.draft.complaintTypeId),
+        complaint_type_id: Number(submission.draft.complaintTypeId),
         is_public: submission.draft.isPublic,
         priority: "MEDIUM"
       });
@@ -310,20 +310,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   catch (error) { window.showNotice(error.message, "error"); }
   try { await loadAuthState(); }
   catch (error) { window.showNotice(`تعذر التحقق من جلسة الموظف: ${error.message}`, "error"); }
-   try { await initDirectorates(); }
+  try { await initDirectorates(); }
   catch (error) { window.showNotice(`تعذر تحميل المديريات: ${error.message}`, "error"); }
-   try { await initComplaintTypes(); }
-   catch (error) { window.showNotice(`تعذر تحميل أنواع الشكاوى: ${error.message}`, "error"); }
+  try { await initComplaintTypes(); }
+  catch (error) { window.showNotice(`تعذر تحميل أنواع الشكاوى: ${error.message}`, "error"); }
   try { await initRoles(); }
   catch (error) { window.showNotice(`تعذر تحميل الأدوار والصلاحيات: ${error.message}`, "error"); }
-   try { await initComplaintTypesAdmin(); }
-   catch (error) { window.showNotice(`تعذر تحميل أنواع الشكاوى: ${error.message}`, "error"); }
+  try { await initComplaintTypesAdmin(); }
+  catch (error) { window.showNotice(`تعذر تحميل أنواع الشكاوى: ${error.message}`, "error"); }
   if (location.hash.startsWith("#public")) handlePublicHash();
   else if (location.hash === "#statistics") window.switchTab("statistics");
-   else if (["#list", "#process", "#directorates", "#roles", "#complaint-types"].includes(location.hash)) window.switchTab(location.hash.slice(1));
+  else if (["#list", "#process", "#directorates", "#roles", "#complaint-types"].includes(location.hash)) window.switchTab(location.hash.slice(1));
   else checkUrlForCode();
 });
 window.addEventListener("hashchange", () => {
   if (location.hash.startsWith("#public")) handlePublicHash();
-   else if (["#statistics", "#list", "#process", "#directorates", "#roles", "#complaint-types"].includes(location.hash)) window.switchTab(location.hash.slice(1));
+  else if (["#statistics", "#list", "#process", "#directorates", "#roles", "#complaint-types"].includes(location.hash)) window.switchTab(location.hash.slice(1));
 });

@@ -100,6 +100,15 @@ class BrandSettings(Base):
     updated_by_user_id = Column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=True)
 
 
+class PrintTemplateSettings(Base):
+    __tablename__ = "print_template_settings"
+    id = Column(Integer, primary_key=True)
+    titles = Column(JSON, nullable=False)
+    default_sections = Column(JSON, nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    updated_by_user_id = Column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=True)
+
+
 class RetentionPreview(Base):
     __tablename__ = "retention_previews"
     token_hash = Column(String(64), primary_key=True)

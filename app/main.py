@@ -12,6 +12,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.api.v1.endpoints import analytics, auth, citizens, complaints, public, recovery, evidence, complaint_types
 from app.api.v1.endpoints import (
     access_admin, directorates, localization, foundations, file_settings, branding,
+    print_templates,
 )
 from app.services import identity  # Registers the transactional identity adapter.
 from app.services import translations, file_catalog, audit
@@ -21,6 +22,7 @@ from app.services.complaint_types import bootstrap_complaint_types
 from app.services.file_policy import bootstrap_file_policy
 from app.services.retention import retention_scheduler
 from app.services.branding import bootstrap_brand_settings
+from app.services.print_templates import bootstrap_print_template
 from app.db.base import Base
 from app.db.upgrade import upgrade_database
 from app.db.session import SessionLocal, engine
@@ -36,6 +38,7 @@ async def lifespan(app):
         bootstrap_complaint_types(db)
         bootstrap_file_policy(db)
         bootstrap_brand_settings(db)
+        bootstrap_print_template(db)
         translations.seed_translations(db)
         db.commit()
     scheduler = asyncio.create_task(retention_scheduler(SessionLocal))
@@ -89,6 +92,7 @@ app.include_router(foundations.router, prefix="/api/v1", tags=["Private files, a
 app.include_router(complaint_types.router, prefix="/api/v1", tags=["Complaint types"])
 app.include_router(file_settings.router, prefix="/api/v1", tags=["File settings and retention"])
 app.include_router(branding.router, prefix="/api/v1", tags=["Site identity"])
+app.include_router(print_templates.router, prefix="/api/v1", tags=["Complaint print templates"])
 app.mount("/static", StaticFiles(directory="static", check_dir=False), name="static")
 FRONTEND_DIST = Path(__file__).resolve().parents[1] / "frontend" / "dist"
 

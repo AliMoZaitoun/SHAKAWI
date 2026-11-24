@@ -7,6 +7,7 @@ import { useI18n } from "../../shared/i18n/I18n";
 import { UiText } from "../../shared/i18n/UiText";
 import { formatDuration } from "../../shared/formatDuration";
 import { CitizenLoadError, statusText } from "./shared";
+import { ComplaintPrintPreview } from "../employee/complaint-print/ComplaintPrintPreview";
 
 export function TrackPage() {
   const { tText } = useI18n();
@@ -134,6 +135,7 @@ function TrackCard({ complaint }: { complaint: Complaint }) {
       <div className="row">
         <span className="badge">{complaint.category}</span>
         <span className="muted">{new Date(complaint.created_at).toLocaleDateString(lang)}</span>
+        <ComplaintPrintPreview complaint={complaint} audience="citizen" />
       </div>
       {complaint.complaint_type && (
         <div className="status info" style={{ marginTop: 12 }}>

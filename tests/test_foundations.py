@@ -473,7 +473,7 @@ def test_versioned_legacy_migration_backups_repeat_and_restore(tmp_path, monkeyp
         assert not db.execute(text("PRAGMA foreign_key_check")).all()
         assert (
             db.execute(text("SELECT version_num FROM alembic_version")).scalar()
-                == "0007_brand_settings"
+                == "0008_print_template_settings"
         )
         assert {"complaint_type_id", "sla_duration_minutes"}.issubset(
             {column["name"] for column in inspect(engine).get_columns("complaints")}
