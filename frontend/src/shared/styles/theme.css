@@ -14,6 +14,8 @@
   --brand-gold-foreground: #171717;
   --brand-bg: #f7f8f4;
   --brand-card: #fff;
+  --sidebar-item-bg: #edf1e8;
+  --sidebar-item-ink: #283128;
   --ink: #283128;
   --muted: #687168;
   --line: #e4e7df;
@@ -487,8 +489,8 @@ tbody tr:hover {
 }
 .employee-nav-link:hover,
 .employee-nav-link.active {
-  background: color-mix(in srgb, var(--brand-accent) 14%, var(--brand-card));
-  color: var(--brand-dark);
+  background: var(--sidebar-item-bg);
+  color: var(--sidebar-item-ink);
 }
 .employee-nav-link.active {
   border-inline-start-color: var(--brand-accent);

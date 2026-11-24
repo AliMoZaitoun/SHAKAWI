@@ -30,6 +30,7 @@ class BrandColors(BaseModel):
     brand_gold: str = Field(default=DEFAULT_BRAND_COLORS["brand_gold"])
     brand_bg: str = Field(default=DEFAULT_BRAND_COLORS["brand_bg"])
     brand_card: str = Field(default=DEFAULT_BRAND_COLORS["brand_card"])
+    sidebar_item_bg: str = Field(default=DEFAULT_BRAND_COLORS["sidebar_item_bg"])
 
     @field_validator(*DEFAULT_BRAND_COLORS.keys())
     @classmethod

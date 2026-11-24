@@ -4,6 +4,7 @@ import { api } from "../../../shared/api/client";
 import { useResource } from "../../../shared/api/hooks";
 import { useI18n } from "../../../shared/i18n/I18n";
 import { UiText } from "../../../shared/i18n/UiText";
+import { readableForeground } from "../../../shared/branding/Branding";
 import { AdminAlert, AdminPage, useAdminSave } from "../AdminPage";
 import "./branding-settings.css";
 
@@ -15,6 +16,7 @@ type BrandColors = {
   brand_gold: string;
   brand_bg: string;
   brand_card: string;
+  sidebar_item_bg: string;
 };
 
 type BrandingSettingsResponse = {
@@ -38,15 +40,17 @@ const DEFAULT_COLORS: BrandColors = {
   brand_gold: "#D4A860",
   brand_bg: "#F7F8F4",
   brand_card: "#FFFFFF",
+  sidebar_item_bg: "#EDF1E8",
 };
 const COLOR_FIELDS: ColorField[] = [
   { key: "brand_dark", label: "اللون الداكن", description: "العناوين ونص روابط الشريط الجانبي" },
   { key: "brand_primary", label: "اللون الأساسي", description: "الأزرار والإجراءات الرئيسية" },
   { key: "brand_light", label: "اللون الفاتح", description: "التفاصيل والعناصر المساندة" },
-  { key: "brand_accent", label: "لون التمييز", description: "تحديد الزر النشط وخط الشريط الجانبي" },
+  { key: "brand_accent", label: "لون التمييز", description: "خط تحديد العنصر النشط والإشارات" },
   { key: "brand_gold", label: "اللون الذهبي", description: "التأكيدات البصرية" },
   { key: "brand_bg", label: "خلفية الصفحة", description: "المساحة المحيطة بالمحتوى" },
   { key: "brand_card", label: "خلفية البطاقة", description: "البطاقات وخلفية الشريط الجانبي" },
+  { key: "sidebar_item_bg", label: "خلفية أزرار الشريط الجانبي", description: "خلفية الرابط النشط وعند المرور عليه" },
 ];
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
@@ -169,6 +173,10 @@ export function BrandingSettings() {
     "--preview-gold": colors.brand_gold,
     "--preview-bg": colors.brand_bg,
     "--preview-card": colors.brand_card,
+    "--preview-sidebar-item-bg": colors.sidebar_item_bg,
+    "--preview-sidebar-item-ink": readableForeground(
+      HEX_COLOR.test(colors.sidebar_item_bg) ? colors.sidebar_item_bg : DEFAULT_COLORS.sidebar_item_bg,
+    ),
   } as CSSProperties;
 
   function updateColor(key: keyof BrandColors, value: string) {
@@ -382,7 +390,7 @@ export function BrandingSettings() {
               <span className="branding-section-icon"><Palette size={19} aria-hidden="true" /></span>
               <div>
                 <h2 id="branding-colors-heading"><UiText source="لوحة الألوان" /></h2>
-                <p><UiText source="سبعة ألوان ثابتة تحافظ على اتساق الهوية في جميع صفحات الخدمة." /></p>
+                <p><UiText source="ثمانية ألوان واضحة الأدوار تحافظ على اتساق الهوية في جميع صفحات الخدمة." /></p>
               </div>
               <button type="button" className="branding-reset-colors" onClick={restoreDefaultColors} disabled={save.busy}>
                 <RotateCcw size={14} aria-hidden="true" />
@@ -428,7 +436,7 @@ export function BrandingSettings() {
             <section className="branding-sidebar-guide" aria-labelledby="branding-sidebar-guide-heading" style={previewStyles}>
               <div className="branding-sidebar-guide-copy">
                 <strong id="branding-sidebar-guide-heading"><UiText source="معاينة ألوان الشريط الجانبي" /></strong>
-                <p><UiText source="الخلفية من خلفية البطاقة، ونص الروابط من اللون الداكن، والزر النشط من لون التمييز." /></p>
+                <p><UiText source="خلفية الشريط من لون البطاقة، وخلفية الزر النشط من لون أزرار الشريط، وخط التحديد من لون التمييز." /></p>
               </div>
               <nav className="branding-sidebar-sample" aria-label={tText("معاينة الشريط الجانبي")}>
                 <span className="branding-sidebar-sample-link"><UiText source="سجل الشكاوى" /></span>

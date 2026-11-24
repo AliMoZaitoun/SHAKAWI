@@ -20,6 +20,7 @@ DEFAULT_BRAND_COLORS = {
     "brand_gold": "#d4a860",
     "brand_bg": "#f7f8f4",
     "brand_card": "#ffffff",
+    "sidebar_item_bg": "#edf1e8",
 }
 LOGO_MAX_BYTES = 2 * 1024 * 1024
 LOGO_MAX_PIXELS = 4_000_000

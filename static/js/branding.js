@@ -6,6 +6,7 @@ const DEFAULT_BRAND_COLORS = {
   brand_gold: "#d4a860",
   brand_bg: "#f7f8f4",
   brand_card: "#ffffff",
+  sidebar_item_bg: "#edf1e8",
 };
 
 function rgb(color) {
@@ -61,6 +62,10 @@ function applyBranding(payload) {
   document.documentElement.style.setProperty(
     "--brand-gold-foreground",
     readableForeground(safeColors.brand_gold),
+  );
+  document.documentElement.style.setProperty(
+    "--sidebar-item-ink",
+    readableForeground(safeColors.sidebar_item_bg),
   );
 
   const logo = document.getElementById("site-brand-logo");

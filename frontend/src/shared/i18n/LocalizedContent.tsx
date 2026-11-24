@@ -606,16 +606,18 @@ export const english: Record<string, string> = {
   "اللون الفاتح": "Light color",
   "التفاصيل والعناصر المساندة": "Details and supporting elements",
   "لون التمييز": "Accent color",
-  "تحديد الزر النشط وخط الشريط الجانبي": "Active sidebar item fill and indicator",
+  "خط تحديد العنصر النشط والإشارات": "Active item indicator and highlights",
   "اللون الذهبي": "Gold color",
   "التأكيدات البصرية": "Visual emphasis",
   "خلفية الصفحة": "Page background",
   "المساحة المحيطة بالمحتوى": "Page canvas",
   "خلفية البطاقة": "Card background",
   "البطاقات وخلفية الشريط الجانبي": "Cards and sidebar surface",
+  "خلفية أزرار الشريط الجانبي": "Sidebar button background",
+  "خلفية الرابط النشط وعند المرور عليه": "Background for active and hovered sidebar links",
   "معاينة ألوان الشريط الجانبي": "Sidebar color preview",
-  "الخلفية من خلفية البطاقة، ونص الروابط من اللون الداكن، والزر النشط من لون التمييز.":
-    "The surface uses the card color, link text uses the dark color, and the active item uses the accent.",
+  "خلفية الشريط من لون البطاقة، وخلفية الزر النشط من لون أزرار الشريط، وخط التحديد من لون التمييز.":
+    "The sidebar surface uses the card color, active button uses its own color, and the indicator uses the accent.",
   "معاينة الشريط الجانبي": "Sidebar preview",
   "إعدادات الهوية العامة": "Public identity settings",
   "نسخة الشعار": "Logo version",
@@ -635,8 +637,8 @@ export const english: Record<string, string> = {
   اختيار: "Choose",
   "اختر ملف PNG أو JPEG أو WebP.": "Choose a PNG, JPEG, or WebP file.",
   "لوحة الألوان": "Color palette",
-  "سبعة ألوان ثابتة تحافظ على اتساق الهوية في جميع صفحات الخدمة.":
-    "Seven named colors keep the service identity consistent across pages.",
+  "ثمانية ألوان واضحة الأدوار تحافظ على اتساق الهوية في جميع صفحات الخدمة.":
+    "Eight clearly named colors keep the service identity consistent across pages.",
   "استعادة الألوان الافتراضية": "Restore default colors",
   "أدخل رمز لون بصيغة #RRGGBB.": "Enter a color in #RRGGBB format.",
   "راجع رموز الألوان غير الصالحة قبل الحفظ.": "Fix invalid color values before saving.",

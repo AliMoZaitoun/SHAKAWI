@@ -10,6 +10,7 @@ export const DEFAULT_BRAND_COLORS = {
   brand_gold: "#d4a860",
   brand_bg: "#f7f8f4",
   brand_card: "#ffffff",
+  sidebar_item_bg: "#edf1e8",
 } as const;
 
 export type BrandColors = Record<keyof typeof DEFAULT_BRAND_COLORS, string>;
@@ -38,7 +39,7 @@ export function contrastRatio(first: string, second: string) {
   return (values[0] + 0.05) / (values[1] + 0.05);
 }
 
-function readableForeground(background: string) {
+export function readableForeground(background: string) {
   const whiteContrast = contrastRatio(background, "#ffffff");
   const ink = "#171717";
   return whiteContrast >= contrastRatio(background, ink) ? "#ffffff" : ink;
@@ -71,6 +72,7 @@ export function applyBranding(data: BrandingData) {
   );
   root.style.setProperty("--brand-accent-foreground", readableForeground(safeColors.brand_accent));
   root.style.setProperty("--brand-gold-foreground", readableForeground(safeColors.brand_gold));
+  root.style.setProperty("--sidebar-item-ink", readableForeground(safeColors.sidebar_item_bg));
 }
 
 export function useBranding() {

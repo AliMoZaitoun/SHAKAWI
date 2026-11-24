@@ -849,6 +849,7 @@ def test_brand_settings_are_public_but_admin_changes_are_permission_gated(system
     public = client.get("/api/v1/branding")
     assert public.status_code == 200
     assert public.json()["colors"]["brand_dark"] == "#3b4b32"
+    assert public.json()["colors"]["sidebar_item_bg"] == "#edf1e8"
     assert public.json()["logo_url"] is None
     assert "logo_path" not in public.json()
     assert client.get("/api/v1/admin/settings/branding").status_code == 401
@@ -862,9 +863,12 @@ def test_brand_settings_are_public_but_admin_changes_are_permission_gated(system
     assert current.status_code == 200
     colors = current.json()["colors"]
     colors["brand_dark"] = "#263724"
+    colors["sidebar_item_bg"] = "#172c44"
     updated = client.put("/api/v1/admin/settings/branding", json={"colors": colors})
     assert updated.status_code == 200, updated.text
     assert updated.json()["colors"]["brand_dark"] == "#263724"
+    assert updated.json()["colors"]["sidebar_item_bg"] == "#172c44"
+    assert client.get("/api/v1/branding").json()["colors"]["sidebar_item_bg"] == "#172c44"
     with factory() as db:
         assert db.get(BrandSettings, 1).brand_dark == "#263724"
 
