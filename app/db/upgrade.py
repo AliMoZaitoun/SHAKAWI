@@ -25,6 +25,21 @@ def upgrade_database(engine):
             current = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
     config = Config(str(ROOT / "alembic.ini"))
     head = ScriptDirectory.from_config(config).get_current_head()
+    if engine.dialect.name == "postgresql" and current is None:
+        from app.models import access, complaint, foundations, recovery, user
+
+        if tables:
+            raise RuntimeError(
+                "PostgreSQL initialization requires an empty database; existing tables were found and left unchanged."
+            )
+        # The frozen baseline and schema snapshots describe an imported SQLite
+        # database. For a new PostgreSQL database, create the current ORM schema
+        # atomically and stamp it at the matching Alembic head.
+        with engine.begin() as conn:
+            Base.metadata.create_all(conn)
+            config.attributes["connection"] = conn
+            command.stamp(config, "head")
+        return
     if current != head and any(name in tables for name in ("users", "citizens", "complaints")):
         from app.db.backup import create_backup
         create_backup(engine)
