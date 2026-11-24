@@ -1,4 +1,5 @@
 from pathlib import Path
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Body, Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
@@ -80,7 +81,8 @@ def complaint_data(db, complaint, staff=False, employee=None):
                 "id": link.legacy_attachment_id or item.id, "file_id": item.id,
                 "name": item.original_name,
                 "file_type": item.mime_type,
-                "file_url": f"/api/v1/files/{item.id}/download",
+                "is_available": item.purged_at is None,
+                "file_url": f"/api/v1/files/{item.id}/download" if item.purged_at is None else None,
             })
     return data
 
@@ -189,7 +191,7 @@ async def upload_attachment(complaint_id: int, request: Request, file: UploadFil
     if not is_bot(request) and not owns_citizen(request, complaint.citizen_id):
         employee = current_employee(request, db)
         authorize_complaint(employee, complaint, "complaints.update")
-    path = await save_upload(file)
+    path = await save_upload(file, db)
     item = Attachment(file_path=path, file_type=file.content_type or "unknown",
                       attachable_type="complaint", attachable_id=complaint_id)
     item._original_name = Path((file.filename or Path(path).name).replace("\\", "/")).name
@@ -221,6 +223,11 @@ async def update_status(complaint_id: int, new_status: StatusEnum,
     if new_status != StatusEnum.RESOLVED and data.progress == 100:
         raise HTTPException(422, "نسبة 100٪ مخصصة للشكاوى المحلولة فقط")
     complaint.status = new_status
+    if new_status == StatusEnum.RESOLVED:
+        if old_status != StatusEnum.RESOLVED or complaint.resolved_at is None:
+            complaint.resolved_at = datetime.now(timezone.utc)
+    else:
+        complaint.resolved_at = None
     if data.progress is not None:
         complaint.progress = data.progress
     if new_status == StatusEnum.RESOLVED:

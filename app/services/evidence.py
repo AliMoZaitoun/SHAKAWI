@@ -11,7 +11,8 @@ from fastapi import HTTPException
 from PIL import Image
 from pypdf import PdfReader
 
-from app.services.uploads import UPLOAD_DIR, MAX_BYTES
+from app.services.uploads import UPLOAD_DIR, HARD_MAX_BYTES, format_file_limit
+from app.services.file_policy import max_upload_bytes
 
 Image.MAX_IMAGE_PIXELS = 20_000_000
 
@@ -21,15 +22,24 @@ TYPES = {"JPEG": ("image/jpeg", ".jpg"), "PNG": ("image/png", ".png"),
 
 def reply_data(reply):
     from sqlalchemy.orm import object_session
-    from app.models.foundations import EvidenceReplyFile
+    from app.models.foundations import EvidenceReplyFile, StoredFile
     db = object_session(reply)
-    links = {row.legacy_evidence_file_id: row.file_id for row in db.query(
-        EvidenceReplyFile).filter_by(reply_id=reply.id)} if db else {}
+    links = {
+        link.legacy_evidence_file_id: (link.file_id, file.purged_at is None)
+        for link, file in db.query(EvidenceReplyFile, StoredFile).join(
+            StoredFile, StoredFile.id == EvidenceReplyFile.file_id,
+        ).filter(EvidenceReplyFile.reply_id == reply.id)
+    } if db else {}
     return {"id": reply.id, "text": reply.text, "channel": reply.channel,
             "created_at": reply.created_at,
-            "attachments": [{"id": f.id, "file_id": links.get(f.id), "name": f.name, "file_type": f.file_type,
-                             "file_url": f"/api/v1/files/{links[f.id]}/download" if f.id in links else
-                             f"/api/v1/evidence-files/{f.id}/download"}
+            "attachments": [{"id": f.id,
+                             "file_id": links[f.id][0] if f.id in links else None,
+                             "name": f.name, "file_type": f.file_type,
+                             "is_available": links[f.id][1] if f.id in links else True,
+                             "file_url": (f"/api/v1/files/{links[f.id][0]}/download"
+                                          if f.id in links and links[f.id][1] else
+                                          f"/api/v1/evidence-files/{f.id}/download"
+                                          if f.id not in links else None)}
                             for f in reply.attachments]}
 
 
@@ -44,7 +54,7 @@ def request_data(row, staff=False):
     return data
 
 
-async def validate_files(files):
+async def validate_files(files, db):
     if len(files) > 5:
         raise HTTPException(422, "يسمح بخمسة ملفات كحد أقصى لكل رد")
     validated = []
@@ -53,9 +63,13 @@ async def validate_files(files):
             name = file.filename or "ملف"
             if len(name) > 120 or "/" in name or "\\" in name or any(ord(c) < 32 for c in name):
                 raise HTTPException(422, "اسم الملف غير صالح")
-            raw = await file.read(MAX_BYTES + 1)
-            if not raw or len(raw) > MAX_BYTES:
-                raise HTTPException(413, f"{name}: الملف فارغ أو يتجاوز 10 ميغابايت")
+            raw = await file.read(HARD_MAX_BYTES + 1)
+            if not raw:
+                raise HTTPException(413, f"{name}: الملف فارغ")
+            if len(raw) > HARD_MAX_BYTES:
+                raise HTTPException(
+                    413, f"{name}: يتجاوز الحد الأعلى المدعوم ({format_file_limit(HARD_MAX_BYTES)})"
+                )
             kind = None
             try:
                 if raw.startswith(b"%PDF-"):
@@ -81,6 +95,11 @@ async def validate_files(files):
                 suffix, ".jpeg" if kind == "JPEG" else suffix
             }:
                 raise HTTPException(415, f"{name}: امتداد الملف ونوعه لا يطابقان محتواه")
+            limit = max_upload_bytes(db, mime)
+            if len(raw) > limit:
+                raise HTTPException(
+                    413, f"{name}: يتجاوز الحد المحدد لهذا النوع ({format_file_limit(limit)})"
+                )
             validated.append((name, mime, suffix, raw))
     finally:
         for file in files:

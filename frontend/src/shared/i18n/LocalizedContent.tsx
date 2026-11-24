@@ -536,6 +536,66 @@ export const english: Record<string, string> = {
   "سيظهر النطاق بوضوح مع الدور بعد الإسناد.": "The scope remains visible alongside the role.",
   عرض: "Showing",
   موظفين: "employees",
+  "حدود الملفات والاحتفاظ": "File limits and retention",
+  "اضبط أحجام الرفع وسياسة حذف محتوى المرفقات دون المساس بسجلات الشكاوى.":
+    "Configure upload sizes and attachment-content retention without altering complaint records.",
+  "حدود حجم الرفع": "Upload size limits",
+  "تُطبق الحدود نفسها على الموقع وتيليغرام ومرفقات طلبات الأدلة.":
+    "The same limits apply to the website, Telegram, and evidence-request attachments.",
+  "أنواع الملفات ثابتة ومتحقق من محتواها؛ تعديل الحجم لا يضيف نوعًا جديدًا.":
+    "Supported file types are fixed and content-checked; changing a size limit does not add a new type.",
+  "الحد الأعلى المدعوم": "Maximum supported",
+  "حفظ حدود الملفات": "Save file limits",
+  "أدخل حدًا بين 0.01 و10 ميغابايت لكل نوع.": "Enter a limit from 0.01 to 10 MiB for each type.",
+  "الاحتفاظ بالمرفقات المحلولة": "Retention for resolved complaints",
+  "يبدأ احتساب المدة من تاريخ حل الشكوى، وتحصل الملفات المضافة لاحقًا على مدة كاملة أيضًا.":
+    "The period starts when the complaint is resolved; later uploads receive a full retention period too.",
+  "الحذف مغلق افتراضيًا. لن تُحذف وثائق الهوية أو سجل الشكوى أو سجل التدقيق.":
+    "Deletion is off by default. Identity documents, complaint records, and audit history are never deleted.",
+  "مدة الاحتفاظ بالأيام": "Retention period in days",
+  "نطاق الملفات المشمولة": "Files included",
+  "مرفقات الشكوى المباشرة": "Complaint attachments",
+  "مرفقات ردود الأدلة": "Evidence-reply attachments",
+  "حدد مدة بين يوم و10 سنوات ونطاق ملف واحد على الأقل.":
+    "Choose a period from one day to ten years and at least one file scope.",
+  "حفظ سياسة الاحتفاظ": "Save retention policy",
+  "إيقاف الحذف الدوري": "Disable scheduled deletion",
+  "معاينة الملفات قبل التفعيل": "Preview files before enabling",
+  "جارٍ إعداد المعاينة…": "Preparing preview…",
+  "تعذر إنشاء المعاينة.": "Could not create the preview.",
+  "السجلات القديمة التي لا تملك تاريخ حل موثوقًا تبقى خارج الحذف التلقائي.":
+    "Older records without a reliable resolution date are excluded from automatic deletion.",
+  "معاينة أثر سياسة الاحتفاظ": "Retention impact preview",
+  "سيُحذف محتوى هذه الملفات فقط، مع بقاء بيانات الشكوى والتدقيق.":
+    "Only these file contents will be removed; complaint and audit records remain.",
+  "ملفًا": "files",
+  "إجمالي المحتوى": "Total content",
+  "قبل": "Before",
+  "المعاينة تتضمن وثائق هوية؛ لن يُسمح بالتفعيل.":
+    "Identity documents appeared in the preview; enabling is blocked.",
+  "رمز الشكوى": "Complaint code",
+  "تاريخ الحل": "Resolution date",
+  الملفات: "Files",
+  الحجم: "Size",
+  "لا توجد ملفات مستحقة للحذف حاليًا.": "No files are currently eligible for deletion.",
+  "التفعيل يسمح للحذف المجدول اليومي مستقبلًا وفق هذه السياسة.":
+    "Enabling authorizes future daily deletion under this policy.",
+  "الحذف يزيل الملف من التخزين النشط فقط؛ النسخ الاحتياطية التي أُنشئت سابقًا لا تتغير.":
+    "Deletion removes the file from active storage only; previously created backups are unchanged.",
+  "أوافق على التفعيل بعد مراجعة المعاينة": "I approve after reviewing the preview",
+  "إلغاء المعاينة": "Cancel preview",
+  "آخر عمليات الاحتفاظ": "Recent retention runs",
+  النتيجة: "Result",
+  "تم فحصها": "Scanned",
+  "حُذف محتواها": "Content removed",
+  إخفاقات: "Failures",
+  "اكتملت": "Completed",
+  "بحاجة لمراجعة": "Needs review",
+  "لم تُنفذ عمليات حذف بعد.": "No deletion runs yet.",
+  "تعذر تحميل إعدادات الملفات.": "Could not load file settings.",
+  "حُذف محتوى الملف وفق سياسة الاحتفاظ؛ بقي سجل الشكوى محفوظًا":
+    "File content was removed under the retention policy; the complaint record remains.",
+  "حُذف المحتوى وفق سياسة الاحتفاظ": "Content removed under the retention policy",
 };
 
 export function translateUiText(source: string, language: "ar" | "en") {

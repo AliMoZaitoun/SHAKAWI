@@ -117,7 +117,7 @@ async def answer(cid: int, rid: int, request: Request, text: str = Form(""),
     text = text.strip()
     if len(text) > 10000 or (not text and not files):
         raise HTTPException(422, "أضف نصًا لا يتجاوز 10000 حرف أو مرفقًا")
-    validated = await validate_files(files)
+    validated = await validate_files(files, db)
     digest = payload_digest(text, validated)
 
     def existing():

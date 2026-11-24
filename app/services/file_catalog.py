@@ -102,6 +102,8 @@ def clear_pending(db):
 
 def protected_path(file):
     from fastapi import HTTPException
+    if file.purged_at is not None:
+        raise HTTPException(410, "حُذف محتوى الملف وفق سياسة الاحتفاظ؛ بقي سجل الشكوى محفوظًا")
     path = Path(file.storage_key).resolve()
     if file.storage_disk != "local" or not path.is_relative_to(UPLOAD_DIR.resolve()) or not path.is_file():
         raise HTTPException(404, "الملف غير موجود في التخزين")

@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../../shared/api/client";
+import { useI18n } from "../../shared/i18n/I18n";
 import { StaffGate } from "./StaffGate";
 import { useSession } from "../../shared/api/hooks";
 import type { Complaint, EvidenceRequest, SessionEmployee } from "../../shared/api/types";
@@ -16,6 +17,7 @@ function allowed(session: SessionEmployee | undefined, permission: string, direc
 }
 
 export function EvidenceDesk({ complaint, session }: Props) {
+  const { tText } = useI18n();
   const queryClient = useQueryClient();
   const [prompt, setPrompt] = useState("");
   const submissionKey = useRef(crypto.randomUUID());
@@ -128,15 +130,21 @@ export function EvidenceDesk({ complaint, session }: Props) {
               <span className="muted">{new Date(reply.created_at).toLocaleString("ar")}</span>
               <div className="row">
                 {reply.attachments.map((file) => (
-                  <a
-                    className="badge"
-                    key={file.id}
-                    href={file.file_url}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {file.name ?? "فتح ملف مرفق"}
-                  </a>
+                  file.is_available === false || !file.file_url ? (
+                    <span className="badge" key={file.id}>
+                      {tText("حُذف المحتوى وفق سياسة الاحتفاظ")}
+                    </span>
+                  ) : (
+                    <a
+                      className="badge"
+                      key={file.id}
+                      href={file.file_url}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {file.name ?? tText("فتح ملف مرفق")}
+                    </a>
+                  )
                 ))}
               </div>
             </div>

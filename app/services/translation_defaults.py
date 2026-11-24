@@ -16,6 +16,7 @@ ENGLISH_PERMISSIONS = {
     "audit.view": "View system audit log", "files.identity.read": "Read identity documents",
     "complaints.transfer": "Transfer complaints between directorates",
     "complaint_types.manage": "Manage complaint types",
+    "files.manage": "Manage file limits and retention",
 }
 
 ENGLISH_COMPLAINT_TYPES = {

@@ -94,7 +94,7 @@ async def identity_image(citizen_id: int, request: Request, file: UploadFile = F
     citizen = db.get(Citizen, citizen_id)
     if not citizen:
         raise HTTPException(404, "المواطن غير موجود")
-    path = await save_upload(file, identity=True)
+    path = await save_upload(file, db, identity=True)
     try:
         from pathlib import Path
         citizen._identity_original_name = Path((file.filename or "identity").replace("\\", "/")).name

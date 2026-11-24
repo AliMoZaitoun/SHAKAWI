@@ -119,7 +119,8 @@ export interface FileAttachment {
   file_id?: number;
   file_type: string;
   name?: string;
-  file_url: string;
+  file_url: string | null;
+  is_available?: boolean;
 }
 export interface EvidenceReply {
   id: number;

@@ -1,5 +1,4 @@
 """Isolated evidence drafts. Telegram update sender is checked on every API call."""
-import io
 import secrets
 
 import aiohttp
@@ -10,9 +9,9 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, CallbackQuery
 
 from bot.config import API_BASE_URL, API_HEADERS
+from bot.upload_policy import fetch_upload_policy, download_telegram_file, format_limit
 
 router = Router()
-MAX_BYTES = 10 * 1024 * 1024
 MIME_SUFFIX = {"image/jpeg": ".jpg", "image/png": ".png",
                "image/webp": ".webp", "application/pdf": ".pdf"}
 
@@ -69,7 +68,7 @@ async def begin(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer(
         "طلب استكمال خاص:\n" + row["prompt"] +
         "\nأرسل النص والصور أو مستندات PDF، ثم /send لحفظ الرد. "
-        "حتى 5 ملفات، 10 ميغابايت لكل ملف؛ JPEG وPNG وWebP وPDF فقط."
+        "حتى 5 ملفات وفق الحد المضبوط لكل نوع؛ JPEG وPNG وWebP وPDF فقط."
         "\nلن تُنشر الأدلة ولن تتغير حالة الشكوى تلقائيًا."
         "\n/cancel يوقف العملية ويحفظ المسودة؛ افتح زر الطلب نفسه لاستئنافها. /discard يحذف المسودة."
     )
@@ -92,13 +91,6 @@ async def cancel(message: Message, state: FSMContext):
     await message.answer("توقفت العملية دون إرسال. المسودة محفوظة؛ افتح زر الطلب نفسه لاستئنافها.")
 
 
-class LimitedBuffer(io.BytesIO):
-    def write(self, value):
-        if self.tell() + len(value) > MAX_BYTES:
-            raise ValueError("حجم الملف يتجاوز 10 ميغابايت")
-        return super().write(value)
-
-
 @router.message(EvidenceFlow.drafting)
 async def collect(message: Message, state: FSMContext):
     data = await state.get_data()
@@ -115,10 +107,15 @@ async def collect(message: Message, state: FSMContext):
             form = aiohttp.FormData()
             form.add_field("text", draft["text"])
             form.add_field("submission_key", draft["key"])
+            limits = await fetch_upload_policy(data.get("lang", "ar"))
             for item in draft["files"]:
-                buffer = LimitedBuffer()
-                await message.bot.download(item["file_id"], destination=buffer)
-                form.add_field("files", buffer.getvalue(), filename=item["name"], content_type=item["mime"])
+                content = await download_telegram_file(
+                    message.bot, item["file_id"], item["mime"], limits,
+                    lang=data.get("lang", "ar"),
+                )
+                form.add_field(
+                    "files", content, filename=item["name"], content_type=item["mime"],
+                )
             draft["attempted"] = True
             await state.update_data(evidence_draft=draft)
             async with aiohttp.ClientSession(headers=headers(message),
@@ -143,8 +140,16 @@ async def collect(message: Message, state: FSMContext):
         if message.photo or message.document:
             item = message.photo[-1] if message.photo else message.document
             mime = "image/jpeg" if message.photo else item.mime_type
-            if mime not in MIME_SUFFIX or (item.file_size or 0) > MAX_BYTES or len(draft["files"]) >= 5:
+            if mime not in MIME_SUFFIX or len(draft["files"]) >= 5:
                 raise ValueError("نوع أو حجم أو عدد الملفات غير مسموح")
+            limits = await fetch_upload_policy(data.get("lang", "ar"))
+            limit = limits.get(mime)
+            if not isinstance(limit, int):
+                raise ValueError("نوع الملف غير مدعوم")
+            if item.file_size and item.file_size > limit:
+                raise ValueError(
+                    f"حجم الملف يتجاوز الحد المحدد لهذا النوع ({format_limit(limit, data.get('lang', 'ar'))})"
+                )
             name = "photo.jpg" if message.photo else (item.file_name or "document" + MIME_SUFFIX[mime])
             draft["files"].append({"file_id": item.file_id, "name": name, "mime": mime})
             note = "أضيف الملف للمسودة فقط؛ الحفظ النهائي بعد /send."

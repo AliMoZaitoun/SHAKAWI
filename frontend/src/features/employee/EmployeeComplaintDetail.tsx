@@ -298,15 +298,21 @@ function ComplaintDetail({ id, session }: { id: string; session?: SessionEmploye
             <UiText source="الملفات المرفقة" />
           </h2>
           {complaint.attachments?.map((file) => (
-            <a
-              className="badge"
-              key={file.id}
-              href={file.file_url}
-              target="_blank"
-              rel="noreferrer"
-            >
-              {file.name || tText("فتح ملف")}
-            </a>
+            file.is_available === false || !file.file_url ? (
+              <span className="badge" key={file.id}>
+                {tText("حُذف المحتوى وفق سياسة الاحتفاظ")}
+              </span>
+            ) : (
+              <a
+                className="badge"
+                key={file.id}
+                href={file.file_url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {file.name || tText("فتح ملف")}
+              </a>
+            )
           ))}
           <h2 style={{ marginTop: 24 }}>
             <UiText source="الأدلة" />

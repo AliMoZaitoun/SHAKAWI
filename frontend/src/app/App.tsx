@@ -21,6 +21,7 @@ import { RolesAdmin } from "../features/admin/RolesAdmin";
 import { TranslationsAdmin } from "../features/admin/TranslationsAdmin";
 import { ComplaintToolsPage } from "../features/employee/EvidenceDesk";
 import { ComplaintTypesAdmin } from "../features/admin/ComplaintTypesAdmin";
+import { FileSettingsAdmin } from "../features/admin/FileSettingsAdmin";
 
 function NotFound() {
   const { tText } = useI18n();
@@ -57,6 +58,7 @@ export default function App() {
           <Route path="/employee/account" element={<EmployeeAccount />} />
           <Route path="/employee/admin/directorates" element={<DirectoratesAdmin />} />
           <Route path="/employee/admin/complaint-types" element={<ComplaintTypesAdmin />} />
+          <Route path="/employee/admin/settings/files" element={<FileSettingsAdmin />} />
           <Route path="/employee/admin/employees" element={<EmployeesAdmin />} />
           <Route path="/employee/admin/roles" element={<RolesAdmin />} />
           <Route path="/employee/admin/languages" element={<LanguagesAdmin />} />

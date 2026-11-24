@@ -210,15 +210,21 @@ function TrackCard({ complaint }: { complaint: Complaint }) {
               <div className="status success" key={item.id}>
                 {item.text}
                 {item.attachments.map((file) => (
-                  <a
-                    key={file.id}
-                    href={file.file_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="badge"
-                  >
-                    {tText("ملف مرفق")}
-                  </a>
+                  file.is_available === false || !file.file_url ? (
+                    <span key={file.id} className="badge">
+                      {tText("حُذف محتوى الملف وفق سياسة الاحتفاظ؛ بقي سجل الشكوى محفوظًا")}
+                    </span>
+                  ) : (
+                    <a
+                      key={file.id}
+                      href={file.file_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="badge"
+                    >
+                      {tText("ملف مرفق")}
+                    </a>
+                  )
                 ))}
               </div>
             ))}

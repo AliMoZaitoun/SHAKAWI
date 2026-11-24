@@ -67,6 +67,47 @@ class StoredFile(Base):
     checksum = Column(String(64), nullable=True)
     uploaded_by_user_id = Column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    purged_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class FilePolicy(Base):
+    __tablename__ = "file_policies"
+    id = Column(Integer, primary_key=True)
+    mime_limits = Column(JSON, nullable=False)
+    retention_enabled = Column(Boolean, nullable=False, default=False, server_default="0")
+    retention_days = Column(Integer, nullable=False, default=30, server_default="30")
+    retention_scope = Column(JSON, nullable=False)
+    retention_policy_version = Column(Integer, nullable=False, default=1, server_default="1")
+    retention_reviewed_at = Column(DateTime(timezone=True), nullable=True)
+    retention_review_fingerprint = Column(String(64), nullable=True)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    updated_by_user_id = Column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=True)
+
+
+class RetentionPreview(Base):
+    __tablename__ = "retention_previews"
+    token_hash = Column(String(64), primary_key=True)
+    policy_version = Column(Integer, nullable=False)
+    cutoff_at = Column(DateTime(timezone=True), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    candidate_fingerprint = Column(String(64), nullable=False)
+    file_count = Column(Integer, nullable=False)
+    bytes_total = Column(Integer, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class RetentionRun(Base):
+    __tablename__ = "retention_runs"
+    id = Column(Integer, primary_key=True)
+    run_key = Column(String(100), nullable=False, unique=True)
+    policy_version = Column(Integer, nullable=False)
+    status = Column(String(20), nullable=False)
+    files_scanned = Column(Integer, nullable=False, default=0)
+    files_purged = Column(Integer, nullable=False, default=0)
+    bytes_purged = Column(Integer, nullable=False, default=0)
+    failures = Column(Integer, nullable=False, default=0)
+    started_at = Column(DateTime(timezone=True), server_default=func.now())
+    finished_at = Column(DateTime(timezone=True), nullable=True)
 
 
 class ComplaintFile(Base):

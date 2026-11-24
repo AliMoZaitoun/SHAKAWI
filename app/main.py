@@ -1,4 +1,5 @@
 import os
+import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 from urllib.parse import urlparse
@@ -9,12 +10,14 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.api.v1.endpoints import analytics, auth, citizens, complaints, public, recovery, evidence, complaint_types
-from app.api.v1.endpoints import access_admin, directorates, localization, foundations
+from app.api.v1.endpoints import access_admin, directorates, localization, foundations, file_settings
 from app.services import identity  # Registers the transactional identity adapter.
 from app.services import translations, file_catalog, audit
 from app.services.foundation_middleware import FoundationMiddleware
 from app.services.access import bootstrap_access
 from app.services.complaint_types import bootstrap_complaint_types
+from app.services.file_policy import bootstrap_file_policy
+from app.services.retention import retention_scheduler
 from app.db.base import Base
 from app.db.upgrade import upgrade_database
 from app.db.session import SessionLocal, engine
@@ -28,9 +31,18 @@ async def lifespan(app):
         auth.provision_accounts(db)
         bootstrap_access(db)
         bootstrap_complaint_types(db)
+        bootstrap_file_policy(db)
         translations.seed_translations(db)
         db.commit()
-    yield
+    scheduler = asyncio.create_task(retention_scheduler(SessionLocal))
+    try:
+        yield
+    finally:
+        scheduler.cancel()
+        try:
+            await scheduler
+        except asyncio.CancelledError:
+            pass
 
 
 app = FastAPI(title="Government Complaints Platform", version="1.0.0", lifespan=lifespan)
@@ -71,6 +83,7 @@ app.include_router(directorates.router, prefix="/api/v1", tags=["Directorates"])
 app.include_router(localization.router, prefix="/api/v1", tags=["Languages and translations"])
 app.include_router(foundations.router, prefix="/api/v1", tags=["Private files, audit and history"])
 app.include_router(complaint_types.router, prefix="/api/v1", tags=["Complaint types"])
+app.include_router(file_settings.router, prefix="/api/v1", tags=["File settings and retention"])
 app.mount("/static", StaticFiles(directory="static", check_dir=False), name="static")
 FRONTEND_DIST = Path(__file__).resolve().parents[1] / "frontend" / "dist"
 

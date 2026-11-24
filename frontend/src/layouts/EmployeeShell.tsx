@@ -8,6 +8,7 @@ import {
   LogOut,
   MessageSquareText,
   Shield,
+  Settings2,
   Tags,
   UserRound,
   UsersRound,
@@ -107,6 +108,13 @@ export function EmployeeShell() {
                     to="/employee/admin/complaint-types"
                     label={tText("أنواع الشكاوى")}
                     icon={Tags}
+                  />
+                )}
+                {hasGlobalPermission(session.data, "files.manage") && (
+                  <EmployeeNavLink
+                    to="/employee/admin/settings/files"
+                    label={tText("حدود الملفات والاحتفاظ")}
+                    icon={Settings2}
                   />
                 )}
                 {hasPermission(session.data, "employees.manage") && (

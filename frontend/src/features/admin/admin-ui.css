@@ -336,6 +336,132 @@ dialog.admin-dialog::backdrop {
   margin-top: 14px;
 }
 
+.admin-settings-section {
+  display: grid;
+  gap: 16px;
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+}
+
+.admin-settings-section h2,
+.admin-settings-section h3 {
+  margin: 0;
+}
+
+.admin-settings-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.admin-settings-heading p {
+  margin: 5px 0 0;
+}
+
+.admin-settings-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 12px;
+  background: #eff3ea;
+  color: var(--brand-dark);
+}
+
+.file-limit-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin: 14px 0;
+}
+
+.file-limit-field {
+  min-width: 0;
+  margin: 0;
+}
+
+.file-limit-field small {
+  display: block;
+  margin-top: 5px;
+  direction: ltr;
+  text-align: start;
+  font-weight: 400;
+}
+
+.file-limit-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.file-limit-input span {
+  color: var(--muted);
+  direction: ltr;
+  font-size: 12px;
+}
+
+.retention-policy-form {
+  display: grid;
+  gap: 14px;
+  max-width: 720px;
+}
+
+.retention-policy-form > .field-label {
+  max-width: 220px;
+}
+
+.retention-scope {
+  display: grid;
+  gap: 11px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.retention-scope legend {
+  padding: 0 6px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.retention-scope input {
+  accent-color: var(--brand-dark);
+}
+
+.retention-caution {
+  margin: 0;
+}
+
+.retention-preview {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #d9c79d;
+  border-radius: 14px;
+  background: #fffdf7;
+}
+
+.retention-preview > p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.retention-preview .table-wrap {
+  max-height: 360px;
+}
+
+.admin-settings-section .status.warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  border: 1px solid #eadbb8;
+  background: #fff9e9;
+  color: #6f551d;
+}
+
 @media (max-width: 760px) {
   .admin-page-heading,
   .admin-toolbar {
@@ -345,7 +471,8 @@ dialog.admin-dialog::backdrop {
 
   .admin-card-grid,
   .admin-permission-options,
-  .admin-translation-controls {
+  .admin-translation-controls,
+  .file-limit-grid {
     grid-template-columns: 1fr;
   }
 

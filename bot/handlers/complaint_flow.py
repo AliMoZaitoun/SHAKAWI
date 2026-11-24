@@ -17,6 +17,7 @@ from bot.keyboards.inline import (
 )
 from bot.config import API_BASE_URL, API_HEADERS
 from bot.locales import get_txt
+from bot.upload_policy import fetch_upload_policy, download_telegram_file
 
 router = Router()
 MAX_EVIDENCE_DOWNLOAD_BYTES = 10 * 1024 * 1024
@@ -105,6 +106,8 @@ def complaint_detail_sections(complaint, lang):
     attachment_text = "\n".join(
         f"• {item.get('name') or get_txt(lang, 'evidence_file_label')} "
         f"({item.get('file_type') or 'unknown'})"
+        + (f" · {get_txt(lang, 'retention_file_purged')}"
+           if item.get("is_available") is False else "")
         for item in attachments
     ) or get_txt(lang, "no_attachments")
     sections.append((get_txt(lang, "attachments_label"), attachment_text))
@@ -176,6 +179,8 @@ async def send_complaint_evidence_files(message, session, complaint, lang):
     files = complaint_evidence_files(complaint)
     failed = 0
     for item in files[:MAX_EVIDENCE_FILES_PER_DETAIL]:
+        if item.get("is_available") is False:
+            continue
         url = _safe_file_url(item.get("file_url"))
         if not url:
             failed += 1
@@ -504,11 +509,19 @@ async def process_id_image(message: Message, state: FSMContext):
     data = await state.get_data()
     lang = data.get("lang", "ar")
     
-    # جلب صورة الهوية من تليجرام
     photo = message.photo[-1]
-    file_info = await message.bot.get_file(photo.file_id)
-    file_bytes_io = await message.bot.download_file(file_info.file_path)
-    file_bytes = file_bytes_io.read()
+    try:
+        limits = await fetch_upload_policy(lang)
+        file_bytes = await download_telegram_file(
+            message.bot, photo.file_id, "image/jpeg", limits,
+            reported_size=photo.file_size, lang=lang,
+        )
+    except ValueError as exc:
+        await message.answer(str(exc))
+        return
+    except Exception:
+        await message.answer(get_txt(lang, "upload_limit_unavailable"))
+        return
     
     citizen_payload = {
         "first_name": data["first_name"],
@@ -546,8 +559,8 @@ async def process_id_image(message: Message, state: FSMContext):
                 else:
                     await message.answer(get_txt(lang, "reg_error"))
                     await state.clear()
-        except Exception as e:
-            await message.answer(get_txt(lang, "conn_error", error=str(e)))
+        except Exception:
+            await message.answer(get_txt(lang, "reg_error"))
             await state.clear()
 
 @router.callback_query(F.data == "action_new_complaint")
@@ -833,14 +846,28 @@ async def process_attachment(message: Message, state: FSMContext):
     complaint_id = data.get("complaint_id")
     
     document = message.photo[-1] if message.photo else message.document
-    file_info = await message.bot.get_file(document.file_id)
-    file_bytes_io = await message.bot.download_file(file_info.file_path)
-    file_bytes = file_bytes_io.read()
-    filename = file_info.file_path.split("/")[-1] or "attachment.jpg"
+    mime_type = "image/jpeg" if message.photo else (
+        message.document.mime_type or "application/octet-stream"
+    )
+    try:
+        limits = await fetch_upload_policy(lang)
+        file_bytes = await download_telegram_file(
+            message.bot, document.file_id, mime_type, limits,
+            reported_size=document.file_size, lang=lang,
+        )
+    except ValueError as exc:
+        await message.answer(str(exc))
+        return
+    except Exception:
+        await message.answer(get_txt(lang, "upload_limit_unavailable"))
+        return
+    filename = (
+        "attachment.jpg" if message.photo
+        else (message.document.file_name or "attachment")
+    )
     
     async with aiohttp.ClientSession(headers=actor_headers(message)) as session:
         form = aiohttp.FormData()
-        mime_type = 'image/jpeg' if message.photo else (message.document.mime_type or 'application/octet-stream')
         form.add_field('file', file_bytes, filename=filename, content_type=mime_type)
         
         try:
@@ -859,9 +886,14 @@ async def process_attachment(message: Message, state: FSMContext):
                         parse_mode="HTML"
                     )
                 else:
-                    await message.answer("⚠️ Attachment upload failed.", reply_markup=ReplyKeyboardRemove())
-        except Exception as e:
-            await message.answer(f"❌ Error: {str(e)}", reply_markup=ReplyKeyboardRemove())
+                    result = await response.json()
+                    await message.answer(
+                        result.get("detail", "⚠️ Attachment upload failed."),
+                        reply_markup=ReplyKeyboardRemove(),
+                    )
+        except Exception:
+            await message.answer(get_txt(lang, "upload_limit_unavailable"),
+                                 reply_markup=ReplyKeyboardRemove())
 
 @router.message(ComplaintForm.waiting_for_attachment, F.text.contains("إنهاء") | F.text.contains("تخطي") | F.text.contains("Finish") | F.text.contains("Skip"))
 async def finish_attachment_process(message: Message, state: FSMContext):
