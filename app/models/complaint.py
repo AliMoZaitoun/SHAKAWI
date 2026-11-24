@@ -1,5 +1,5 @@
 from enum import Enum
-from sqlalchemy import Column, BigInteger, Integer, String, Float, Text, DateTime, ForeignKey, Enum as SQLEnum, Boolean, UniqueConstraint
+from sqlalchemy import Column, BigInteger, Integer, String, Float, Text, DateTime, ForeignKey, Enum as SQLEnum, Boolean, UniqueConstraint, CheckConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.base import Base
@@ -16,6 +16,30 @@ class StatusEnum(str, Enum):
     RESOLVED = "RESOLVED"
     REJECTED = "REJECTED"
 
+
+class ComplaintType(Base):
+    __tablename__ = "complaint_types"
+    __table_args__ = (
+        CheckConstraint(
+            "sla_duration_minutes IS NULL OR sla_duration_minutes > 0",
+            name="ck_complaint_type_positive_sla",
+        ),
+        CheckConstraint(
+            "code != 'other' OR sla_duration_minutes IS NULL",
+            name="ck_other_complaint_type_no_sla",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True)
+    code = Column(String(80), nullable=False, unique=True, index=True)
+    name = Column(String(50), nullable=False)
+    description = Column(Text, nullable=False, default="", server_default="")
+    sla_duration_minutes = Column(Integer, nullable=True)
+    is_active = Column(Boolean, nullable=False, default=True, server_default="1", index=True)
+    is_system = Column(Boolean, nullable=False, default=False, server_default="0")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
 class Complaint(Base):
     __tablename__ = "complaints"
 
@@ -24,6 +48,14 @@ class Complaint(Base):
     citizen_id = Column(BigInteger, ForeignKey("citizens.id"), nullable=False)
     directorate_id = Column(BigInteger, ForeignKey("directorates.id"), nullable=False, index=True)
     directorate = relationship("Directorate")
+    complaint_type_id = Column(
+        Integer,
+        ForeignKey("complaint_types.id", name="fk_complaints_complaint_type_id_complaint_types"),
+        nullable=True,
+        index=True,
+    )
+    complaint_type = relationship("ComplaintType")
+    sla_duration_minutes = Column(Integer, nullable=True)
     
     title = Column(String(150), nullable=False)
     details = Column(Text, nullable=False)

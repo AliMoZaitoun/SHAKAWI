@@ -37,6 +37,11 @@ export function renderAuthControls() {
   root.replaceChildren();
   if (currentUser) {
     document.querySelectorAll(".staff-tab").forEach((tab) => tab.classList.add("visible"));
+    const typeTab = document.getElementById("tab-complaint-types");
+    typeTab?.classList.toggle(
+      "visible",
+      currentUser?.permissions?.["complaint_types.manage"]?.scope_type === "global",
+    );
     const identity = document.createElement("span");
     identity.className = "hidden md:inline text-xs text-gray-600";
     const roleLabel = currentUser.role === "system_admin"
@@ -61,6 +66,7 @@ export function renderAuthControls() {
     }
   } else {
     document.querySelectorAll(".staff-tab").forEach((tab) => tab.classList.remove("visible"));
+    document.getElementById("tab-complaint-types")?.classList.remove("visible");
   }
 }
 

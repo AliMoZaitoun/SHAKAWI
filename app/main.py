@@ -8,12 +8,13 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.api.v1.endpoints import analytics, auth, citizens, complaints, public, recovery, evidence
+from app.api.v1.endpoints import analytics, auth, citizens, complaints, public, recovery, evidence, complaint_types
 from app.api.v1.endpoints import access_admin, directorates, localization, foundations
 from app.services import identity  # Registers the transactional identity adapter.
 from app.services import translations, file_catalog, audit
 from app.services.foundation_middleware import FoundationMiddleware
 from app.services.access import bootstrap_access
+from app.services.complaint_types import bootstrap_complaint_types
 from app.db.base import Base
 from app.db.upgrade import upgrade_database
 from app.db.session import SessionLocal, engine
@@ -26,6 +27,7 @@ async def lifespan(app):
         bootstrap_access(db)
         auth.provision_accounts(db)
         bootstrap_access(db)
+        bootstrap_complaint_types(db)
         translations.seed_translations(db)
         db.commit()
     yield
@@ -68,6 +70,7 @@ app.include_router(access_admin.router, prefix="/api/v1/admin", tags=["Access ad
 app.include_router(directorates.router, prefix="/api/v1", tags=["Directorates"])
 app.include_router(localization.router, prefix="/api/v1", tags=["Languages and translations"])
 app.include_router(foundations.router, prefix="/api/v1", tags=["Private files, audit and history"])
+app.include_router(complaint_types.router, prefix="/api/v1", tags=["Complaint types"])
 app.mount("/static", StaticFiles(directory="static", check_dir=False), name="static")
 FRONTEND_DIST = Path(__file__).resolve().parents[1] / "frontend" / "dist"
 

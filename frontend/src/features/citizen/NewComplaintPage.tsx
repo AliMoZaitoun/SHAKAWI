@@ -2,9 +2,10 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Check, Clipboard, Upload } from "lucide-react";
 import { api, upload } from "../../shared/api/client";
-import { useDirectorates } from "../../shared/api/hooks";
-import type { Citizen, Complaint, ComplaintInput } from "../../shared/api/types";
+import { useDirectorates, useResource } from "../../shared/api/hooks";
+import type { Citizen, Complaint, ComplaintInput, ComplaintType } from "../../shared/api/types";
 import { useI18n } from "../../shared/i18n/I18n";
+import { formatDuration } from "../../shared/formatDuration";
 import { FormField as Field } from "../../shared/ui/FormField";
 import { UiText } from "../../shared/i18n/UiText";
 import { CitizenLoadError } from "./shared";
@@ -12,6 +13,7 @@ import { CitizenLoadError } from "./shared";
 export function NewComplaintPage() {
   const { lang, tText } = useI18n();
   const directorates = useDirectorates(lang);
+  const complaintTypes = useResource<ComplaintType[]>("/complaint-types", lang);
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     first_name: "",
@@ -20,7 +22,7 @@ export function NewComplaintPage() {
     national_id: "",
     title: "",
     details: "",
-    category: "",
+    complaint_type_id: "",
     directorate_id: "",
     is_public: false,
   });
@@ -66,7 +68,7 @@ export function NewComplaintPage() {
             directorate_id: Number(form.directorate_id),
             title: form.title.trim(),
             details: form.details.trim(),
-            category: form.category,
+            complaint_type_id: Number(form.complaint_type_id),
             is_public: form.is_public,
           } satisfies ComplaintInput,
         });
@@ -267,14 +269,50 @@ export function NewComplaintPage() {
               />
             )}
           </Field>
-          <Field label="نوع الشكوى">
-            <input
+          <Field label="نوع الشكوى" full>
+            <select
               className="field"
               required
-              value={form.category}
-              onChange={(event) => set("category", event.target.value)}
-              placeholder={tText("مثال: صيانة طريق")}
-            />
+              value={form.complaint_type_id}
+              disabled={complaintTypes.isLoading || !!complaintTypes.error}
+              onChange={(event) => set("complaint_type_id", event.target.value)}
+            >
+              <option value="">{tText("اختر نوع الشكوى")}</option>
+              {complaintTypes.data?.map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.name}
+                </option>
+              ))}
+            </select>
+            {complaintTypes.isLoading && <p className="muted">{tText("جارٍ تحميل الأنواع…")}</p>}
+            {complaintTypes.error && (
+              <CitizenLoadError
+                message={tText("تعذر تحميل أنواع الشكاوى.")}
+                onRetry={() => void complaintTypes.refetch()}
+              />
+            )}
+            {(() => {
+              const selected = complaintTypes.data?.find(
+                (type) => String(type.id) === form.complaint_type_id,
+              );
+              if (!selected) return null;
+              return (
+                <div className="status info" style={{ marginTop: 10 }}>
+                  {selected.description && <p>{selected.description}</p>}
+                  <b>{tText("المدة التقديرية")}: </b>
+                  {selected.code === "other"
+                    ? tText("لا توجد مهلة تقديرية لهذا النوع.")
+                    : selected.sla_duration_minutes
+                      ? formatDuration(selected.sla_duration_minutes, lang)
+                      : tText("لم تُحدد المدة لهذا النوع بعد.")}
+                  {selected.code !== "other" && selected.sla_duration_minutes && (
+                    <small className="muted" style={{ display: "block" }}>
+                      {tText("مدة متواصلة من وقت تقديم الشكوى، وليست أيام دوام.")}
+                    </small>
+                  )}
+                </div>
+              );
+            })()}
           </Field>
           <Field label="التفاصيل" full>
             <textarea

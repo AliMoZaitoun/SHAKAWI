@@ -6,9 +6,10 @@ from sqlalchemy.orm import Session
 
 from app.core.security import current_employee
 from app.db.session import get_db
-from app.models.complaint import Complaint, PriorityEnum, StatusEnum
+from app.models.complaint import Complaint, ComplaintType, PriorityEnum, StatusEnum
 from app.services.access import check_permission, permission_scopes, scope_query
 from app.services.access_admin import directorate_or_422
+from app.services.translations import localized
 
 router = APIRouter()
 
@@ -43,12 +44,21 @@ def analytics(start_date: date | None = None, end_date: date | None = None,
     priorities = {priority.value: 0 for priority in PriorityEnum}
     for priority, count in query.with_entities(Complaint.priority, func.count(Complaint.id)).group_by(Complaint.priority):
         priorities[priority.value] = count
-    categories = [
-        {"label": category, "count": count}
-        for category, count in query.with_entities(Complaint.category, func.count(Complaint.id)).group_by(
-            Complaint.category
-        ).order_by(func.count(Complaint.id).desc(), Complaint.category)
-    ]
+    category_rows = query.with_entities(
+        Complaint.complaint_type_id, Complaint.category, func.count(Complaint.id)
+    ).group_by(Complaint.complaint_type_id, Complaint.category).order_by(
+        func.count(Complaint.id).desc(), Complaint.category
+    ).all()
+    categories = []
+    for type_id, category, count in category_rows:
+        # Group the new catalog-backed records by type ID so translated labels
+        # and later renames do not split the analytics totals.
+        if type_id:
+            complaint_type = db.get(ComplaintType, type_id)
+            label = localized(complaint_type)["name"] if complaint_type else category
+        else:
+            label = category
+        categories.append({"label": label, "count": count})
     by_day = {
         str(day): count for day, count in query.with_entities(
             func.date(Complaint.created_at), func.count(Complaint.id)

@@ -15,4 +15,16 @@ ENGLISH_PERMISSIONS = {
     "employees.manage": "Manage employee accounts", "directorates.manage": "Manage directorates",
     "audit.view": "View system audit log", "files.identity.read": "Read identity documents",
     "complaints.transfer": "Transfer complaints between directorates",
+    "complaint_types.manage": "Manage complaint types",
+}
+
+ENGLISH_COMPLAINT_TYPES = {
+    "roads": "Roads",
+    "building_violations": "Building violations",
+    "excavations": "Excavations",
+    "road_opening": "Road openings",
+    "service_outage": "Service outage",
+    "technical_issue": "Technical issue",
+    "administrative_complaint": "Administrative complaint",
+    "other": "Other",
 }

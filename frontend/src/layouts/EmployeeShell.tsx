@@ -8,6 +8,7 @@ import {
   LogOut,
   MessageSquareText,
   Shield,
+  Tags,
   UserRound,
   UsersRound,
   type LucideIcon,
@@ -99,6 +100,13 @@ export function EmployeeShell() {
                     to="/employee/admin/directorates"
                     label={tText("المديريات")}
                     icon={Building2}
+                  />
+                )}
+                {hasGlobalPermission(session.data, "complaint_types.manage") && (
+                  <EmployeeNavLink
+                    to="/employee/admin/complaint-types"
+                    label={tText("أنواع الشكاوى")}
+                    icon={Tags}
                   />
                 )}
                 {hasPermission(session.data, "employees.manage") && (

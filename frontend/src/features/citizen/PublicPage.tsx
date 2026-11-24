@@ -6,6 +6,7 @@ import { useDirectorates } from "../../shared/api/hooks";
 import { useI18n } from "../../shared/i18n/I18n";
 import { FormField as Field } from "../../shared/ui/FormField";
 import { UiText } from "../../shared/i18n/UiText";
+import { formatDuration } from "../../shared/formatDuration";
 import { CitizenLoadError, PublicPageData, statusText } from "./shared";
 
 export function PublicPage() {
@@ -115,6 +116,12 @@ export function PublicPage() {
                   <p className="muted">{item.details}</p>
                   <div className="row">
                     <span className="badge">{item.category}</span>
+                    {item.complaint_type?.sla_duration_minutes && (
+                      <span className="muted">
+                        {tText("المدة التقديرية")}:{" "}
+                        {formatDuration(item.complaint_type.sla_duration_minutes, lang)}
+                      </span>
+                    )}
                     <span className="muted">
                       {tText("معرّف عام")} {item.id}
                     </span>

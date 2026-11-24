@@ -5,6 +5,7 @@ const byId = (id) => document.getElementById(id);
 let roles = [];
 let permissions = [];
 let languages = [];
+let complaintTypes = [];
 let editingRoleCode = "";
 let initialized = false;
 
@@ -145,14 +146,16 @@ async function loadCatalog() {
   }
   setState("جارٍ تحميل الأدوار والصلاحيات…");
   try {
-    const [roleRows, permissionRows, languageRows] = await Promise.all([
+    const [roleRows, permissionRows, languageRows, typeRows] = await Promise.all([
       api("/admin/roles"),
       api("/admin/permissions"),
       api("/admin/languages"),
+      api("/complaint-types?lang=ar"),
     ]);
     roles = Array.isArray(roleRows) ? roleRows : [];
     permissions = Array.isArray(permissionRows) ? permissionRows : [];
     languages = Array.isArray(languageRows) ? languageRows : [];
+    complaintTypes = Array.isArray(typeRows) ? typeRows : [];
     renderPermissionChecks([]);
     renderRoles();
     renderLanguages();
@@ -179,7 +182,9 @@ function renderTranslationRecords() {
   select.replaceChildren(new Option("اختر السجل", ""));
   const rows = entity === "roles"
     ? roles.map((role) => ({ id: String(role.id), name: role.name }))
-    : permissions.map((permission) => ({ id: permission.code, name: permission.name }));
+    : entity === "permissions"
+      ? permissions.map((permission) => ({ id: permission.code, name: permission.name }))
+      : complaintTypes.map((type) => ({ id: String(type.id), name: type.name }));
   rows.forEach((row) => select.add(new Option(row.name, row.id)));
   if ([...select.options].some((option) => option.value === previous)) select.value = previous;
   void loadSelectedTranslation();
@@ -208,7 +213,9 @@ async function loadSelectedTranslation() {
     } else if (language === "ar") {
       const row = entity === "roles"
         ? roles.find((item) => String(item.id) === recordId)
-        : permissions.find((item) => item.code === recordId);
+        : entity === "permissions"
+          ? permissions.find((item) => item.code === recordId)
+          : complaintTypes.find((item) => String(item.id) === recordId);
       byId("role-translation-name").value = row?.name || "";
       byId("role-translation-description").value = row?.description || "";
     }
@@ -273,9 +280,14 @@ async function saveTranslation(event) {
           method: "PUT",
           body: JSON.stringify({ name, description, permissions: role.permissions }),
         });
-      } else {
+      } else if (entity === "permissions") {
         await api(`/admin/permissions/${encodeURIComponent(recordId)}`, {
           method: "PATCH",
+          body: JSON.stringify({ name, description }),
+        });
+      } else {
+        await api(`/admin/translations/${entity}/${encodeURIComponent(recordId)}/ar`, {
+          method: "PUT",
           body: JSON.stringify({ name, description }),
         });
       }
@@ -328,6 +340,7 @@ export async function initRoles() {
     syncAdminTab();
     roles = [];
     permissions = [];
+    complaintTypes = [];
     byId("roles-list").replaceChildren();
     byId("role-permissions").replaceChildren();
     byId("role-translation-form").classList.add("hidden");

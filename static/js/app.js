@@ -7,6 +7,8 @@ import { loadStatistics, initStatistics, clearStatistics } from "./statistics.js
 import { initRecovery, refreshCitizenAccess } from "./recovery.js";
 import { initDirectorates } from "./directorates.js";
 import { initRoles } from "./roles.js";
+import { initComplaintTypes, findComplaintType } from "./complaint-types.js";
+import { initComplaintTypesAdmin } from "./complaint-types-admin.js";
 
 let pendingSubmission = null;
 let submissionInProgress = false;
@@ -28,7 +30,7 @@ function readSubmissionDraft() {
     title: document.getElementById("comp-title").value.trim(),
     details: document.getElementById("comp-details").value.trim(),
     directorateId: Number(document.getElementById("comp-entity").value),
-    category: document.getElementById("comp-type").value,
+    complaintTypeId: document.getElementById("comp-type").value,
     isPublic: document.getElementById("comp-visibility").checked,
     attachments: [...document.getElementById("comp-attachments").files]
   };
@@ -74,9 +76,13 @@ window.showNotice = (message, type = "info") => {
   window.clearTimeout(window.noticeTimer); window.noticeTimer = window.setTimeout(() => notice.classList.add("hidden"), 8500);
 };
 window.switchTab = (name) => {
-  if (["list", "process", "statistics", "roles"].includes(name) && !isStaff()) { window.showNotice("تسجيل الدخول مطلوب للوصول إلى لوحة الموظفين.", "info"); document.getElementById("login-dialog").showModal(); return; }
+  if (["list", "process", "statistics", "roles", "complaint-types"].includes(name) && !isStaff()) { window.showNotice("تسجيل الدخول مطلوب للوصول إلى لوحة الموظفين.", "info"); document.getElementById("login-dialog").showModal(); return; }
   if (name === "roles" && getUser()?.permissions?.["rbac.manage"]?.scope_type !== "global") {
     window.showNotice("لا تملك صلاحية إدارة الأدوار والصلاحيات.", "error");
+    return;
+  }
+  if (name === "complaint-types" && getUser()?.permissions?.["complaint_types.manage"]?.scope_type !== "global") {
+    window.showNotice("لا تملك صلاحية إدارة أنواع الشكاوى.", "error");
     return;
   }
   if (name === "statistics") history.replaceState(null, "", `${location.pathname}${location.search}#statistics`);
@@ -90,6 +96,7 @@ window.switchTab = (name) => {
   if (name === "statistics") loadStatistics();
   if (name === "public") loadPublicComplaints();
   if (name === "roles") void initRoles();
+  if (name === "complaint-types") void initComplaintTypesAdmin();
 };
 window.loadPublicComplaints = loadPublicComplaints;
 window.changePublicPage = changePublicPage;
@@ -145,6 +152,7 @@ window.submitComplaintForm = async () => {
   if (!draft.identity) return window.showNotice("يرجى إرفاق صورة الهوية الشخصية.", "error");
   if (draft.title.length < 5) return window.showNotice("عنوان الشكوى يجب ألا يقل عن 5 أحرف.", "error");
   if (draft.details.length < 10) return window.showNotice("تفاصيل الشكوى يجب ألا تقل عن 10 أحرف.", "error");
+  if (!draft.complaintTypeId || !findComplaintType(draft.complaintTypeId)) return window.showNotice("يرجى اختيار نوع شكوى متاح.", "error");
   const button = document.getElementById("submit-complaint");
   button.disabled = true;
   submissionInProgress = true;
@@ -174,7 +182,7 @@ window.submitComplaintForm = async () => {
         directorate_id: submission.draft.directorateId,
         title: submission.draft.title,
         details: submission.draft.details,
-        category: submission.draft.category,
+         complaint_type_id: Number(submission.draft.complaintTypeId),
         is_public: submission.draft.isPublic,
         priority: "MEDIUM"
       });
@@ -209,7 +217,8 @@ window.submitComplaintForm = async () => {
 function resetForm() {
   ["c-first-name","c-last-name","c-phone","c-national-id","c-id-card","comp-title","comp-details","comp-attachments"].forEach((id) => { document.getElementById(id).value = ""; });
   document.getElementById("comp-entity").value = "2";
-  document.getElementById("comp-type").value = "طرق";
+  document.getElementById("comp-type").value = "";
+  document.getElementById("comp-type").dispatchEvent(new Event("change"));
   document.getElementById("comp-visibility").checked = false;
   pendingSubmission = null;
   lockSubmissionDraft(false);
@@ -276,7 +285,7 @@ window.addEventListener("shakwa:logout", () => {
   updateSliderProgress(0);
   document.getElementById("resolution-fields").classList.add("hidden");
   document.getElementById("processing-card").classList.add("opacity-50");
-  if (["list","process","statistics","directorates","roles"].includes(location.hash.replace("#",""))) window.switchTab("submit");
+  if (["list","process","statistics","directorates","roles","complaint-types"].includes(location.hash.replace("#",""))) window.switchTab("submit");
   else { document.querySelectorAll(".tab-content").forEach((section) => section.classList.add("hidden")); document.getElementById("sec-submit").classList.remove("hidden"); }
   window.showNotice("تم تسجيل الخروج.", "info");
 });
@@ -298,16 +307,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   catch (error) { window.showNotice(error.message, "error"); }
   try { await loadAuthState(); }
   catch (error) { window.showNotice(`تعذر التحقق من جلسة الموظف: ${error.message}`, "error"); }
-  try { await initDirectorates(); }
+   try { await initDirectorates(); }
   catch (error) { window.showNotice(`تعذر تحميل المديريات: ${error.message}`, "error"); }
+   try { await initComplaintTypes(); }
+   catch (error) { window.showNotice(`تعذر تحميل أنواع الشكاوى: ${error.message}`, "error"); }
   try { await initRoles(); }
   catch (error) { window.showNotice(`تعذر تحميل الأدوار والصلاحيات: ${error.message}`, "error"); }
+   try { await initComplaintTypesAdmin(); }
+   catch (error) { window.showNotice(`تعذر تحميل أنواع الشكاوى: ${error.message}`, "error"); }
   if (location.hash.startsWith("#public")) handlePublicHash();
   else if (location.hash === "#statistics") window.switchTab("statistics");
-  else if (["#list", "#process", "#directorates", "#roles"].includes(location.hash)) window.switchTab(location.hash.slice(1));
+   else if (["#list", "#process", "#directorates", "#roles", "#complaint-types"].includes(location.hash)) window.switchTab(location.hash.slice(1));
   else checkUrlForCode();
 });
 window.addEventListener("hashchange", () => {
   if (location.hash.startsWith("#public")) handlePublicHash();
-  else if (["#statistics", "#list", "#process", "#directorates", "#roles"].includes(location.hash)) window.switchTab(location.hash.slice(1));
+   else if (["#statistics", "#list", "#process", "#directorates", "#roles", "#complaint-types"].includes(location.hash)) window.switchTab(location.hash.slice(1));
 });

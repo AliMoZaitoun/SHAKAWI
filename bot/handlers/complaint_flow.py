@@ -10,7 +10,11 @@ from aiogram.types import (
 )
 from aiogram.fsm.context import FSMContext
 from bot.states.complaint_states import ComplaintForm
-from bot.keyboards.inline import get_directorates_keyboard, get_categories_keyboard
+from bot.keyboards.inline import (
+    format_complaint_duration,
+    get_complaint_types_keyboard,
+    get_directorates_keyboard,
+)
 from bot.config import API_BASE_URL, API_HEADERS
 from bot.locales import get_txt
 
@@ -18,9 +22,12 @@ router = Router()
 MAX_EVIDENCE_DOWNLOAD_BYTES = 10 * 1024 * 1024
 MAX_EVIDENCE_FILES_PER_DETAIL = 20
 
-def actor_headers(event):
+def actor_headers(event, language=None):
     # Telegram identity comes from the authenticated update, never from FSM data.
-    return {**API_HEADERS, "X-Telegram-Id": str(event.from_user.id)}
+    headers = {**API_HEADERS, "X-Telegram-Id": str(event.from_user.id)}
+    if language in {"ar", "en"}:
+        headers["Accept-Language"] = language
+    return headers
 
 
 def in_private_chat(event):
@@ -54,6 +61,30 @@ def complaint_detail_sections(complaint, lang):
     sections = [
         (get_txt(lang, "comp_details_label"), str(complaint.get("details") or "")),
     ]
+    complaint_type = complaint.get("complaint_type") or {}
+    duration = complaint_type.get("sla_duration_minutes")
+    if complaint_type:
+        if duration:
+            value = format_complaint_duration(duration, lang)
+            sections.append((
+                get_txt(lang, "estimated_duration_label"),
+                get_txt(lang, "estimated_duration", duration=value),
+            ))
+        elif complaint_type.get("code") == "other":
+            sections.append((
+                get_txt(lang, "estimated_duration_label"),
+                get_txt(lang, "no_sla_for_other"),
+            ))
+        else:
+            sections.append((
+                get_txt(lang, "estimated_duration_label"),
+                get_txt(lang, "sla_not_set"),
+            ))
+        if complaint_type.get("description"):
+            sections.append((
+                get_txt(lang, "comp_cat_label").replace("<b>", "").replace("</b>", ""),
+                str(complaint_type["description"]),
+            ))
     visible_notes = [
         note for note in complaint.get("notes") or []
         if note.get("audience") != "internal" and not note.get("is_internal")
@@ -598,31 +629,67 @@ async def process_directorate(callback: CallbackQuery, state: FSMContext):
         return
 
     await state.update_data(directorate_id=selected_id, current_directorate_id=None)
+    try:
+        async with aiohttp.ClientSession(headers=actor_headers(callback, lang)) as session:
+            async with session.get(
+                f"{API_BASE_URL}/complaint-types", params={"lang": lang},
+            ) as response:
+                catalog = await response.json() if response.status == 200 else None
+        if not isinstance(catalog, list) or not catalog:
+            raise ValueError("complaint type catalog is unavailable")
+    except (aiohttp.ClientError, TimeoutError, ValueError):
+        await callback.answer(get_txt(lang, "complaint_types_unavailable"), show_alert=True)
+        return
+    await state.update_data(complaint_types=catalog, complaint_type_page=0)
     await callback.message.edit_text(
         get_txt(lang, "ask_category"),
-        reply_markup=get_categories_keyboard(lang),
-        parse_mode="HTML"
+        reply_markup=get_complaint_types_keyboard(lang, catalog),
+        parse_mode="HTML",
     )
     await state.set_state(ComplaintForm.category)
     await callback.answer()
 
-@router.callback_query(F.data.startswith("cat_"), ComplaintForm.category)
+@router.callback_query(F.data.startswith("ct_page_"), ComplaintForm.category)
+async def change_complaint_type_page(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    lang = data.get("lang", "ar")
+    if callback.data == "ct_page_noop":
+        await callback.answer()
+        return
+    try:
+        page = int(callback.data.rsplit("_", 1)[-1])
+        types = data.get("complaint_types") or []
+        keyboard = get_complaint_types_keyboard(lang, types, page)
+    except (TypeError, ValueError):
+        await callback.answer(get_txt(lang, "reg_error"), show_alert=True)
+        return
+    await state.update_data(complaint_type_page=page)
+    await callback.message.edit_reply_markup(reply_markup=keyboard)
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("ct_"), ComplaintForm.category)
 async def process_category(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     lang = data.get("lang", "ar")
-    
-    category_map = {
-        "cat_roads": "طرق",
-        "cat_construction": "مخالفات بناء",
-        "cat_digging": "حفريات",
-        "cat_opening_roads": "فتح طرق",
-        "cat_outage": "انقطاع خدمة",
-        "cat_technical": "عطل فني",
-        "cat_admin": "شكوى إدارية",
-        "cat_other": "أخرى"
-    }
-    selected_cat = category_map.get(callback.data, "أخرى")
-    await state.update_data(category=selected_cat)
+    try:
+        selected_id = int(callback.data.removeprefix("ct_"))
+    except ValueError:
+        await callback.answer(get_txt(lang, "reg_error"), show_alert=True)
+        return
+    selected_type = next(
+        (item for item in data.get("complaint_types", []) if int(item.get("id", -1)) == selected_id),
+        None,
+    )
+    if not selected_type or not selected_type.get("is_active", True):
+        await callback.answer(get_txt(lang, "reg_error"), show_alert=True)
+        return
+    await state.update_data(
+        complaint_type_id=selected_id,
+        category=selected_type.get("name", ""),
+        complaint_type_code=selected_type.get("code"),
+        sla_duration_minutes=selected_type.get("sla_duration_minutes"),
+    )
     
     # خيارات تحديد الموقع: جي بي إس أو يدوياً
     location_keyboard = ReplyKeyboardMarkup(
@@ -634,8 +701,21 @@ async def process_category(callback: CallbackQuery, state: FSMContext):
         one_time_keyboard=True
     )
     
+    type_info = []
+    if selected_type.get("description"):
+        type_info.append(escape(str(selected_type["description"])))
+    if selected_type.get("code") == "other":
+        type_info.append(get_txt(lang, "no_sla_for_other"))
+    elif selected_type.get("sla_duration_minutes"):
+        type_info.append(get_txt(
+            lang, "estimated_duration",
+            duration=format_complaint_duration(selected_type["sla_duration_minutes"], lang),
+        ))
+    else:
+        type_info.append(get_txt(lang, "sla_not_set"))
+    intro = f"<b>{escape(str(selected_type.get('name', '')))}</b>\n" + "\n".join(type_info)
     await callback.message.answer(
-        get_txt(lang, "ask_location"),
+        intro + "\n\n" + get_txt(lang, "ask_location"),
         reply_markup=location_keyboard,
         parse_mode="HTML"
     )
@@ -705,13 +785,13 @@ async def process_details(message: Message, state: FSMContext):
         "title": data["title"],
         "details": full_details,
         "is_public": False,
-        "category": data["category"],
+        "complaint_type_id": data["complaint_type_id"],
         "priority": "MEDIUM",
         "latitude": data.get("latitude"),
         "longitude": data.get("longitude")
     }
 
-    async with aiohttp.ClientSession(headers=actor_headers(message)) as session:
+    async with aiohttp.ClientSession(headers=actor_headers(message, lang)) as session:
         try:
             async with session.post(f"{API_BASE_URL}/complaints/", json=payload) as response:
                 if response.status == 200:
@@ -816,9 +896,9 @@ async def process_track_code_input(message: Message, state: FSMContext):
         return
     tracking_code = message.text.strip()
     
-    async with aiohttp.ClientSession(headers=API_HEADERS) as session:
+    async with aiohttp.ClientSession(headers={**API_HEADERS, "Accept-Language": lang}) as session:
         try:
-            async with session.get(f"{API_BASE_URL}/complaints/track/{tracking_code}") as response:
+            async with session.get(f"{API_BASE_URL}/complaints/track/{tracking_code}", params={"lang": lang}) as response:
                 if response.status == 200:
                     comp = await response.json()
                     await send_complaint_detail(message, comp, lang, session=session)
@@ -841,9 +921,9 @@ async def action_my_complaints(callback: CallbackQuery, state: FSMContext):
         return
     citizen_id = data.get("citizen_id")
     
-    async with aiohttp.ClientSession(headers=actor_headers(callback)) as session:
+    async with aiohttp.ClientSession(headers=actor_headers(callback, lang)) as session:
         try:
-            async with session.get(f"{API_BASE_URL}/complaints/citizen/{citizen_id}") as response:
+            async with session.get(f"{API_BASE_URL}/complaints/citizen/{citizen_id}", params={"lang": lang}) as response:
                 if response.status == 200:
                     complaints = await response.json()
                     if not complaints:
@@ -886,9 +966,9 @@ async def show_complaint_detail(callback: CallbackQuery, state: FSMContext):
         return
     comp_id = callback.data.split("_")[2]
     
-    async with aiohttp.ClientSession(headers=actor_headers(callback)) as session:
+    async with aiohttp.ClientSession(headers=actor_headers(callback, lang)) as session:
         try:
-            async with session.get(f"{API_BASE_URL}/complaints/{comp_id}") as response:
+            async with session.get(f"{API_BASE_URL}/complaints/{comp_id}", params={"lang": lang}) as response:
                 if response.status == 200:
                     comp = await response.json()
                     await send_complaint_detail(

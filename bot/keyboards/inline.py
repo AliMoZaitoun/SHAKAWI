@@ -53,12 +53,68 @@ def get_directorates_keyboard(
             )])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
-def get_categories_keyboard(lang: str = "ar") -> InlineKeyboardMarkup:
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=get_txt(lang, "cat_roads"), callback_data="cat_roads")],
-        [InlineKeyboardButton(text=get_txt(lang, "cat_construction"), callback_data="cat_construction")],
-        [InlineKeyboardButton(text=get_txt(lang, "cat_digging"), callback_data="cat_digging")],
-        [InlineKeyboardButton(text=get_txt(lang, "cat_opening_roads"), callback_data="cat_opening_roads")],
-        [InlineKeyboardButton(text=get_txt(lang, "cat_other"), callback_data="cat_other")]
-    ])
-    return keyboard
+def format_complaint_duration(minutes, lang):
+    try:
+        minutes = int(minutes)
+    except (TypeError, ValueError):
+        return ""
+    for factor, unit in ((10080, "week"), (1440, "day"), (60, "hour")):
+        if minutes >= factor and minutes % factor == 0:
+            amount = minutes // factor
+            break
+    else:
+        amount, unit = minutes, "minute"
+    if lang == "en":
+        label = unit if amount == 1 else f"{unit}s"
+        return f"{amount} {label}"
+    labels = {
+        "week": ("أسبوع", "أسبوعان", "أسابيع"),
+        "day": ("يوم", "يومان", "أيام"),
+        "hour": ("ساعة", "ساعتان", "ساعات"),
+        "minute": ("دقيقة", "دقيقتان", "دقائق"),
+    }
+    singular, dual, plural = labels[unit]
+    if amount == 1:
+        return singular
+    if amount == 2:
+        return dual
+    return f"{amount} {plural}"
+
+
+def get_complaint_types_keyboard(lang: str, complaint_types, page: int = 0) -> InlineKeyboardMarkup:
+    rows = [row for row in complaint_types if row.get("is_active", True)]
+    page_size = 8
+    page_count = max(1, (len(rows) + page_size - 1) // page_size)
+    page = max(0, min(page, page_count - 1))
+    start = page * page_size
+    visible = rows[start:start + page_size]
+    buttons = []
+    for item in visible:
+        label = str(item.get("name") or "")
+        duration = item.get("sla_duration_minutes")
+        if duration:
+            label += f" · {format_complaint_duration(duration, lang)}"
+        buttons.append([
+            InlineKeyboardButton(
+                text=_button_text(label),
+                callback_data=f"ct_{int(item['id'])}",
+            )
+        ])
+    if page_count > 1:
+        navigation = []
+        if page:
+            navigation.append(InlineKeyboardButton(
+                text="⬅️" if lang == "ar" else "⬅️",
+                callback_data=f"ct_page_{page - 1}",
+            ))
+        navigation.append(InlineKeyboardButton(
+            text=f"{page + 1}/{page_count}",
+            callback_data="ct_page_noop",
+        ))
+        if page + 1 < page_count:
+            navigation.append(InlineKeyboardButton(
+                text="➡️" if lang == "ar" else "➡️",
+                callback_data=f"ct_page_{page + 1}",
+            ))
+        buttons.append(navigation)
+    return InlineKeyboardMarkup(inline_keyboard=buttons)

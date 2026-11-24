@@ -1,6 +1,7 @@
 import secrets
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
-from app.models.complaint import Complaint, Attachment
+from app.models.complaint import Complaint, ComplaintType, Attachment
 from app.schemas.complaint import ComplaintCreate, AttachmentCreate
 
 class ComplaintService:
@@ -17,13 +18,28 @@ class ComplaintService:
         while db.query(Complaint).filter(Complaint.tracking_code == tracking_code).first():
             tracking_code = ComplaintService.generate_tracking_code()
 
+        complaint_type = None
+        if complaint_in.complaint_type_id is not None:
+            complaint_type = db.get(ComplaintType, complaint_in.complaint_type_id)
+            if not complaint_type or not complaint_type.is_active:
+                raise HTTPException(422, "نوع الشكوى غير موجود أو غير مفعّل")
+            # Keep the Arabic label as a stable compatibility snapshot for old
+            # reports. New clients use complaint_type_id and localized metadata.
+            category = complaint_type.name
+            sla_duration_minutes = complaint_type.sla_duration_minutes
+        else:
+            category = complaint_in.category
+            sla_duration_minutes = None
+
         db_complaint = Complaint(
             tracking_code=tracking_code,
             citizen_id=complaint_in.citizen_id,
             directorate_id=complaint_in.directorate_id,
             title=complaint_in.title,
             details=complaint_in.details,
-            category=complaint_in.category,
+            category=category,
+            complaint_type_id=complaint_type.id if complaint_type else None,
+            sla_duration_minutes=sla_duration_minutes,
             priority=complaint_in.priority,
             is_public=complaint_in.is_public,
             latitude=complaint_in.latitude,

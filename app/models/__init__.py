@@ -1,6 +1,13 @@
 from app.db.base import Base
 from app.models.user import Citizen, Employee, UserRole
-from app.models.complaint import Complaint, Attachment, ComplaintNote, PriorityEnum, StatusEnum
+from app.models.complaint import (
+    Complaint,
+    ComplaintType,
+    Attachment,
+    ComplaintNote,
+    PriorityEnum,
+    StatusEnum,
+)
 
 __all__ = [
     "Base",
@@ -8,6 +15,7 @@ __all__ = [
     "Employee",
     "UserRole",
     "Complaint",
+    "ComplaintType",
     "Attachment",
     "ComplaintNote",
     "PriorityEnum",

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing import Optional
 from typing import Literal
 from app.models.complaint import PriorityEnum, StatusEnum
@@ -9,11 +9,18 @@ class ComplaintCreate(BaseModel):
     directorate_id: int = Field(ge=1)
     title: str = Field(min_length=5, max_length=150)
     details: str = Field(min_length=10, max_length=20000)
-    category: str = Field(min_length=1, max_length=50)
+    category: Optional[str] = Field(default=None, min_length=1, max_length=50)
+    complaint_type_id: Optional[int] = Field(default=None, gt=0)
     priority: PriorityEnum = PriorityEnum.MEDIUM
     is_public: bool = False
     latitude: Optional[float] = Field(None, ge=-90, le=90)
     longitude: Optional[float] = Field(None, ge=-180, le=180)
+
+    @model_validator(mode="after")
+    def validate_category_source(self):
+        if self.complaint_type_id is None and not self.category:
+            raise ValueError("اختر نوع الشكوى")
+        return self
 
 
 class ComplaintResponse(ComplaintCreate):

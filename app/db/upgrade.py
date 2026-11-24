@@ -10,7 +10,8 @@ PRESERVED_TABLES = {
     "citizens", "employees", "complaints", "attachments", "complaint_notes",
     "evidence_requests", "evidence_replies", "evidence_files",
     "citizen_recovery_keys", "citizen_ownership_challenges", "directorates",
-    "public_complaint_reports", "public_complaint_reviews",
+    "public_complaint_reports", "public_complaint_reviews", "complaint_types",
+    "complaint_type_translations",
 }
 
 

@@ -23,9 +23,10 @@ PERMISSIONS = {
     "audit.view": "عرض سجل تدقيق النظام",
     "files.identity.read": "قراءة وثائق الهوية",
     "complaints.transfer": "تحويل الشكاوى بين المديريات",
+    "complaint_types.manage": "إدارة أنواع الشكاوى",
 }
 ADMIN_PERMISSIONS = {"rbac.manage", "employees.manage", "directorates.manage",
-                     "audit.view", "files.identity.read"}
+                     "audit.view", "files.identity.read", "complaint_types.manage"}
 
 
 def bootstrap_access(db):

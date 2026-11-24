@@ -1,6 +1,7 @@
 import { api } from "./api.js";
 import { reportForm } from "./public-review.js";
 import { getDirectorateLabel, loadPublicDirectorates } from "./directorates.js";
+import { formatComplaintDuration } from "./complaint-types.js";
 
 const byId = (id) => document.getElementById(id);
 const statusLabels = { PENDING: "جديدة", IN_PROGRESS: "جاري العمل", RESOLVED: "تمت المعالجة", REJECTED: "مرفوضة" };
@@ -29,7 +30,17 @@ function makeCard(item) {
   title.textContent = item.title || "شكوى منشورة";
   const meta = document.createElement("div");
   meta.className = "public-meta mt-2";
-  [item.category || "—", directorateLabel(item.directorate_id), statusLabels[item.status] || item.status || "—", priorityLabels[item.priority] || item.priority || "—", dateLabel(item.created_at)].forEach((label) => {
+  const labels = [
+    item.category || "—",
+    item.complaint_type?.sla_duration_minutes
+      ? `المدة التقديرية: ${formatComplaintDuration(item.complaint_type.sla_duration_minutes)}`
+      : null,
+    directorateLabel(item.directorate_id),
+    statusLabels[item.status] || item.status || "—",
+    priorityLabels[item.priority] || item.priority || "—",
+    dateLabel(item.created_at),
+  ].filter(Boolean);
+  labels.forEach((label) => {
     const pill = document.createElement("span");
     pill.className = "public-pill";
     pill.textContent = label;
@@ -119,6 +130,12 @@ function renderDetail(item) {
   progress.className = "text-sm font-bold text-brand-dark mt-4";
   progress.textContent = `الإنجاز التقديري: ${Math.max(0, Math.min(100, Number(item.progress) || 0))}%`;
   root.append(heading, meta, details, progress);
+  if (item.complaint_type?.sla_duration_minutes) {
+    const sla = document.createElement("p");
+    sla.className = "text-sm text-brand-dark font-semibold mt-3";
+    sla.textContent = `المدة التقديرية: ${formatComplaintDuration(item.complaint_type.sla_duration_minutes)}`;
+    root.append(sla);
+  }
   if (item.resolution_report) {
     const report = document.createElement("section");
     report.className = "mt-4 bg-green-50 border border-green-200 rounded-lg p-4";

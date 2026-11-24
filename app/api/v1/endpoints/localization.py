@@ -96,7 +96,7 @@ def translation_parent(db, entity, identifier):
 
 
 @router.get("/admin/translations/{entity}/{identifier}")
-def translations(entity: Literal["roles", "permissions", "directorates"], identifier: str,
+def translations(entity: Literal["roles", "permissions", "directorates", "complaint_types"], identifier: str,
                  actor=Depends(manage), db: Session = Depends(get_db)):
     _, model, key, identifier = translation_parent(db, entity, identifier)
     fields = ("language_code", "name", "description", "location") if entity == "directorates" else (
@@ -106,12 +106,14 @@ def translations(entity: Literal["roles", "permissions", "directorates"], identi
 
 
 @router.put("/admin/translations/{entity}/{identifier}/{language}")
-def put_translation(entity: Literal["roles", "permissions", "directorates"], identifier: str,
+def put_translation(entity: Literal["roles", "permissions", "directorates", "complaint_types"], identifier: str,
                     language: str, data: TranslationInput, actor=Depends(manage),
                     db: Session = Depends(get_db)):
     begin_change(db, actor)
     language_row(db, language)
     parent, model, key, identifier = translation_parent(db, entity, identifier)
+    if entity == "complaint_types" and len(data.name) > 50:
+        raise HTTPException(422, "اسم نوع الشكوى لا يتجاوز 50 حرفاً")
     if entity != "directorates" and data.location is not None:
         raise HTTPException(422, "الموقع خاص بالمديريات")
     row = db.get(model, (identifier, language))
@@ -129,7 +131,7 @@ def put_translation(entity: Literal["roles", "permissions", "directorates"], ide
 
 
 @router.delete("/admin/translations/{entity}/{identifier}/{language}")
-def delete_translation(entity: Literal["roles", "permissions", "directorates"], identifier: str,
+def delete_translation(entity: Literal["roles", "permissions", "directorates", "complaint_types"], identifier: str,
                        language: str, actor=Depends(manage), db: Session = Depends(get_db)):
     begin_change(db, actor)
     if language == "ar":

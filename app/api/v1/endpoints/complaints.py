@@ -18,6 +18,7 @@ from app.services.access import has_permission, scope_query
 from app.services.access_admin import directorate_or_422
 from app.models.foundations import StoredFile, ComplaintFile
 from app.services.file_catalog import protected_path
+from app.services.complaint_types import complaint_category_label, complaint_snapshot_data
 
 router = APIRouter()
 
@@ -50,7 +51,8 @@ def complaint_data(db, complaint, staff=False, employee=None):
     data = {
         "id": complaint.id, "tracking_code": complaint.tracking_code,
         "directorate_id": complaint.directorate_id, "title": complaint.title,
-        "details": complaint.details, "category": complaint.category,
+        "details": complaint.details, "category": complaint_category_label(complaint),
+        "complaint_type": complaint_snapshot_data(complaint),
         "is_public": complaint.is_public,
         "public_review": review_data(complaint, staff and employee is not None
                                      and has_permission(employee, "public.review", complaint.directorate_id)),

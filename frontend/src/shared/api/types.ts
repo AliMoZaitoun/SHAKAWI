@@ -86,6 +86,15 @@ export interface Translation {
   description: string;
   location?: string;
 }
+export interface ComplaintType {
+  id: number;
+  code: string;
+  name: string;
+  description: string;
+  sla_duration_minutes: number | null;
+  is_active: boolean;
+  is_system: boolean;
+}
 export interface Page<T> {
   total: number;
   page: number;
@@ -151,6 +160,7 @@ export interface Complaint {
   title: string;
   details: string;
   category: string;
+  complaint_type?: ComplaintType | null;
   is_public: boolean;
   public_review: PublicReview;
   priority: Priority;
@@ -170,7 +180,8 @@ export interface ComplaintInput {
   directorate_id: number;
   title: string;
   details: string;
-  category: string;
+  complaint_type_id?: number;
+  category?: string;
   priority?: Priority;
   is_public: boolean;
   latitude?: number;

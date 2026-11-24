@@ -23,6 +23,8 @@ def public_text(text, complaint):
 
 
 def public_complaint(complaint):
+    from app.services.complaint_types import complaint_category_label, complaint_snapshot_data
+
     # Personal details, coordinates, tracking codes, attachments and authors are
     # excluded even if new fields are later added to the ORM or staff response.
     hidden = complaint.public_text_hidden
@@ -31,7 +33,8 @@ def public_complaint(complaint):
         "public_text_hidden": hidden,
         "title": "نصوص الشكوى مخفية مؤقتًا للمراجعة" if hidden else public_text(complaint.title, complaint),
         "details": "" if hidden else public_text(complaint.details, complaint),
-        "category": "" if hidden else public_text(complaint.category, complaint),
+        "category": "" if hidden else public_text(complaint_category_label(complaint), complaint),
+        "complaint_type": None if hidden else complaint_snapshot_data(complaint),
         "directorate_id": complaint.directorate_id,
         "status": complaint.status,
         "priority": complaint.priority,

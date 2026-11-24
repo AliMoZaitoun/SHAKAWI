@@ -5,6 +5,7 @@ import { api, ApiError } from "../../shared/api/client";
 import type { Complaint, EvidenceRequest } from "../../shared/api/types";
 import { useI18n } from "../../shared/i18n/I18n";
 import { UiText } from "../../shared/i18n/UiText";
+import { formatDuration } from "../../shared/formatDuration";
 import { CitizenLoadError, statusText } from "./shared";
 
 export function TrackPage() {
@@ -134,6 +135,23 @@ function TrackCard({ complaint }: { complaint: Complaint }) {
         <span className="badge">{complaint.category}</span>
         <span className="muted">{new Date(complaint.created_at).toLocaleDateString(lang)}</span>
       </div>
+      {complaint.complaint_type && (
+        <div className="status info" style={{ marginTop: 12 }}>
+          {complaint.complaint_type.description && <p>{complaint.complaint_type.description}</p>}
+          <b>{tText("المدة التقديرية")}: </b>
+          {complaint.complaint_type.code === "other"
+            ? tText("لا توجد مهلة تقديرية لهذا النوع.")
+            : complaint.complaint_type.sla_duration_minutes
+              ? formatDuration(complaint.complaint_type.sla_duration_minutes, lang)
+              : tText("لم تُحدد المدة لهذا النوع بعد.")}
+          {complaint.complaint_type.code !== "other" &&
+            complaint.complaint_type.sla_duration_minutes && (
+              <small className="muted" style={{ display: "block" }}>
+                {tText("مدة متواصلة من وقت تقديم الشكوى، وليست أيام دوام.")}
+              </small>
+            )}
+        </div>
+      )}
       <div style={{ marginTop: 20 }}>
         <div className="row" style={{ justifyContent: "space-between" }}>
           <b>{tText("تقدم المعالجة")}</b>

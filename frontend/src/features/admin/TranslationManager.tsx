@@ -4,12 +4,19 @@ import { Languages, Save, Trash2 } from "lucide-react";
 import { api } from "../../shared/api/client";
 import { useResource } from "../../shared/api/hooks";
 import { useI18n } from "../../shared/i18n/I18n";
-import type { Directorate, Language, Permission, Role, Translation } from "../../shared/api/types";
+import type {
+  ComplaintType,
+  Directorate,
+  Language,
+  Permission,
+  Role,
+  Translation,
+} from "../../shared/api/types";
 import { UiText } from "../../shared/i18n/UiText";
 import { AdminAlert } from "./AdminPage";
 import "./admin-ui.css";
 
-type Entity = "roles" | "permissions" | "directorates";
+type Entity = "roles" | "permissions" | "directorates" | "complaint_types";
 type TranslationForm = { name: string; description: string; location: string };
 const emptyTranslation: TranslationForm = { name: "", description: "", location: "" };
 
@@ -18,6 +25,7 @@ export function TranslationManager() {
   const roles = useResource<Role[]>("/admin/roles", lang);
   const permissions = useResource<Permission[]>("/admin/permissions", lang);
   const directorates = useResource<Directorate[]>("/admin/directorates", lang);
+  const complaintTypes = useResource<ComplaintType[]>("/complaint-types", lang);
   const languages = useResource<Language[]>("/admin/languages", lang);
   const [entity, setEntity] = useState<Entity>("roles");
   const [recordId, setRecordId] = useState("");
@@ -29,7 +37,7 @@ export function TranslationManager() {
   const queryClient = useQueryClient();
   const hydratedTarget = useRef("");
 
-  const resources = [roles, permissions, directorates, languages];
+  const resources = [roles, permissions, directorates, complaintTypes, languages];
   const listsLoading = resources.some((resource) => resource.isLoading);
   const listsError = resources.find((resource) => resource.error)?.error;
   const records: { id: string; label: string }[] =
@@ -37,10 +45,15 @@ export function TranslationManager() {
       ? (roles.data ?? []).map((role) => ({ id: String(role.id), label: role.name }))
       : entity === "permissions"
         ? (permissions.data ?? []).map((item) => ({ id: item.code, label: item.name }))
-        : (directorates.data ?? []).map((item) => ({
-            id: String(item.id),
-            label: item.hierarchy_path ?? item.name,
-          }));
+        : entity === "directorates"
+          ? (directorates.data ?? []).map((item) => ({
+              id: String(item.id),
+              label: item.hierarchy_path ?? item.name,
+            }))
+          : (complaintTypes.data ?? []).map((item) => ({
+              id: String(item.id),
+              label: item.name,
+            }));
   const translationsKey = ["translations", entity, recordId] as const;
   const query = useQuery({
     queryKey: translationsKey,
@@ -153,6 +166,7 @@ export function TranslationManager() {
             <option value="roles">{tText("الأدوار")}</option>
             <option value="permissions">{tText("الصلاحيات")}</option>
             <option value="directorates">{tText("المديريات")}</option>
+            <option value="complaint_types">{tText("أنواع الشكاوى")}</option>
           </select>
         </label>
         <label className="field-label">

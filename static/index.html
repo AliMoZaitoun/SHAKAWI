@@ -101,6 +101,9 @@
         <button onclick="switchTab('roles')" id="tab-roles" class="tab-btn" aria-controls="sec-roles">
           <i class="fa-solid fa-shield-halved"></i> الأدوار والصلاحيات
         </button>
+        <button onclick="switchTab('complaint-types')" id="tab-complaint-types" class="tab-btn staff-tab complaint-types-tab" aria-controls="sec-complaint-types">
+          <i class="fa-solid fa-tags"></i> أنواع الشكاوى
+        </button>
       </nav>
     </div>
   </header>
@@ -242,13 +245,10 @@
               </div>
               <div>
                 <label class="field-label" for="comp-type">نوع الشكوى</label>
-                <select id="comp-type" class="field">
-                  <option value="طرق">طرق</option>
-                  <option value="مخالفات بناء">مخالفات بناء</option>
-                  <option value="حفريات">حفريات</option>
-                  <option value="فتح طرق">فتح طرق</option>
-                  <option value="أخرى">أخرى</option>
+                <select id="comp-type" class="field" required>
+                  <option value="">جارٍ تحميل أنواع الشكاوى…</option>
                 </select>
+                <div id="comp-type-meta" class="text-xs text-gray-600 mt-2" aria-live="polite"></div>
               </div>
             </div>
             <label class="privacy-check" for="comp-visibility">
@@ -281,7 +281,7 @@
           <button type="button" id="public-refresh" class="secondary-button" onclick="loadPublicComplaints()">تحديث القائمة</button>
         </div>
         <div class="bg-brand-bg p-4 rounded-xl mb-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div><label class="field-label" for="public-category">التصنيف</label><select id="public-category" class="field"><option value="">كل التصنيفات</option><option>طرق</option><option>مخالفات بناء</option><option>حفريات</option><option>فتح طرق</option><option>أخرى</option></select></div>
+          <div><label class="field-label" for="public-category">التصنيف</label><select id="public-category" class="field"><option value="">كل التصنيفات</option></select></div>
           <div><label class="field-label" for="public-status">الحالة</label><select id="public-status" class="field"><option value="">كل الحالات</option><option value="PENDING">جديدة</option><option value="IN_PROGRESS">جاري العمل</option><option value="RESOLVED">تمت المعالجة</option><option value="REJECTED">مرفوضة</option></select></div>
           <div><label class="field-label" for="public-directorate">الجهة</label><select id="public-directorate" class="field"><option value="">كل الجهات</option></select></div>
         </div>
@@ -545,10 +545,10 @@
         <section class="border-t pt-6 space-y-4">
           <div>
             <h3 class="font-bold text-brand-dark">ترجمة الأدوار والصلاحيات</h3>
-            <p class="text-sm text-gray-500 mt-1">اختر دوراً أو صلاحية ولغة لتعديل الاسم والوصف. اللغة العربية هي الترجمة الأساسية.</p>
+            <p class="text-sm text-gray-500 mt-1">اختر دوراً أو صلاحية أو نوع شكوى ولغة لتعديل الاسم والوصف. اللغة العربية هي الترجمة الأساسية.</p>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <label><span class="field-label">نوع السجل</span><select id="role-translation-entity" class="field"><option value="roles">دور</option><option value="permissions">صلاحية</option></select></label>
+            <label><span class="field-label">نوع السجل</span><select id="role-translation-entity" class="field"><option value="roles">دور</option><option value="permissions">صلاحية</option><option value="complaint_types">نوع شكوى</option></select></label>
             <label><span class="field-label">السجل</span><select id="role-translation-record" class="field"><option value="">اختر السجل</option></select></label>
             <label><span class="field-label">اللغة</span><select id="role-translation-language" class="field"><option value="">اختر اللغة</option></select></label>
           </div>
@@ -561,6 +561,31 @@
             </div>
           </form>
         </section>
+      </div>
+    </section>
+    <section id="sec-complaint-types" class="tab-content hidden">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
+        <div class="flex flex-wrap items-start justify-between gap-4 mb-5">
+          <div>
+            <h2 class="text-xl font-bold text-brand-dark">أنواع الشكاوى والمهل التقديرية</h2>
+            <p class="text-sm text-gray-500 mt-1">أسبوعان تعنيان 14 يوماً متواصلاً من وقت التقديم. نوع «أخرى» بلا مهلة.</p>
+          </div>
+          <button id="complaint-type-add" type="button" class="primary-button">إضافة نوع</button>
+        </div>
+        <p id="complaint-types-state" class="state-panel" role="status" aria-live="polite">جارٍ تحميل أنواع الشكاوى…</p>
+        <div class="overflow-x-auto">
+          <table class="w-full text-right text-sm">
+            <thead>
+              <tr class="border-b text-gray-500">
+                <th class="p-3">النوع والوصف</th>
+                <th class="p-3">المدة التقديرية</th>
+                <th class="p-3">الحالة</th>
+                <th class="p-3">إجراء</th>
+              </tr>
+            </thead>
+            <tbody id="complaint-types-table-body" class="divide-y divide-gray-100"></tbody>
+          </table>
+        </div>
       </div>
     </section>
     <section id="sec-process" class="tab-content hidden">
@@ -682,6 +707,41 @@
       <div><label class="field-label" for="new-password">كلمة المرور الجديدة</label><input id="new-password" type="password" autocomplete="new-password" minlength="12" maxlength="256" class="field" required></div>
       <p id="password-error" class="text-sm text-red-700 hidden" role="alert"></p>
       <div class="dialog-actions"><button type="button" id="cancel-password" class="secondary-button">إلغاء</button><button type="submit" class="primary-button">حفظ كلمة المرور</button></div>
+    </form>
+  </dialog>
+  <dialog id="complaint-type-dialog" class="login-dialog">
+    <form id="complaint-type-form" class="space-y-4">
+      <div class="flex justify-between items-start">
+        <div>
+          <h2 id="complaint-type-dialog-title" class="text-xl font-bold text-brand-dark">نوع شكوى جديد</h2>
+          <p class="text-sm text-gray-500 mt-1">المدة متواصلة من لحظة تقديم الشكوى.</p>
+        </div>
+        <button type="button" id="complaint-type-close" class="text-gray-500 p-2" aria-label="إغلاق">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <input id="complaint-type-id" type="hidden">
+      <label class="block">
+        <span class="field-label">الاسم بالعربية</span>
+        <input id="complaint-type-name" class="field" minlength="2" maxlength="50" required>
+      </label>
+      <label class="block">
+        <span class="field-label">وصف اختياري للمواطن</span>
+        <textarea id="complaint-type-description" class="field" rows="3" maxlength="4000"></textarea>
+      </label>
+      <div id="complaint-type-sla-fields" class="grid grid-cols-2 gap-3">
+        <label><span class="field-label">المدة</span><input id="complaint-type-amount" type="number" min="1" step="1" class="field" required></label>
+        <label><span class="field-label">الوحدة</span><select id="complaint-type-unit" class="field"><option value="minutes">دقائق</option><option value="hours">ساعات</option><option value="days">أيام متواصلة</option><option value="weeks">أسابيع متواصلة</option></select></label>
+      </div>
+      <label class="flex items-center gap-2 text-sm">
+        <input id="complaint-type-active" type="checkbox" checked>
+        متاح للمواطنين
+      </label>
+      <p id="complaint-type-form-state" class="text-sm hidden" role="alert"></p>
+      <div class="dialog-actions">
+        <button type="button" id="complaint-type-cancel" class="secondary-button">إلغاء</button>
+        <button type="submit" id="complaint-type-save" class="primary-button">حفظ</button>
+      </div>
     </form>
   </dialog>
   <script type="module" src="/static/js/app.js"></script>

@@ -9,7 +9,15 @@ from app.models.foundations import AuditEvent, ComplaintHistory
 
 def backfill_history(db):
     conn = db.connection()
-    for complaint in db.query(Complaint):
+    # Select only columns present in the legacy schema. Full ORM loading is
+    # unsafe during an earlier migration because current models may already
+    # declare columns that later revisions have not added yet.
+    for complaint in db.query(
+        Complaint.id,
+        Complaint.status,
+        Complaint.directorate_id,
+        Complaint.progress,
+    ):
         if not conn.execute(select(ComplaintHistory.id).where(
             ComplaintHistory.complaint_id == complaint.id
         )).first():

@@ -1,5 +1,5 @@
 import { useI18n } from "../../shared/i18n/I18n";
-import type { Page } from "../../shared/api/types";
+import type { ComplaintType, Page } from "../../shared/api/types";
 
 export type PublicComplaint = {
   id: number;
@@ -7,6 +7,7 @@ export type PublicComplaint = {
   title: string;
   details: string;
   category: string;
+  complaint_type?: ComplaintType | null;
   directorate_id: number;
   status: string;
   priority: string;

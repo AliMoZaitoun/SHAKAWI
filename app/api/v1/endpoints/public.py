@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from sqlalchemy import or_
 from sqlalchemy.orm import Session, selectinload
 
 from app.db.session import get_db
-from app.models.complaint import Complaint, StatusEnum, PublicComplaintReport
+from app.models.complaint import Complaint, ComplaintType, StatusEnum, PublicComplaintReport
 from app.core.security import _attempts
 import time
 from app.services.public_complaints import public_complaint
+from app.services.translations import localized
 from app.schemas.public_review import ReportInput
 
 router = APIRouter()
@@ -37,15 +39,25 @@ def report_public_text(complaint_id: int, data: ReportInput, request: Request,
 @router.get("")
 @router.get("/")
 def public_list(page: int = Query(1, ge=1), page_size: int = Query(12, ge=1, le=50),
-                category: str | None = Query(None, max_length=50),
+                category: str | None = Query(None, max_length=150),
+                complaint_type_id: int | None = Query(None, ge=1),
                 status: StatusEnum | None = None,
                 directorate_id: int | None = Query(None, ge=1),
                 db: Session = Depends(get_db)):
     from app.services.access_admin import directorate_or_422
     directorate_or_422(db, directorate_id, active=False)
     query = db.query(Complaint).filter(Complaint.is_public.is_(True))
+    if complaint_type_id is not None:
+        query = query.filter(Complaint.complaint_type_id == complaint_type_id)
     if category:
-        query = query.filter(Complaint.category == category)
+        matching_type_ids = [
+            row.id for row in db.query(ComplaintType)
+            if localized(row)["name"] == category
+        ]
+        category_filter = Complaint.category == category
+        if matching_type_ids:
+            category_filter = or_(category_filter, Complaint.complaint_type_id.in_(matching_type_ids))
+        query = query.filter(category_filter)
     if status:
         query = query.filter(Complaint.status == status)
     if directorate_id is not None:

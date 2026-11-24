@@ -5,6 +5,7 @@ import { ArrowRight } from "lucide-react";
 import { api } from "../../shared/api/client";
 import { useI18n } from "../../shared/i18n/I18n";
 import { UiText } from "../../shared/i18n/UiText";
+import { formatDuration } from "../../shared/formatDuration";
 import { CitizenLoadError, PanelLoading, PublicComplaint, statusText } from "./shared";
 
 export function PublicDetailPage() {
@@ -51,6 +52,12 @@ export function PublicDetailPage() {
           <span className="badge">{complaint.category}</span>
           <span className="muted">{new Date(complaint.created_at).toLocaleDateString(lang)}</span>
         </div>
+        {complaint.complaint_type?.sla_duration_minutes && (
+          <div className="status info">
+            <b>{tText("المدة التقديرية")}: </b>
+            {formatDuration(complaint.complaint_type.sla_duration_minutes, lang)}
+          </div>
+        )}
         {complaint.resolution_report && (
           <div className="status success">{complaint.resolution_report}</div>
         )}

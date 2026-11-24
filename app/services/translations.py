@@ -2,8 +2,10 @@
 from sqlalchemy import event, inspect
 from sqlalchemy.orm import Session, object_session
 from app.models.access import Directorate, Role, Permission
+from app.models.complaint import ComplaintType
 from app.models.foundations import (
     Language, DirectorateTranslation, RoleTranslation, PermissionTranslation,
+    ComplaintTypeTranslation,
 )
 from app.services.request_context import language_context
 
@@ -11,6 +13,7 @@ TRANSLATIONS = {
     "roles": (Role, RoleTranslation, "role_id"),
     "permissions": (Permission, PermissionTranslation, "permission_code"),
     "directorates": (Directorate, DirectorateTranslation, "directorate_id"),
+    "complaint_types": (ComplaintType, ComplaintTypeTranslation, "complaint_type_id"),
 }
 
 
@@ -35,12 +38,19 @@ def localized(row, language=None):
 
 
 def seed_translations(db):
-    from app.services.translation_defaults import ENGLISH_PERMISSIONS, ENGLISH_ROLES
+    existing_tables = set(inspect(db.get_bind()).get_table_names())
+    from app.services.translation_defaults import (
+        ENGLISH_COMPLAINT_TYPES,
+        ENGLISH_PERMISSIONS,
+        ENGLISH_ROLES,
+    )
     for code, name, direction in (("ar", "العربية", "rtl"), ("en", "English", "ltr")):
         if not db.get(Language, code):
             db.add(Language(code=code, name=name, direction=direction))
     db.flush()
     for parent, model, key in TRANSLATIONS.values():
+        if parent.__tablename__ not in existing_tables:
+            continue
         for row in db.query(parent):
             identifier = row.code if parent is Permission else row.id
             if not db.get(model, (identifier, "ar")):
@@ -50,6 +60,7 @@ def seed_translations(db):
             english = (
                 ENGLISH_ROLES.get(row.code) if parent is Role else
                 ENGLISH_PERMISSIONS.get(row.code) if parent is Permission else
+                ENGLISH_COMPLAINT_TYPES.get(row.code) if parent is ComplaintType else
                 {"المحافظة": "Governorate", "الخدمات": "Services"}.get(row.name)
             )
             if english and not db.get(model, (identifier, "en")):

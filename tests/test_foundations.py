@@ -11,7 +11,7 @@ from app.core.security import _attempts, hash_password
 from app.db.upgrade import upgrade_database
 from app.models.access import Directorate, Permission, User
 from app.models.user import Citizen, Employee
-from app.models.complaint import Complaint, Attachment, StatusEnum
+from app.models.complaint import Complaint, ComplaintType, Attachment, StatusEnum
 from app.models.foundations import (
     AuditEvent, ComplaintHistory, StoredFile, ComplaintFile, CitizenFile,
 )
@@ -238,14 +238,15 @@ def test_audit_rollback_append_only_and_canonical_user(system):
         assert event_row.changes == {} and event_row.source == "web"
 
 
-def test_bot_directory_uses_database_ids_and_localized_names():
+def test_bot_directory_uses_database_ids_and_localized_names(monkeypatch):
     import asyncio
     from types import SimpleNamespace
     from unittest.mock import AsyncMock
+    import bot.handlers.complaint_flow as flow
     from bot.handlers.complaint_flow import (
         ComplaintForm, complaint_detail_sections, evidence_reply_keyboard, process_directorate,
     )
-    from bot.keyboards.inline import get_directorates_keyboard
+    from bot.keyboards.inline import get_directorates_keyboard, get_complaint_types_keyboard
     rows = [
         {"id": 7, "parent_id": None, "name": "Direction française"},
         {"id": 8, "parent_id": 7, "name": "Service enfant"},
@@ -258,11 +259,46 @@ def test_bot_directory_uses_database_ids_and_localized_names():
     assert child_keyboard.inline_keyboard[1][0].callback_data == "dir_open_8"
     with pytest.raises(ValueError):
         get_directorates_keyboard("en")
+    complaint_types = [
+        {"id": 4, "code": "roads", "name": "Roads", "is_active": True,
+         "sla_duration_minutes": 20160},
+    ]
+    type_keyboard = get_complaint_types_keyboard("en", complaint_types)
+    assert type_keyboard.inline_keyboard[0][0].callback_data == "ct_4"
+    assert "2 weeks" in type_keyboard.inline_keyboard[0][0].text
+
+    class Response:
+        status = 200
+
+        async def json(self):
+            return complaint_types
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return None
+
+    class Session:
+        def __init__(self, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return None
+
+        def get(self, *args, **kwargs):
+            return Response()
+
+    monkeypatch.setattr(flow.aiohttp, "ClientSession", Session)
     state = SimpleNamespace(get_data=AsyncMock(return_value={
         "lang": "en", "allowed_directorates": [7, 8], "directorate_catalog": rows,
     }), update_data=AsyncMock(), set_state=AsyncMock())
     callback = SimpleNamespace(
         data="dir_open_7",
+        from_user=SimpleNamespace(id=123),
         message=SimpleNamespace(edit_text=AsyncMock()),
         answer=AsyncMock(),
     )
@@ -272,8 +308,14 @@ def test_bot_directory_uses_database_ids_and_localized_names():
     state.update_data.reset_mock()
     callback.data = "dir_select_7"
     asyncio.run(process_directorate(callback, state))
-    state.update_data.assert_awaited_once_with(directorate_id=7, current_directorate_id=None)
+    state.update_data.assert_awaited_once_with(
+        directorate_id=7,
+        current_directorate_id=None,
+        complaint_types=complaint_types,
+        complaint_type_page=0,
+    )
     state.set_state.assert_awaited_once_with(ComplaintForm.category)
+    assert callback.message.edit_text.call_args.kwargs["reply_markup"].inline_keyboard[0][0].callback_data == "ct_4"
     callback.data = "dir_open_999"
     state.update_data.reset_mock()
     asyncio.run(process_directorate(callback, state))
@@ -415,14 +457,21 @@ def test_versioned_legacy_migration_backups_repeat_and_restore(tmp_path, monkeyp
         assert db.get(Employee, 17).user.hashed_password == old_hash
         assert db.get(Employee, 17).user.needs_profile_completion
         assert db.get(Complaint, 901).tracking_code == "CMP-LEGACY"
+        assert db.get(Complaint, 901).category == "طرق"
+        assert db.get(Complaint, 901).complaint_type_id is None
+        assert db.get(Complaint, 901).sla_duration_minutes is None
         assert db.query(ComplaintFile).one().legacy_attachment_id == 71
         assert db.query(StoredFile).count() == 2
         assert db.query(ComplaintHistory).one().event == "imported_snapshot"
         assert not db.execute(text("PRAGMA foreign_key_check")).all()
         assert (
             db.execute(text("SELECT version_num FROM alembic_version")).scalar()
-            == "0004_system_admin"
+            == "0005_complaint_types"
         )
+        assert {"complaint_type_id", "sla_duration_minutes"}.issubset(
+            {column["name"] for column in inspect(engine).get_columns("complaints")}
+        )
+        assert db.query(ComplaintType).count() == 0
         assert all(row.parent_id is None for row in db.query(Directorate).all())
         parent_foreign_key = next(
             foreign_key

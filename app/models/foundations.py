@@ -5,6 +5,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.sql import func
 from app.db.base import Base
+from app.models.complaint import ComplaintType
 
 
 class Language(Base):
@@ -45,6 +46,14 @@ class DirectorateTranslation(Base):
     name = Column(String(150), nullable=False)
     description = Column(Text, nullable=False, default="")
     location = Column(String(500), nullable=False, default="")
+
+
+class ComplaintTypeTranslation(Base):
+    __tablename__ = "complaint_type_translations"
+    complaint_type_id = Column(ForeignKey("complaint_types.id", ondelete="CASCADE"), primary_key=True)
+    language_code = Column(ForeignKey("languages.code", ondelete="RESTRICT"), primary_key=True)
+    name = Column(String(150), nullable=False)
+    description = Column(Text, nullable=False, default="")
 
 
 class StoredFile(Base):
