@@ -273,6 +273,60 @@
   gap: 11px;
 }
 
+.branding-sidebar-guide {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 15px;
+  border: 1px solid color-mix(in srgb, var(--preview-dark) 12%, var(--preview-card));
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--preview-bg) 55%, var(--preview-card));
+}
+
+.branding-sidebar-guide-copy {
+  max-width: 420px;
+}
+
+.branding-sidebar-guide-copy strong {
+  color: var(--preview-dark);
+  font-size: 12px;
+}
+
+.branding-sidebar-guide-copy p {
+  margin: 5px 0 0;
+  color: #687168;
+  font-size: 10px;
+  line-height: 1.7;
+}
+
+.branding-sidebar-sample {
+  display: grid;
+  width: min(100%, 230px);
+  gap: 4px;
+  padding: 9px;
+  border: 1px solid color-mix(in srgb, var(--preview-dark) 12%, var(--preview-card));
+  border-radius: 10px;
+  background: var(--preview-card);
+}
+
+.branding-sidebar-sample-link {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 6px 9px;
+  border-inline-start: 3px solid transparent;
+  border-radius: 7px;
+  color: var(--preview-dark);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.branding-sidebar-sample-link.active {
+  border-inline-start-color: var(--preview-accent);
+  background: color-mix(in srgb, var(--preview-accent) 14%, var(--preview-card));
+}
+
 .branding-color-field {
   min-width: 0;
   padding: 13px;
@@ -694,7 +748,32 @@
 .branding-save-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
+}
+
+.branding-save-warning {
+  max-width: min(560px, 100%);
+  padding: 9px 11px;
+  border: 1px solid #efc8c0;
+  border-radius: 8px;
+  background: #fff7f4;
+  color: #8d4134;
+  font-size: 10px;
+  line-height: 1.65;
+}
+
+.branding-save-warning strong {
+  display: block;
+}
+
+.branding-save-warning ul {
+  margin: 4px 0 0;
+  padding-inline-start: 18px;
+}
+
+.branding-save-warning p {
+  margin: 4px 0 0;
 }
 
 .branding-save-actions .status {
@@ -770,6 +849,11 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .branding-sidebar-guide {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
   .branding-preview-section {
     grid-template-columns: 1fr;
   }
@@ -836,7 +920,11 @@
   .branding-save-actions {
     width: 100%;
     align-items: stretch;
-    flex-direction: column-reverse;
+    flex-direction: column;
+  }
+
+  .branding-save-warning {
+    max-width: none;
   }
 
   .branding-save-button {

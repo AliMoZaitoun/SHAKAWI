@@ -40,13 +40,13 @@ const DEFAULT_COLORS: BrandColors = {
   brand_card: "#FFFFFF",
 };
 const COLOR_FIELDS: ColorField[] = [
-  { key: "brand_dark", label: "اللون الداكن", description: "العناوين والنصوص البارزة" },
-  { key: "brand_primary", label: "اللون الأساسي", description: "الأزرار والعناصر الرئيسية" },
+  { key: "brand_dark", label: "اللون الداكن", description: "العناوين ونص روابط الشريط الجانبي" },
+  { key: "brand_primary", label: "اللون الأساسي", description: "الأزرار والإجراءات الرئيسية" },
   { key: "brand_light", label: "اللون الفاتح", description: "التفاصيل والعناصر المساندة" },
-  { key: "brand_accent", label: "لون التمييز", description: "الحالات النشطة والإشارات" },
+  { key: "brand_accent", label: "لون التمييز", description: "تحديد الزر النشط وخط الشريط الجانبي" },
   { key: "brand_gold", label: "اللون الذهبي", description: "التأكيدات البصرية" },
   { key: "brand_bg", label: "خلفية الصفحة", description: "المساحة المحيطة بالمحتوى" },
-  { key: "brand_card", label: "خلفية البطاقة", description: "الأسطح المرتفعة والمحتوى" },
+  { key: "brand_card", label: "خلفية البطاقة", description: "البطاقات وخلفية الشريط الجانبي" },
 ];
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
@@ -137,15 +137,24 @@ export function BrandingSettings() {
     [],
   );
 
-  const isValid = useMemo(
-    () =>
-      isBrandColors(colors) &&
-      contrastRatio("#FFFFFF", colors.brand_dark) >= 4.5 &&
-      contrastRatio("#FFFFFF", colors.brand_primary) >= 4.5 &&
-      contrastRatio("#283128", colors.brand_bg) >= 4.5 &&
-      contrastRatio("#283128", colors.brand_card) >= 4.5,
-    [colors],
-  );
+  const contrastIssues = useMemo(() => {
+    const issues: string[] = [];
+    if (HEX_COLOR.test(colors.brand_dark) && contrastRatio("#FFFFFF", colors.brand_dark) < 4.5) {
+      issues.push("اللون الداكن مع النص الأبيض يحتاج تباينًا 4.5:1 على الأقل.");
+    }
+    if (HEX_COLOR.test(colors.brand_primary) && contrastRatio("#FFFFFF", colors.brand_primary) < 4.5) {
+      issues.push("اللون الأساسي مع النص الأبيض يحتاج تباينًا 4.5:1 على الأقل.");
+    }
+    if (HEX_COLOR.test(colors.brand_bg) && contrastRatio("#283128", colors.brand_bg) < 4.5) {
+      issues.push("خلفية الصفحة داكنة على النص؛ اختر درجة أفتح حتى يبقى النص مقروءًا.");
+    }
+    if (HEX_COLOR.test(colors.brand_card) && contrastRatio("#283128", colors.brand_card) < 4.5) {
+      issues.push("خلفية البطاقة داكنة على النص؛ اختر درجة أفتح حتى يبقى النص مقروءًا.");
+    }
+    return issues;
+  }, [colors]);
+  const validColorFormats = useMemo(() => isBrandColors(colors), [colors]);
+  const isValid = validColorFormats && contrastIssues.length === 0;
   const changedColors = useMemo(
     () => query.data && COLOR_FIELDS.some(({ key }) => colors[key].toUpperCase() !== query.data?.colors[key].toUpperCase()),
     [colors, query.data],
@@ -416,6 +425,17 @@ export function BrandingSettings() {
                 );
               })}
             </div>
+            <section className="branding-sidebar-guide" aria-labelledby="branding-sidebar-guide-heading" style={previewStyles}>
+              <div className="branding-sidebar-guide-copy">
+                <strong id="branding-sidebar-guide-heading"><UiText source="معاينة ألوان الشريط الجانبي" /></strong>
+                <p><UiText source="الخلفية من خلفية البطاقة، ونص الروابط من اللون الداكن، والزر النشط من لون التمييز." /></p>
+              </div>
+              <nav className="branding-sidebar-sample" aria-label={tText("معاينة الشريط الجانبي")}>
+                <span className="branding-sidebar-sample-link"><UiText source="سجل الشكاوى" /></span>
+                <span className="branding-sidebar-sample-link active"><UiText source="الإحصائيات" /></span>
+                <span className="branding-sidebar-sample-link"><UiText source="إدارة الموظفين" /></span>
+              </nav>
+            </section>
           </section>
 
           <section className="branding-preview-section" aria-labelledby="branding-preview-heading" style={previewStyles}>
@@ -474,6 +494,18 @@ export function BrandingSettings() {
             </div>
             <div className="branding-save-actions">
               <AdminAlert text={save.message} isError={save.isError} />
+              {hasChanges && !isValid && (
+                <div className="branding-save-warning" role="alert">
+                  <strong><UiText source="تعذّر الحفظ للأسباب التالية:" /></strong>
+                  {!validColorFormats ? (
+                    <p><UiText source="أدخل جميع الألوان بصيغة #RRGGBB." /></p>
+                  ) : (
+                    <ul>
+                      {contrastIssues.map((issue) => <li key={issue}><UiText source={issue} /></li>)}
+                    </ul>
+                  )}
+                </div>
+              )}
               <button className="btn branding-save-button" type="button" onClick={() => void submitChanges()} disabled={save.busy || !hasChanges || !isValid}>
                 <Save size={16} aria-hidden="true" />
                 {save.busy ? <UiText source="جارٍ الحفظ…" /> : <UiText source="حفظ التغييرات" />}
