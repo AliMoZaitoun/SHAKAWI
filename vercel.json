@@ -3,8 +3,16 @@
   "outputDirectory": "frontend/dist",
   "rewrites": [
     {
+      "source": "/api/v1/:path*/",
+      "destination": "https://shakawi.onrender.com/api/v1/:path*/"
+    },
+    {
       "source": "/api/v1/:path*",
       "destination": "https://shakawi.onrender.com/api/v1/:path*"
+    },
+    {
+      "source": "/static/:path*/",
+      "destination": "https://shakawi.onrender.com/static/:path*/"
     },
     {
       "source": "/static/:path*",
