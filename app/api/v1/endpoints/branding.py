@@ -64,6 +64,8 @@ def save_branding(
     row = get_brand_settings(db)
     for key, value in data.colors.model_dump().items():
         setattr(row, key, value)
+    if data.hero_art_style is not None:
+        row.hero_art_style = data.hero_art_style
     row.updated_by_user_id = _actor_id(actor)
     record_event(
         db, "branding.colors_updated", "brand_settings", "1",

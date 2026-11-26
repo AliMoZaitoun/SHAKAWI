@@ -14,9 +14,11 @@ export const DEFAULT_BRAND_COLORS = {
 } as const;
 
 export type BrandColors = Record<keyof typeof DEFAULT_BRAND_COLORS, string>;
+export type HeroArtStyle = "flowing_lines" | "architectural" | "none";
 
 export type BrandingData = {
   colors: BrandColors;
+  hero_art_style: HeroArtStyle;
   logo_url: string | null;
   logo_version: number;
   updated_at: string | null;

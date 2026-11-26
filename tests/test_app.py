@@ -887,6 +887,7 @@ def test_brand_settings_are_public_but_admin_changes_are_permission_gated(system
     assert public.status_code == 200
     assert public.json()["colors"]["brand_dark"] == "#3b4b32"
     assert public.json()["colors"]["sidebar_item_bg"] == "#edf1e8"
+    assert public.json()["hero_art_style"] == "flowing_lines"
     assert public.json()["logo_url"] is None
     assert "logo_path" not in public.json()
     assert client.get("/api/v1/admin/settings/branding").status_code == 401
@@ -901,18 +902,29 @@ def test_brand_settings_are_public_but_admin_changes_are_permission_gated(system
     colors = current.json()["colors"]
     colors["brand_dark"] = "#263724"
     colors["sidebar_item_bg"] = "#172c44"
-    updated = client.put("/api/v1/admin/settings/branding", json={"colors": colors})
+    updated = client.put(
+        "/api/v1/admin/settings/branding",
+        json={"colors": colors, "hero_art_style": "architectural"},
+    )
     assert updated.status_code == 200, updated.text
     assert updated.json()["colors"]["brand_dark"] == "#263724"
     assert updated.json()["colors"]["sidebar_item_bg"] == "#172c44"
-    assert client.get("/api/v1/branding").json()["colors"]["sidebar_item_bg"] == "#172c44"
+    assert updated.json()["hero_art_style"] == "architectural"
+    public_after_update = client.get("/api/v1/branding").json()
+    assert public_after_update["colors"]["sidebar_item_bg"] == "#172c44"
+    assert public_after_update["hero_art_style"] == "architectural"
     with factory() as db:
         assert db.get(BrandSettings, 1).brand_dark == "#263724"
+        assert db.get(BrandSettings, 1).hero_art_style == "architectural"
 
     unsafe = {**colors, "brand_primary": "red; color: black"}
     assert client.put("/api/v1/admin/settings/branding", json={"colors": unsafe}).status_code == 422
     low_contrast = {**colors, "brand_primary": "#ffffff"}
     assert client.put("/api/v1/admin/settings/branding", json={"colors": low_contrast}).status_code == 422
+    assert client.put(
+        "/api/v1/admin/settings/branding",
+        json={"colors": colors, "hero_art_style": "unknown"},
+    ).status_code == 422
 
 
 def test_brand_logo_is_sanitized_isolated_and_resettable(system):

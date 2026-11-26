@@ -87,6 +87,12 @@ class FilePolicy(Base):
 class BrandSettings(Base):
     __tablename__ = "brand_settings"
     id = Column(Integer, primary_key=True)
+    hero_art_style = Column(
+        String(24),
+        nullable=False,
+        default="flowing_lines",
+        server_default="flowing_lines",
+    )
     brand_dark = Column(String(7), nullable=False, default="#3b4b32")
     brand_primary = Column(String(7), nullable=False, default="#4a5d3f")
     brand_light = Column(String(7), nullable=False, default="#657b57")

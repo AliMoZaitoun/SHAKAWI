@@ -8,11 +8,15 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useBranding } from "../../shared/branding/Branding";
+import { HeroDecoration } from "./HeroDecoration";
 import { useI18n } from "../../shared/i18n/I18n";
 import "./HomePage.css";
 
 export function HomePage() {
   const { tText, lang } = useI18n();
+  const branding = useBranding();
+  const heroArtStyle = branding?.hero_art_style ?? "flowing_lines";
 
   return (
     <div className="citizen-home">
@@ -57,6 +61,7 @@ export function HomePage() {
           <div className="citizen-image-wash" aria-hidden="true" />
           <span className="citizen-visual-accent" aria-hidden="true" />
         </div>
+        <HeroDecoration style={heroArtStyle} />
       </section>
 
       <Link className="citizen-transparency-link" to="/public">

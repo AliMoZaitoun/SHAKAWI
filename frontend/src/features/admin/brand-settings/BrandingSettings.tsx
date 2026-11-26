@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties } from "react";
-import { Check, ImagePlus, Palette, RotateCcw, Save, ShieldCheck, Upload, X } from "lucide-react";
+import { Check, ImagePlus, Palette, RotateCcw, Save, ShieldCheck, Upload, Waves, X } from "lucide-react";
 import { api } from "../../../shared/api/client";
 import { useResource } from "../../../shared/api/hooks";
 import { useI18n } from "../../../shared/i18n/I18n";
 import { UiText } from "../../../shared/i18n/UiText";
-import { readableForeground } from "../../../shared/branding/Branding";
+import { readableForeground, type HeroArtStyle } from "../../../shared/branding/Branding";
 import { AdminAlert, AdminPage, useAdminSave } from "../AdminPage";
+import { HeroDecoration } from "../../citizen/HeroDecoration";
 import "./branding-settings.css";
 
 type BrandColors = {
@@ -21,6 +22,7 @@ type BrandColors = {
 
 type BrandingSettingsResponse = {
   colors: BrandColors;
+  hero_art_style: HeroArtStyle;
   logo_url: string | null;
   logo_version: number;
   updated_at: string | null;
@@ -51,6 +53,27 @@ const COLOR_FIELDS: ColorField[] = [
   { key: "brand_bg", label: "خلفية الصفحة", description: "المساحة المحيطة بالمحتوى" },
   { key: "brand_card", label: "خلفية البطاقة", description: "البطاقات وخلفية الشريط الجانبي" },
   { key: "sidebar_item_bg", label: "خلفية أزرار الشريط الجانبي", description: "خلفية الرابط النشط وعند المرور عليه" },
+];
+const HERO_ART_OPTIONS: Array<{
+  value: HeroArtStyle;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "flowing_lines",
+    label: "خطوط منحنية",
+    description: "تصل الصورة بالأزرار بخطوط ناعمة.",
+  },
+  {
+    value: "architectural",
+    label: "خطوط معمارية",
+    description: "تفاصيل هندسية تستلهم شكل المباني.",
+  },
+  {
+    value: "none",
+    label: "بدون زخرفة",
+    description: "عرض الصورة كما هي من دون خطوط.",
+  },
 ];
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
@@ -121,6 +144,7 @@ export function BrandingSettings() {
   const query = useResource<BrandingSettingsResponse>("/admin/settings/branding", lang);
   const save = useAdminSave();
   const [colors, setColors] = useState<BrandColors>(DEFAULT_COLORS);
+  const [heroArtStyle, setHeroArtStyle] = useState<HeroArtStyle>("flowing_lines");
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoError, setLogoError] = useState("");
@@ -131,7 +155,10 @@ export function BrandingSettings() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (query.data && !hasLocalEdits) setColors(query.data.colors);
+    if (query.data && !hasLocalEdits) {
+      setColors(query.data.colors);
+      setHeroArtStyle(query.data.hero_art_style);
+    }
   }, [query.data, hasLocalEdits]);
 
   useEffect(
@@ -163,7 +190,8 @@ export function BrandingSettings() {
     () => query.data && COLOR_FIELDS.some(({ key }) => colors[key].toUpperCase() !== query.data?.colors[key].toUpperCase()),
     [colors, query.data],
   );
-  const hasChanges = Boolean(changedColors || logoFile || resetLogoOnSave);
+  const changedHeroArtStyle = query.data && heroArtStyle !== query.data.hero_art_style;
+  const hasChanges = Boolean(changedColors || changedHeroArtStyle || logoFile || resetLogoOnSave);
   const previewStyles = {
     "--preview-dark": colors.brand_dark,
     "--preview-primary": colors.brand_primary,
@@ -177,6 +205,15 @@ export function BrandingSettings() {
     "--preview-sidebar-item-ink": readableForeground(
       HEX_COLOR.test(colors.sidebar_item_bg) ? colors.sidebar_item_bg : DEFAULT_COLORS.sidebar_item_bg,
     ),
+  } as CSSProperties;
+  const heroArtPreviewStyles = {
+    "--brand-dark": colors.brand_dark,
+    "--brand-primary": colors.brand_primary,
+    "--brand-light": colors.brand_light,
+    "--brand-accent": colors.brand_accent,
+    "--brand-gold": colors.brand_gold,
+    "--brand-bg": colors.brand_bg,
+    "--brand-card": colors.brand_card,
   } as CSSProperties;
 
   function updateColor(key: keyof BrandColors, value: string) {
@@ -237,11 +274,11 @@ export function BrandingSettings() {
 
     let latestResponse = query.data;
     const ok = await save.run(async () => {
-      if (changedColors) {
+      if (changedColors || changedHeroArtStyle) {
         latestResponse = await api<BrandingSettingsResponse>("/admin/settings/branding", {
           method: "PUT",
           language: lang,
-          body: { colors },
+          body: { colors, hero_art_style: heroArtStyle },
         });
       }
       if (logoFile) {
@@ -264,6 +301,7 @@ export function BrandingSettings() {
 
     if (ok && latestResponse) {
       setColors(latestResponse.colors);
+      setHeroArtStyle(latestResponse.hero_art_style);
       setLogoFile(null);
       setResetLogoOnSave(false);
       if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
@@ -301,7 +339,7 @@ export function BrandingSettings() {
   return (
     <AdminPage
       title="هوية الخدمة"
-      subtitle="اضبط الشعار والألوان التي تظهر للمواطنين، ثم راجع المعاينة قبل حفظ التغييرات."
+      subtitle="اضبط الشعار والألوان وزخرفة الصورة الرئيسية التي تظهر للمواطنين، ثم راجع المعاينة قبل حفظ التغييرات."
       required="branding.manage"
       className="branding-admin"
     >
@@ -444,6 +482,67 @@ export function BrandingSettings() {
                 <span className="branding-sidebar-sample-link"><UiText source="إدارة الموظفين" /></span>
               </nav>
             </section>
+          </section>
+
+          <section className="branding-section branding-art-section" aria-labelledby="branding-art-heading">
+            <div className="branding-section-heading">
+              <span className="branding-section-icon"><Waves size={19} aria-hidden="true" /></span>
+              <div>
+                <h2 id="branding-art-heading"><UiText source="زخرفة الصورة الرئيسية" /></h2>
+                <p><UiText source="اختر طريقة ظهور الخطوط حول الصورة؛ يستخدم الرسم ألوان الهوية الحالية." /></p>
+              </div>
+            </div>
+            <div className="branding-art-options" role="radiogroup" aria-label={tText("زخرفة الصورة الرئيسية")}>
+              {HERO_ART_OPTIONS.map((option) => (
+                <label
+                  className={`branding-art-option ${heroArtStyle === option.value ? "is-selected" : ""}`}
+                  key={option.value}
+                >
+                  <input
+                    className="branding-art-radio"
+                    type="radio"
+                    name="hero-art-style"
+                    value={option.value}
+                    checked={heroArtStyle === option.value}
+                    onChange={() => {
+                      setHeroArtStyle(option.value);
+                      setHasLocalEdits(true);
+                      save.setMessage("");
+                    }}
+                  />
+                  <span
+                    className="branding-art-option-visual"
+                    style={heroArtPreviewStyles}
+                    aria-hidden="true"
+                  >
+                    <img src="/static/images/citizen-home-syria-flag.jpg" alt="" />
+                    <HeroDecoration style={option.value} />
+                  </span>
+                  <span className="branding-art-option-copy">
+                    <strong><UiText source={option.label} /></strong>
+                    <small><UiText source={option.description} /></small>
+                  </span>
+                  <span className="branding-art-option-indicator" aria-hidden="true" />
+                </label>
+              ))}
+            </div>
+            <div className="branding-art-preview-wrap">
+              <strong className="branding-art-preview-label">
+                <UiText source="معاينة الزخرفة مع الصورة والأزرار" />
+              </strong>
+              <div className="branding-art-preview" style={heroArtPreviewStyles}>
+                <img
+                  className="branding-art-preview-photo"
+                  src="/static/images/citizen-home-syria-flag.jpg"
+                  alt=""
+                />
+                <div className="branding-art-preview-actions" aria-hidden="true">
+                  <span className="branding-art-preview-primary"><UiText source="تقديم شكوى" /></span>
+                  <span className="branding-art-preview-secondary"><UiText source="متابعة شكوى" /></span>
+                </div>
+                <HeroDecoration style={heroArtStyle} />
+              </div>
+            </div>
           </section>
 
           <section className="branding-preview-section" aria-labelledby="branding-preview-heading" style={previewStyles}>

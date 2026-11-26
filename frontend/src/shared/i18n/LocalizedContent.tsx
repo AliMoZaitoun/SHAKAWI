@@ -3,6 +3,16 @@ export const english: Record<string, string> = {
   "تقديم شكوى": "Submit a complaint",
   "متابعة شكوى": "Track a complaint",
   "منصة الشكاوى الحكومية الموحدة": "THE UNIFIED PUBLIC COMPLAINTS DESK",
+  "زخرفة الصورة الرئيسية": "Homepage image decoration",
+  "اختر طريقة ظهور الخطوط حول الصورة؛ يستخدم الرسم ألوان الهوية الحالية.":
+    "Choose how the line art appears around the photo. It uses the current brand colors.",
+  "خطوط منحنية": "Flowing lines",
+  "تصل الصورة بالأزرار بخطوط ناعمة.": "Soft lines connect the photo to the actions.",
+  "خطوط معمارية": "Architectural lines",
+  "تفاصيل هندسية تستلهم شكل المباني.": "Architectural linework inspired by civic buildings.",
+  "بدون زخرفة": "No decoration",
+  "عرض الصورة كما هي من دون خطوط.": "Show the photo without line art.",
+  "معاينة الزخرفة مع الصورة والأزرار": "Preview the decoration with the photo and buttons",
   "صوتك مسموع": "Your voice is heard",
   "ومسار شكواك واضح": "and your complaint has a clear path",
   "قدّم شكوى بسهولة دون إنشاء حساب، واحتفظ برمز المتابعة لتعرف ما يحدث في كل خطوة.":

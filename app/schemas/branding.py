@@ -1,4 +1,5 @@
 import re
+from typing import Literal
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.services.branding import DEFAULT_BRAND_COLORS
@@ -54,3 +55,4 @@ class BrandColors(BaseModel):
 
 class BrandingInput(BaseModel):
     colors: BrandColors
+    hero_art_style: Literal["flowing_lines", "architectural", "none"] | None = None

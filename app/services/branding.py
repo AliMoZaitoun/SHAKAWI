@@ -22,6 +22,7 @@ DEFAULT_BRAND_COLORS = {
     "brand_card": "#ffffff",
     "sidebar_item_bg": "#edf1e8",
 }
+DEFAULT_HERO_ART_STYLE = "flowing_lines"
 LOGO_MAX_BYTES = 2 * 1024 * 1024
 LOGO_MAX_PIXELS = 4_000_000
 LOGO_MAX_EDGE = 4096
@@ -32,7 +33,11 @@ BRANDING_DIR = UPLOAD_DIR / "branding"
 def bootstrap_brand_settings(db: Session) -> BrandSettings:
     row = db.get(BrandSettings, 1)
     if row is None:
-        row = BrandSettings(id=1, **DEFAULT_BRAND_COLORS)
+        row = BrandSettings(
+            id=1,
+            **DEFAULT_BRAND_COLORS,
+            hero_art_style=DEFAULT_HERO_ART_STYLE,
+        )
         db.add(row)
         db.flush()
     return row
@@ -50,6 +55,7 @@ def branding_data(row: BrandSettings) -> dict:
     logo_path = safe_logo_path(row.logo_path)
     return {
         "colors": color_data(row),
+        "hero_art_style": row.hero_art_style or DEFAULT_HERO_ART_STYLE,
         "logo_url": (
             f"/api/v1/branding/logo?v={row.logo_version}"
             if logo_path else None
