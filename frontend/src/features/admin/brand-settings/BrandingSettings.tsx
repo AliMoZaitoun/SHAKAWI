@@ -462,7 +462,9 @@ export function BrandingSettings() {
                       ? <img src={logoPreview ?? query.data.logo_url ?? undefined} alt="" />
                       : <span className="branding-mini-mark" aria-hidden="true"><i /><i /><i /></span>}
                   </div>
-                  <div><strong><UiText source="خدمة الشكاوى العامة" /></strong><small><UiText source="صوتك يصل، ونتابع معك" /></small></div>
+                  <div>
+                    <strong>{lang === "ar" ? "شكوى" : "SHAKWA"}</strong>
+                  </div>
                 </div>
                 <span className="branding-mock-nav-label"><UiText source="الشفافية العامة" /></span>
               </div>

@@ -658,7 +658,6 @@ export const english: Record<string, string> = {
   "هكذا ستبدو الهوية للمواطن": "This is how residents will see the service",
   "معاينة فقط": "Preview only",
   "خدمة الشكاوى العامة": "Public complaints service",
-  "صوتك يصل، ونتابع معك": "Your voice reaches us, and we follow up",
   "خدمة عامة موثوقة": "A trusted public service",
   "كل شكوى تستحق أن تُسمع.": "Every complaint deserves to be heard.",
   "قدّم شكواك وتابع خطوات معالجتها بوضوح.": "Submit and follow your complaint clearly.",
