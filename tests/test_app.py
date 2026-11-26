@@ -924,6 +924,14 @@ def test_brand_settings_are_public_but_admin_changes_are_permission_gated(system
     assert updated_colors_only.status_code == 200, updated_colors_only.text
     assert updated_colors_only.json()["hero_art_style"] == "architectural"
 
+    updated_without_art = client.put(
+        "/api/v1/admin/settings/branding",
+        json={"colors": colors, "hero_art_style": "none"},
+    )
+    assert updated_without_art.status_code == 200, updated_without_art.text
+    assert updated_without_art.json()["hero_art_style"] == "none"
+    assert client.get("/api/v1/branding").json()["hero_art_style"] == "none"
+
     unsafe = {**colors, "brand_primary": "red; color: black"}
     assert client.put("/api/v1/admin/settings/branding", json={"colors": unsafe}).status_code == 422
     low_contrast = {**colors, "brand_primary": "#ffffff"}

@@ -170,18 +170,6 @@
     );
 }
 
-.citizen-visual-accent {
-  position: absolute;
-  inset-inline-end: -55px;
-  inset-block-end: -45px;
-  width: 43%;
-  height: 82px;
-  background: var(--brand-primary);
-  border-radius: 70% 0 0;
-  transform: rotate(-5deg);
-  opacity: 0.94;
-}
-
 .citizen-transparency-link {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;

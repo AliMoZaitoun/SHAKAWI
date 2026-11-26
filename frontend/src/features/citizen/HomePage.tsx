@@ -59,7 +59,6 @@ export function HomePage() {
             fetchPriority="high"
           />
           <div className="citizen-image-wash" aria-hidden="true" />
-          <span className="citizen-visual-accent" aria-hidden="true" />
           <HeroDecoration style={heroArtStyle} />
         </div>
       </section>
