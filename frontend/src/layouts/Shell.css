@@ -3,7 +3,7 @@
   border-bottom: 1px solid color-mix(in srgb, var(--brand-dark) 12%, transparent);
 }
 
-.citizen-topbar-inner {
+.citizen-site .citizen-topbar-inner {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   min-height: 82px;
@@ -52,7 +52,7 @@
   color: var(--brand-dark);
 }
 
-.citizen-nav {
+.citizen-site .citizen-nav {
   justify-content: space-between;
   gap: 8px;
   padding: 0 0 11px;
@@ -73,23 +73,23 @@
     border-color 180ms ease;
 }
 
-.citizen-nav a:hover {
+.citizen-site .citizen-nav a:hover {
   background: color-mix(in srgb, var(--brand-primary) 10%, var(--brand-card));
   transform: translateY(-1px);
 }
 
-.citizen-nav a.active {
+.citizen-site .citizen-nav a.active {
   background: var(--brand-dark);
   color: var(--brand-dark-foreground, #fff);
   border-color: color-mix(in srgb, var(--brand-dark) 88%, #000);
   box-shadow: inset 0 -3px color-mix(in srgb, var(--brand-accent) 78%, transparent);
 }
 
-.citizen-main {
+.citizen-site .citizen-main {
   padding-block: clamp(24px, 4vw, 48px) clamp(36px, 6vw, 72px);
 }
 
-.citizen-footer {
+.citizen-site .citizen-footer {
   padding: 30px 0;
   border: 0;
   background: var(--brand-dark);
@@ -111,7 +111,7 @@
 }
 
 @media (max-width: 760px) {
-  .citizen-topbar-inner {
+  .citizen-site .citizen-topbar-inner {
     grid-template-columns: 1fr auto;
     grid-template-areas:
       "brand language"
@@ -137,7 +137,7 @@
     padding: 8px 11px;
   }
 
-  .citizen-nav {
+  .citizen-site .citizen-nav {
     display: flex;
     gap: 6px;
     padding: 0 0 10px;
@@ -157,7 +157,7 @@
     font-size: 12px;
   }
 
-  .citizen-main {
+  .citizen-site .citizen-main {
     padding-top: 18px;
   }
 }

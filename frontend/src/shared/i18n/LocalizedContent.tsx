@@ -4,12 +4,13 @@ export const english: Record<string, string> = {
   "متابعة شكوى": "Track a complaint",
   "منصة الشكاوى الحكومية الموحدة": "THE UNIFIED PUBLIC COMPLAINTS DESK",
   "خدمة عامة متوفرة": "A public service, ready to help",
-  "صوتك مسموع، ومسار شكواك واضح": "Your voice is heard. Your complaint has a clear path.",
+  "صوتك مسموع": "Your voice is heard",
+  "ومسار شكواك واضح": "and your complaint has a clear path",
   "قدّم شكوى بسهولة دون إنشاء حساب، واحتفظ برمز المتابعة لتعرف ما يحدث في كل خطوة.":
     "Submit a complaint without creating an account. Keep your tracking code to follow each step.",
   "النشر العام اختياري ويحمي بياناتك الشخصية":
     "Public sharing is optional and keeps your personal information private.",
-  "مبنى خدمة عامة في سوريا": "A public service building in Syria",
+  "علم سوريا يرفرف فوق مبنى خدمة عامة": "The Syrian flag flying above a public service building",
   "اطّلع على الشكاوى المنشورة": "Explore published complaints",
   "تابع ما اختار المواطنون نشره واطّلع على تحديثاته، دون كشف هوياتهم أو مرفقاتهم.":
     "See what citizens chose to share and follow updates without exposing identities or attachments.",

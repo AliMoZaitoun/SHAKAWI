@@ -2,7 +2,6 @@ import {
   ArrowLeft,
   ArrowRight,
   Eye,
-  Headphones,
   LockKeyhole,
   Search,
   Send,
@@ -11,38 +10,6 @@ import {
 import { Link } from "react-router-dom";
 import { useI18n } from "../../shared/i18n/I18n";
 import "./HomePage.css";
-
-function SyrianFlag() {
-  return (
-    <svg
-      className="citizen-hero-flag"
-      viewBox="0 0 180 126"
-      role="img"
-      aria-label="علم سوريا"
-    >
-      <path d="M28 10v103" fill="none" stroke="#4b4035" strokeWidth="4" />
-      <path d="M34 20c42 2 80 13 132 17v58c-51-7-91-17-132-19z" fill="#fff" />
-      <path d="M34 20c42 2 80 13 132 17v19c-51-7-91-15-132-17z" fill="#087a43" />
-      <path d="M34 76c42 3 81 13 132 19V75c-51-7-91-16-132-17z" fill="#111" />
-      <path
-        d="M34 20c42 2 80 13 132 17v58c-51-7-91-17-132-19z"
-        fill="none"
-        stroke="#283128"
-        strokeOpacity=".16"
-        strokeWidth="1.5"
-      />
-      {[68, 99, 130].map((x) => (
-        <path
-          key={x}
-          d={`M${x} 47l2.7 6.3 6.8.5-5.2 4.4 1.7 6.6-6-3.6-5.9 3.6 1.6-6.6-5.1-4.4 6.7-.5z`}
-          fill="#ce1126"
-          stroke="#ab1021"
-          strokeWidth=".6"
-        />
-      ))}
-    </svg>
-  );
-}
 
 export function HomePage() {
   const { tText, lang } = useI18n();
@@ -56,7 +23,8 @@ export function HomePage() {
             {tText("منصة الشكاوى الحكومية الموحدة")}
           </div>
           <h1 id="citizen-home-title">
-            {tText("صوتك مسموع، ومسار شكواك واضح")}
+            <span>{tText("صوتك مسموع")}</span>
+            <span>{tText("ومسار شكواك واضح")}</span>
           </h1>
           <p className="citizen-hero-description">
             {tText(
@@ -82,14 +50,11 @@ export function HomePage() {
         <div className="citizen-hero-visual">
           <img
             className="citizen-hero-photo"
-            src="/images/citizen-home-civic.jpg"
-            alt={tText("مبنى خدمة عامة في سوريا")}
+            src="/static/images/citizen-home-syria-flag.jpg"
+            alt={tText("علم سوريا يرفرف فوق مبنى خدمة عامة")}
             fetchPriority="high"
           />
           <div className="citizen-image-wash" aria-hidden="true" />
-          <div className="citizen-flag-wrap">
-            <SyrianFlag />
-          </div>
           <div className="citizen-photo-caption">
             <span className="citizen-photo-caption-icon">
               <ShieldCheck size={16} aria-hidden="true" />
@@ -102,7 +67,7 @@ export function HomePage() {
 
       <Link className="citizen-transparency-link" to="/public">
         <span className="citizen-transparency-icon">
-          <Headphones size={26} aria-hidden="true" />
+          <Eye size={26} aria-hidden="true" />
         </span>
         <span className="citizen-transparency-copy">
           <strong>{tText("اطّلع على الشكاوى المنشورة")}</strong>
