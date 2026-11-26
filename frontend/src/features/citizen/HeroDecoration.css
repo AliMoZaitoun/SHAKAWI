@@ -65,16 +65,7 @@
 
 @media (max-width: 760px) {
   .citizen-hero-decoration {
-    inset: 0 0 auto;
-    height: clamp(220px, 58vw, 320px);
-  }
-
-  .citizen-hero-decoration svg {
-    overflow: visible;
-  }
-
-  .citizen-hero-decoration--flowing_lines svg {
-    transform: translateY(-1%);
+    opacity: 0.72;
   }
 }
 

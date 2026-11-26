@@ -60,8 +60,8 @@ export function HomePage() {
           />
           <div className="citizen-image-wash" aria-hidden="true" />
           <span className="citizen-visual-accent" aria-hidden="true" />
+          <HeroDecoration style={heroArtStyle} />
         </div>
-        <HeroDecoration style={heroArtStyle} />
       </section>
 
       <Link className="citizen-transparency-link" to="/public">

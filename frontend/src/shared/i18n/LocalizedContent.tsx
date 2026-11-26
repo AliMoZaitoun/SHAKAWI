@@ -4,6 +4,8 @@ export const english: Record<string, string> = {
   "متابعة شكوى": "Track a complaint",
   "منصة الشكاوى الحكومية الموحدة": "THE UNIFIED PUBLIC COMPLAINTS DESK",
   "زخرفة الصورة الرئيسية": "Homepage image decoration",
+  "اضبط الشعار والألوان وزخرفة الصورة الرئيسية التي تظهر للمواطنين، ثم راجع المعاينة قبل حفظ التغييرات.":
+    "Set the logo, colors, and homepage image decoration, then review the preview before saving.",
   "اختر طريقة ظهور الخطوط حول الصورة؛ يستخدم الرسم ألوان الهوية الحالية.":
     "Choose how the line art appears around the photo. It uses the current brand colors.",
   "خطوط منحنية": "Flowing lines",
