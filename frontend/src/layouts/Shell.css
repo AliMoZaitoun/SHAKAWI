@@ -1,3 +1,10 @@
+.citizen-site {
+  display: flex;
+  min-height: 100vh;
+  min-height: 100dvh;
+  flex-direction: column;
+}
+
 .citizen-site .topbar {
   background: color-mix(in srgb, var(--brand-card) 94%, var(--brand-bg));
   border-bottom: 1px solid color-mix(in srgb, var(--brand-dark) 12%, transparent);
@@ -68,10 +75,13 @@
 }
 
 .citizen-site .citizen-main {
+  flex: 1 0 auto;
   padding-block: clamp(24px, 4vw, 48px) clamp(36px, 6vw, 72px);
 }
 
 .citizen-site .citizen-footer {
+  flex: 0 0 auto;
+  margin-top: auto;
   padding: 30px 0;
   border: 0;
   background: var(--brand-dark);
