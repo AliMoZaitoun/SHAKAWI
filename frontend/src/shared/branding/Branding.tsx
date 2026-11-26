@@ -70,6 +70,8 @@ export function applyBranding(data: BrandingData) {
     "--brand-accent-ink",
     accentInk(safeColors.brand_accent, safeColors.brand_card),
   );
+  root.style.setProperty("--brand-dark-foreground", readableForeground(safeColors.brand_dark));
+  root.style.setProperty("--brand-primary-foreground", readableForeground(safeColors.brand_primary));
   root.style.setProperty("--brand-accent-foreground", readableForeground(safeColors.brand_accent));
   root.style.setProperty("--brand-gold-foreground", readableForeground(safeColors.brand_gold));
   root.style.setProperty("--sidebar-item-ink", readableForeground(safeColors.sidebar_item_bg));

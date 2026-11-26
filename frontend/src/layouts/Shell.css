@@ -1,0 +1,163 @@
+.citizen-site .topbar {
+  background: color-mix(in srgb, var(--brand-card) 94%, var(--brand-bg));
+  border-bottom: 1px solid color-mix(in srgb, var(--brand-dark) 12%, transparent);
+}
+
+.citizen-topbar-inner {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  min-height: 82px;
+}
+
+.citizen-brand {
+  justify-self: end;
+  gap: 11px;
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+.citizen-brand .brand-mark {
+  width: 48px;
+  height: 48px;
+  border-radius: 15px;
+  border-color: color-mix(in srgb, var(--brand-dark) 13%, transparent);
+}
+
+.citizen-brand small {
+  margin-top: 5px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.citizen-service-badge {
+  justify-self: center;
+  gap: 8px;
+  padding: 8px 15px;
+  background: color-mix(in srgb, var(--brand-gold) 17%, var(--brand-card));
+  color: var(--brand-dark);
+  border: 1px solid color-mix(in srgb, var(--brand-gold) 30%, transparent);
+  font-size: 12px;
+}
+
+.citizen-service-icon {
+  display: inline-flex;
+  color: var(--brand-primary);
+}
+
+.citizen-language-switch {
+  justify-self: start;
+  border-radius: 12px;
+  padding: 10px 14px;
+  border-color: color-mix(in srgb, var(--brand-dark) 18%, transparent);
+  color: var(--brand-dark);
+}
+
+.citizen-nav {
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 0 11px;
+}
+
+.citizen-nav a {
+  justify-content: center;
+  flex: 1 1 auto;
+  min-height: 44px;
+  padding: 10px 15px;
+  color: var(--brand-dark);
+  border: 1px solid transparent;
+  border-radius: 13px;
+  transition:
+    transform 180ms ease,
+    color 180ms ease,
+    background 180ms ease,
+    border-color 180ms ease;
+}
+
+.citizen-nav a:hover {
+  background: color-mix(in srgb, var(--brand-primary) 10%, var(--brand-card));
+  transform: translateY(-1px);
+}
+
+.citizen-nav a.active {
+  background: var(--brand-dark);
+  color: var(--brand-dark-foreground, #fff);
+  border-color: color-mix(in srgb, var(--brand-dark) 88%, #000);
+  box-shadow: inset 0 -3px color-mix(in srgb, var(--brand-accent) 78%, transparent);
+}
+
+.citizen-main {
+  padding-block: clamp(24px, 4vw, 48px) clamp(36px, 6vw, 72px);
+}
+
+.citizen-footer {
+  padding: 30px 0;
+  border: 0;
+  background: var(--brand-dark);
+  color: var(--brand-dark-foreground, #fff);
+}
+
+.citizen-footer .shell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(14px, 3vw, 40px);
+  text-align: center;
+}
+
+.citizen-footer-rule {
+  width: clamp(35px, 9vw, 100px);
+  height: 1px;
+  background: color-mix(in srgb, var(--brand-accent) 85%, transparent);
+}
+
+@media (max-width: 760px) {
+  .citizen-topbar-inner {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "brand language"
+      "service service";
+    gap: 10px 14px;
+    padding-block: 12px;
+  }
+
+  .citizen-brand {
+    grid-area: brand;
+    justify-self: end;
+  }
+
+  .citizen-service-badge {
+    grid-area: service;
+    justify-self: center;
+    padding: 6px 12px;
+  }
+
+  .citizen-language-switch {
+    grid-area: language;
+    justify-self: start;
+    padding: 8px 11px;
+  }
+
+  .citizen-nav {
+    display: flex;
+    gap: 6px;
+    padding: 0 0 10px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+  }
+
+  .citizen-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .citizen-nav a {
+    flex: 0 0 auto;
+    min-height: 41px;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .citizen-main {
+    padding-top: 18px;
+  }
+}

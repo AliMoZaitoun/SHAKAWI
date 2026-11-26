@@ -3,13 +3,25 @@ export const english: Record<string, string> = {
   "تقديم شكوى": "Submit a complaint",
   "متابعة شكوى": "Track a complaint",
   "منصة الشكاوى الحكومية الموحدة": "THE UNIFIED PUBLIC COMPLAINTS DESK",
+  "خدمة عامة متوفرة": "A public service, ready to help",
+  "صوتك مسموع، ومسار شكواك واضح": "Your voice is heard. Your complaint has a clear path.",
+  "قدّم شكوى بسهولة دون إنشاء حساب، واحتفظ برمز المتابعة لتعرف ما يحدث في كل خطوة.":
+    "Submit a complaint without creating an account. Keep your tracking code to follow each step.",
+  "النشر العام اختياري ويحمي بياناتك الشخصية":
+    "Public sharing is optional and keeps your personal information private.",
+  "مبنى خدمة عامة في سوريا": "A public service building in Syria",
+  "اطّلع على الشكاوى المنشورة": "Explore published complaints",
+  "تابع ما اختار المواطنون نشره واطّلع على تحديثاته، دون كشف هوياتهم أو مرفقاتهم.":
+    "See what citizens chose to share and follow updates without exposing identities or attachments.",
+  "خصوصيتك محفوظة": "Your privacy is protected",
+  "معلوماتك الشخصية ومرفقاتك لا تظهر ضمن الشكاوى العامة.":
+    "Your personal information and attachments are not shown with public complaints.",
   "صوتك مسموع. ومسار شكواك واضح.": "Your voice matters. Your complaint has a clear path.",
   "قدّم شكواك دون إنشاء حساب. احتفظ برمز المتابعة السري، وتابع خطوات المعالجة، أو اطّلع على ما اختار المواطنون نشره.":
     "Submit without creating an account. Keep your private tracking code, follow progress, or explore complaints citizens chose to publish.",
   "ابدأ بشكوى جديدة": "Start a complaint",
   "بياناتك الخاصة تبقى خارج العرض العام. النشر اختياري بالكامل.":
     "Your private details stay out of public view. Publishing is entirely optional.",
-  "اطّلع على الشكاوى المنشورة": "Browse published complaints",
   "شفافية بلا كشف للهويات أو رموز المتابعة أو المرفقات.":
     "Transparency without identities, tracking codes, or attachments.",
   "رمز المتابعة يخص شكوى واحدة": "A tracking code opens one complaint",
