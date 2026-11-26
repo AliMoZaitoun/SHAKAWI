@@ -55,12 +55,6 @@ export function HomePage() {
             fetchPriority="high"
           />
           <div className="citizen-image-wash" aria-hidden="true" />
-          <div className="citizen-photo-caption">
-            <span className="citizen-photo-caption-icon">
-              <ShieldCheck size={16} aria-hidden="true" />
-            </span>
-            <span>{tText("خدمة عامة متوفرة")}</span>
-          </div>
           <span className="citizen-visual-accent" aria-hidden="true" />
         </div>
       </section>

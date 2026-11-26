@@ -3,7 +3,6 @@ export const english: Record<string, string> = {
   "تقديم شكوى": "Submit a complaint",
   "متابعة شكوى": "Track a complaint",
   "منصة الشكاوى الحكومية الموحدة": "THE UNIFIED PUBLIC COMPLAINTS DESK",
-  "خدمة عامة متوفرة": "A public service, ready to help",
   "صوتك مسموع": "Your voice is heard",
   "ومسار شكواك واضح": "and your complaint has a clear path",
   "قدّم شكوى بسهولة دون إنشاء حساب، واحتفظ برمز المتابعة لتعرف ما يحدث في كل خطوة.":

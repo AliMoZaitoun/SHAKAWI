@@ -29,21 +29,6 @@
   letter-spacing: 0.08em;
 }
 
-.citizen-service-badge {
-  justify-self: center;
-  gap: 8px;
-  padding: 8px 15px;
-  background: color-mix(in srgb, var(--brand-gold) 17%, var(--brand-card));
-  color: var(--brand-dark);
-  border: 1px solid color-mix(in srgb, var(--brand-gold) 30%, transparent);
-  font-size: 12px;
-}
-
-.citizen-service-icon {
-  display: inline-flex;
-  color: var(--brand-primary);
-}
-
 .citizen-language-switch {
   justify-self: start;
   border-radius: 12px;
@@ -113,9 +98,7 @@
 @media (max-width: 760px) {
   .citizen-site .citizen-topbar-inner {
     grid-template-columns: 1fr auto;
-    grid-template-areas:
-      "brand language"
-      "service service";
+    grid-template-areas: "brand language";
     gap: 10px 14px;
     padding-block: 12px;
   }
@@ -123,12 +106,6 @@
   .citizen-brand {
     grid-area: brand;
     justify-self: end;
-  }
-
-  .citizen-service-badge {
-    grid-area: service;
-    justify-self: center;
-    padding: 6px 12px;
   }
 
   .citizen-language-switch {

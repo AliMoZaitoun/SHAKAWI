@@ -1,11 +1,11 @@
 import { Link, NavLink, Outlet } from "react-router-dom";
-import { Languages, ShieldCheck } from "lucide-react";
+import { Languages } from "lucide-react";
 import { useI18n } from "../shared/i18n/I18n";
 import { BrandMark } from "../shared/branding/Branding";
 import "./Shell.css";
 
 export function Shell() {
-  const { lang, t, tText, setLang } = useI18n();
+  const { lang, t, setLang } = useI18n();
   return (
     <div className="citizen-site">
       <header className="topbar">
@@ -16,16 +16,12 @@ export function Shell() {
                 <BrandMark />
               </span>
               <span>
-                شكوى{" "}
-                <small>{lang === "ar" ? "منصة الشكاوى الحكومية" : "GOVERNMENT COMPLAINTS"}</small>
+                {lang === "ar" ? "شكوى" : "SHAKWA"}
+                <small>
+                  {lang === "ar" ? "منصة الشكاوى الحكومية" : "Government complaints platform"}
+                </small>
               </span>
             </Link>
-            <span className="badge citizen-service-badge">
-              <span className="citizen-service-icon">
-                <ShieldCheck size={14} />
-              </span>
-              {tText("خدمة عامة متوفرة")}
-            </span>
             <button
               className="btn ghost citizen-language-switch"
               type="button"
@@ -57,7 +53,9 @@ export function Shell() {
         <div className="shell">
           <span className="citizen-footer-rule" aria-hidden="true" />
           <span>
-            SHAKWA — {lang === "ar" ? "منصة الشكاوى الحكومية" : "Government complaints service"}
+            {lang === "ar"
+              ? "شكوى — منصة الشكاوى الحكومية"
+              : "SHAKWA — Government complaints service"}
           </span>
           <span className="citizen-footer-rule" aria-hidden="true" />
         </div>
