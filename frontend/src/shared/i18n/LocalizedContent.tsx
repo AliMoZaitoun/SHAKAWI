@@ -21,7 +21,7 @@ export const english: Record<string, string> = {
     "Submit a complaint without creating an account. Keep your tracking code to follow each step.",
   "النشر العام اختياري ويحمي بياناتك الشخصية":
     "Public sharing is optional and keeps your personal information private.",
-  "علم سوريا يرفرف فوق مبنى خدمة عامة": "The Syrian flag flying above a public service building",
+  "علم سوريا فوق مبنى أثري": "The Syrian flag above a historic building",
   "اطّلع على الشكاوى المنشورة": "Explore published complaints",
   "تابع ما اختار المواطنون نشره واطّلع على تحديثاته، دون كشف هوياتهم أو مرفقاتهم.":
     "See what citizens chose to share and follow updates without exposing identities or attachments.",

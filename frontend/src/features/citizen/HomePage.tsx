@@ -55,7 +55,7 @@ export function HomePage() {
           <img
             className="citizen-hero-photo"
             src="/static/images/citizen-home-syria-flag.jpg"
-            alt={tText("علم سوريا يرفرف فوق مبنى خدمة عامة")}
+            alt={tText("علم سوريا فوق مبنى أثري")}
             fetchPriority="high"
           />
           <div className="citizen-image-wash" aria-hidden="true" />
