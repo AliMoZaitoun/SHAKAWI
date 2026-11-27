@@ -23,6 +23,7 @@ type BrandColors = {
 type BrandingSettingsResponse = {
   colors: BrandColors;
   hero_art_style: HeroArtStyle;
+  hero_image_url: string | null;
   logo_url: string | null;
   logo_version: number;
   updated_at: string | null;
@@ -77,6 +78,8 @@ const HERO_ART_OPTIONS: Array<{
 ];
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
+const MAX_HERO_IMAGE_BYTES = 8 * 1024 * 1024;
+const DEFAULT_HERO_IMAGE_URL = "/static/images/citizen-home-syria-flag.jpg";
 
 function isBrandColors(value: BrandColors): boolean {
   return COLOR_FIELDS.every(({ key }) => HEX_COLOR.test(value[key]));
@@ -148,11 +151,16 @@ export function BrandingSettings() {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoError, setLogoError] = useState("");
+  const [heroImageFile, setHeroImageFile] = useState<File | null>(null);
+  const [heroImagePreview, setHeroImagePreview] = useState<string | null>(null);
+  const [heroImageError, setHeroImageError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof BrandColors, string>>>({});
   const [hasLocalEdits, setHasLocalEdits] = useState(false);
   const [resetLogoOnSave, setResetLogoOnSave] = useState(false);
   const objectUrlRef = useRef<string | null>(null);
+  const heroImageObjectUrlRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const heroImageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (query.data && !hasLocalEdits) {
@@ -164,6 +172,7 @@ export function BrandingSettings() {
   useEffect(
     () => () => {
       if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+      if (heroImageObjectUrlRef.current) URL.revokeObjectURL(heroImageObjectUrlRef.current);
     },
     [],
   );
@@ -191,7 +200,11 @@ export function BrandingSettings() {
     [colors, query.data],
   );
   const changedHeroArtStyle = query.data && heroArtStyle !== query.data.hero_art_style;
-  const hasChanges = Boolean(changedColors || changedHeroArtStyle || logoFile || resetLogoOnSave);
+  const hasChanges = Boolean(
+    changedColors || changedHeroArtStyle || logoFile || resetLogoOnSave || heroImageFile,
+  );
+  const heroImageSource =
+    heroImagePreview ?? query.data?.hero_image_url ?? DEFAULT_HERO_IMAGE_URL;
   const previewStyles = {
     "--preview-dark": colors.brand_dark,
     "--preview-primary": colors.brand_primary,
@@ -223,6 +236,73 @@ export function BrandingSettings() {
       ...current,
       [key]: HEX_COLOR.test(value) ? undefined : tText("أدخل رمز لون بصيغة #RRGGBB."),
     }));
+  }
+
+  async function persistHeroImage(file: File): Promise<BrandingSettingsResponse> {
+    const body = new FormData();
+    body.append("file", file);
+    return api<BrandingSettingsResponse>("/admin/settings/branding/hero-image", {
+      method: "POST",
+      language: lang,
+      body,
+    });
+  }
+
+  function clearHeroImageDraft() {
+    if (heroImageObjectUrlRef.current) URL.revokeObjectURL(heroImageObjectUrlRef.current);
+    heroImageObjectUrlRef.current = null;
+    setHeroImageFile(null);
+    setHeroImagePreview(null);
+    if (heroImageInputRef.current) heroImageInputRef.current.value = "";
+  }
+
+  async function uploadHeroImageImmediately(file: File) {
+    let latestResponse: BrandingSettingsResponse | undefined;
+    const ok = await save.run(async () => {
+      latestResponse = await persistHeroImage(file);
+      return latestResponse;
+    });
+    if (ok && latestResponse) {
+      clearHeroImageDraft();
+      setHeroImageError("");
+    }
+  }
+
+  function selectHeroImage(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setHeroImageError("");
+    const supportedTypes = ["image/png", "image/jpeg", "image/webp"];
+    if (!supportedTypes.includes(file.type)) {
+      setHeroImageError(tText("اختر ملف JPEG أو PNG أو WebP."));
+      event.target.value = "";
+      return;
+    }
+    if (file.size > MAX_HERO_IMAGE_BYTES) {
+      setHeroImageError(tText("حجم الصورة يتجاوز الحد الأقصى البالغ 8 ميغابايت."));
+      event.target.value = "";
+      return;
+    }
+    if (heroImageObjectUrlRef.current) URL.revokeObjectURL(heroImageObjectUrlRef.current);
+    const localUrl = URL.createObjectURL(file);
+    heroImageObjectUrlRef.current = localUrl;
+    setHeroImagePreview(localUrl);
+    setHeroImageFile(file);
+    void uploadHeroImageImmediately(file);
+  }
+
+  async function restoreDefaultHeroImage() {
+    if (!query.data?.hero_image_url) return;
+    const ok = await save.run(() =>
+      api<BrandingSettingsResponse>("/admin/settings/branding/hero-image", {
+        method: "DELETE",
+        language: lang,
+      }),
+    );
+    if (ok) {
+      clearHeroImageDraft();
+      setHeroImageError("");
+    }
   }
 
   function selectLogo(event: ChangeEvent<HTMLInputElement>) {
@@ -281,6 +361,9 @@ export function BrandingSettings() {
           body: { colors, hero_art_style: heroArtStyle },
         });
       }
+      if (heroImageFile) {
+        latestResponse = await persistHeroImage(heroImageFile);
+      }
       if (logoFile) {
         const body = new FormData();
         body.append("file", logoFile);
@@ -302,6 +385,7 @@ export function BrandingSettings() {
     if (ok && latestResponse) {
       setColors(latestResponse.colors);
       setHeroArtStyle(latestResponse.hero_art_style);
+      clearHeroImageDraft();
       setLogoFile(null);
       setResetLogoOnSave(false);
       if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
@@ -339,7 +423,7 @@ export function BrandingSettings() {
   return (
     <AdminPage
       title="هوية الخدمة"
-      subtitle="اضبط الشعار والألوان وزخرفة الصورة الرئيسية التي تظهر للمواطنين، ثم راجع المعاينة قبل حفظ التغييرات."
+      subtitle="اضبط الشعار والألوان وصورة الصفحة الرئيسية وزخرفتها، ثم راجع المعاينة."
       required="branding.manage"
       className="branding-admin"
     >
@@ -484,6 +568,80 @@ export function BrandingSettings() {
             </section>
           </section>
 
+          <section className="branding-section branding-hero-image-section" aria-labelledby="branding-hero-image-heading">
+            <div className="branding-section-heading">
+              <span className="branding-section-icon"><ImagePlus size={19} aria-hidden="true" /></span>
+              <div>
+                <h2 id="branding-hero-image-heading"><UiText source="صورة الصفحة الرئيسية" /></h2>
+                <p><UiText source="اختر صورة الموقع التي ستظهر للمواطنين في الواجهة الرئيسية." /></p>
+              </div>
+            </div>
+            <div className="branding-hero-image-manager">
+              <div className="branding-hero-image-preview">
+                <img src={heroImageSource} alt={tText("معاينة الصورة الرئيسية")} />
+                {heroImageFile && save.busy && (
+                  <span className="branding-preview-tag" role="status">
+                    <UiText source="جارٍ حفظ الصورة..." />
+                  </span>
+                )}
+              </div>
+              <div className="branding-hero-image-controls">
+                <p className="branding-helper">
+                  <UiText source="الملفات المدعومة JPEG وPNG وWebP، بحد أقصى 8 ميغابايت." />
+                </p>
+                <p className="branding-hero-image-public-note">
+                  <ShieldCheck size={15} aria-hidden="true" />
+                  <UiText source="ستُحفظ الصورة فور اختيارها وتظهر مباشرة لجميع زوار الموقع." />
+                </p>
+                <input
+                  ref={heroImageInputRef}
+                  className="branding-file-input"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  aria-label={tText("اختيار صورة الصفحة الرئيسية")}
+                  onChange={selectHeroImage}
+                  disabled={save.busy}
+                />
+                <div className="branding-logo-actions">
+                  <button
+                    className="btn secondary"
+                    type="button"
+                    onClick={() => heroImageInputRef.current?.click()}
+                    disabled={save.busy}
+                  >
+                    <Upload size={16} aria-hidden="true" />
+                    <UiText source="رفع صورة جديدة" />
+                  </button>
+                  {query.data.hero_image_url && (
+                    <button
+                      className="btn ghost"
+                      type="button"
+                      onClick={() => void restoreDefaultHeroImage()}
+                      disabled={save.busy}
+                    >
+                      <RotateCcw size={15} aria-hidden="true" />
+                      <UiText source="استعادة الصورة الافتراضية" />
+                    </button>
+                  )}
+                  {heroImageFile && !save.busy && (
+                    <button
+                      className="branding-remove-selection"
+                      type="button"
+                      onClick={clearHeroImageDraft}
+                    >
+                      <X size={14} aria-hidden="true" />
+                      <UiText source="إلغاء الاختيار" />
+                    </button>
+                  )}
+                </div>
+                {heroImageFile && (
+                  <p className="branding-selected-file"><bdi>{heroImageFile.name}</bdi></p>
+                )}
+                {heroImageError && <p className="branding-inline-error" role="alert">{heroImageError}</p>}
+              </div>
+            </div>
+          </section>
+
           <section className="branding-section branding-art-section" aria-labelledby="branding-art-heading">
             <div className="branding-section-heading">
               <span className="branding-section-icon"><Waves size={19} aria-hidden="true" /></span>
@@ -515,7 +673,7 @@ export function BrandingSettings() {
                     style={heroArtPreviewStyles}
                     aria-hidden="true"
                   >
-                    <img src="/static/images/citizen-home-syria-flag.jpg" alt="" />
+                    <img src={heroImageSource} alt="" />
                     <HeroDecoration style={option.value} />
                   </span>
                   <span className="branding-art-option-copy">
@@ -533,7 +691,7 @@ export function BrandingSettings() {
               <div className="branding-art-preview" style={heroArtPreviewStyles}>
                 <img
                   className="branding-art-preview-photo"
-                  src="/static/images/citizen-home-syria-flag.jpg"
+                  src={heroImageSource}
                   alt=""
                 />
                 <div className="branding-art-preview-actions" aria-hidden="true">

@@ -4,8 +4,8 @@ export const english: Record<string, string> = {
   "متابعة شكوى": "Track a complaint",
   "منصة الشكاوى الحكومية الموحدة": "THE UNIFIED PUBLIC COMPLAINTS DESK",
   "زخرفة الصورة الرئيسية": "Homepage image decoration",
-  "اضبط الشعار والألوان وزخرفة الصورة الرئيسية التي تظهر للمواطنين، ثم راجع المعاينة قبل حفظ التغييرات.":
-    "Set the logo, colors, and homepage image decoration, then review the preview before saving.",
+  "اضبط الشعار والألوان وصورة الصفحة الرئيسية وزخرفتها، ثم راجع المعاينة.":
+    "Set the logo, colors, homepage photo, and decoration, then review the preview.",
   "اختر طريقة ظهور الخطوط حول الصورة؛ يستخدم الرسم ألوان الهوية الحالية.":
     "Choose how the line art appears around the photo. It uses the current brand colors.",
   "خطوط منحنية": "Flowing lines",
@@ -14,6 +14,21 @@ export const english: Record<string, string> = {
   "تفاصيل هندسية تستلهم شكل المباني.": "Architectural linework inspired by civic buildings.",
   "بدون زخرفة": "No decoration",
   "عرض الصورة كما هي من دون خطوط.": "Show the photo without line art.",
+  "صورة الصفحة الرئيسية": "Homepage photo",
+  "اختر صورة الموقع التي ستظهر للمواطنين في الواجهة الرئيسية.":
+    "Choose the image visitors will see on the citizen homepage.",
+  "الملفات المدعومة JPEG وPNG وWebP، بحد أقصى 8 ميغابايت.":
+    "Supported: JPEG, PNG, and WebP, up to 8 MB.",
+  "ستُحفظ الصورة فور اختيارها وتظهر مباشرة لجميع زوار الموقع.":
+    "The image is saved as soon as you select it and immediately becomes public.",
+  "اختيار صورة الصفحة الرئيسية": "Choose homepage photo",
+  "رفع صورة جديدة": "Upload a new photo",
+  "استعادة الصورة الافتراضية": "Restore the default photo",
+  "جارٍ حفظ الصورة...": "Saving photo…",
+  "اختر ملف JPEG أو PNG أو WebP.": "Choose a JPEG, PNG, or WebP file.",
+  "حجم الصورة يتجاوز الحد الأقصى البالغ 8 ميغابايت.":
+    "The photo exceeds the 8 MB maximum size.",
+  "معاينة الصورة الرئيسية": "Homepage photo preview",
   "معاينة الزخرفة مع الصورة والأزرار": "Preview the decoration with the photo and buttons",
   "صوتك مسموع": "Your voice is heard",
   "ومسار شكواك واضح": "and your complaint has a clear path",

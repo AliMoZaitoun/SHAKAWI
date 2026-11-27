@@ -888,6 +888,7 @@ def test_brand_settings_are_public_but_admin_changes_are_permission_gated(system
     assert public.json()["colors"]["brand_dark"] == "#3b4b32"
     assert public.json()["colors"]["sidebar_item_bg"] == "#edf1e8"
     assert public.json()["hero_art_style"] == "flowing_lines"
+    assert public.json()["hero_image_url"] is None
     assert public.json()["logo_url"] is None
     assert "logo_path" not in public.json()
     assert client.get("/api/v1/admin/settings/branding").status_code == 401
@@ -995,6 +996,75 @@ def test_brand_logo_is_sanitized_isolated_and_resettable(system):
     assert reset.json()["logo_url"] is None
     assert not saved_path.exists()
     assert client.get("/api/v1/branding/logo").status_code == 404
+
+
+def test_brand_hero_image_is_durable_public_and_resettable(system):
+    from io import BytesIO
+    from PIL import Image
+    from app.core.security import _attempts
+    from app.models.foundations import BrandSettings
+
+    _attempts.clear()
+    client, factory = system
+    public = client.get("/api/v1/branding")
+    assert public.status_code == 200
+    assert public.json()["hero_image_url"] is None
+    assert client.get("/api/v1/branding/hero-image").status_code == 404
+    assert client.post(
+        "/api/v1/admin/settings/branding/hero-image",
+        files={"file": ("hero.jpg", b"not an image", "image/jpeg")},
+    ).status_code == 401
+
+    buffer = BytesIO()
+    Image.new("RGB", (80, 60), (24, 83, 112)).save(buffer, format="JPEG")
+    raw_image = buffer.getvalue()
+
+    login(client, "services")
+    assert client.post(
+        "/api/v1/admin/settings/branding/hero-image",
+        files={"file": ("hero.jpg", raw_image, "image/jpeg")},
+    ).status_code == 403
+    client.post("/api/v1/auth/logout")
+    login(client, "system_admin")
+
+    uploaded = client.post(
+        "/api/v1/admin/settings/branding/hero-image",
+        files={"file": ("hero.jpg", raw_image, "image/jpeg")},
+    )
+    assert uploaded.status_code == 200, uploaded.text
+    image_url = uploaded.json()["hero_image_url"]
+    assert image_url.startswith("/api/v1/branding/hero-image?v=1")
+    assert "hero_image_data" not in uploaded.text
+
+    client.post("/api/v1/auth/logout")
+    image_response = client.get(image_url)
+    assert image_response.status_code == 200
+    assert image_response.headers["content-type"] == "image/jpeg"
+    assert image_response.headers["cache-control"].endswith("immutable")
+    with Image.open(BytesIO(image_response.content)) as image:
+        assert image.size == (80, 60)
+        assert image.format == "JPEG"
+    with factory() as db:
+        row = db.get(BrandSettings, 1)
+        assert row.hero_image_data == image_response.content
+        assert row.hero_image_mime == "image/jpeg"
+        assert row.hero_image_version == 1
+
+    login(client, "system_admin")
+    mismatch = client.post(
+        "/api/v1/admin/settings/branding/hero-image",
+        files={"file": ("not-jpeg.jpg", raw_image, "image/png")},
+    )
+    assert mismatch.status_code == 415
+    assert client.post(
+        "/api/v1/admin/settings/branding/hero-image",
+        files={"file": ("large.jpg", b"x" * (8 * 1024 * 1024 + 1), "image/jpeg")},
+    ).status_code == 413
+
+    reset = client.delete("/api/v1/admin/settings/branding/hero-image")
+    assert reset.status_code == 200, reset.text
+    assert reset.json()["hero_image_url"] is None
+    assert client.get("/api/v1/branding/hero-image").status_code == 404
 
 
 def test_print_template_defaults_are_public_and_changes_are_admin_only(system):

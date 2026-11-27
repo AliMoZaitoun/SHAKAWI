@@ -17,6 +17,7 @@ export function HomePage() {
   const { tText, lang } = useI18n();
   const branding = useBranding();
   const heroArtStyle = branding?.hero_art_style ?? "flowing_lines";
+  const heroImageUrl = branding?.hero_image_url ?? "/static/images/citizen-home-syria-flag.jpg";
 
   return (
     <div className="citizen-home">
@@ -54,7 +55,7 @@ export function HomePage() {
         <div className="citizen-hero-visual">
           <img
             className="citizen-hero-photo"
-            src="/static/images/citizen-home-syria-flag.jpg"
+            src={heroImageUrl}
             alt={tText("علم سوريا فوق مبنى أثري")}
             fetchPriority="high"
           />

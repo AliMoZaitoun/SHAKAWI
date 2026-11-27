@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from uuid import uuid4
@@ -9,11 +9,13 @@ from app.services.access import require_permission
 from app.services.audit import record_event
 from app.services.branding import (
     BRANDING_DIR,
+    HERO_IMAGE_MAX_BYTES,
     UPLOAD_DIR,
     branding_data,
     get_brand_settings,
     remove_logo,
     safe_logo_path,
+    sanitize_hero_image,
     sanitize_logo,
 )
 
@@ -50,6 +52,21 @@ def public_logo(v: int | None = None, db: Session = Depends(get_db)):
     )
 
 
+@router.get("/branding/hero-image")
+def public_hero_image(v: int | None = None, db: Session = Depends(get_db)):
+    row = get_brand_settings(db)
+    if not row.hero_image_data:
+        raise HTTPException(404, "لا توجد صورة رئيسية مخصصة")
+    return Response(
+        content=row.hero_image_data,
+        media_type=row.hero_image_mime or "image/jpeg",
+        headers={
+            "Cache-Control": "public, max-age=31536000, immutable",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
+
+
 @router.get("/admin/settings/branding")
 def read_branding(actor=Depends(manage), db: Session = Depends(get_db)):
     return _settings(db)
@@ -69,6 +86,52 @@ def save_branding(
     row.updated_by_user_id = _actor_id(actor)
     record_event(
         db, "branding.colors_updated", "brand_settings", "1",
+        actor_user_id=_actor_id(actor),
+    )
+    db.commit()
+    return _settings(db)
+
+
+@router.post("/admin/settings/branding/hero-image")
+async def upload_brand_hero_image(
+    file: UploadFile = File(...),
+    actor=Depends(manage),
+    db: Session = Depends(get_db),
+):
+    try:
+        raw = await file.read(HERO_IMAGE_MAX_BYTES + 1)
+        if len(raw) > HERO_IMAGE_MAX_BYTES:
+            raise HTTPException(413, "حجم الصورة يجب ألا يتجاوز 8 ميغابايت")
+        image_data, image_mime = sanitize_hero_image(raw, file.content_type)
+    except HTTPException:
+        raise
+    except ValueError as exc:
+        raise HTTPException(415, str(exc))
+    finally:
+        await file.close()
+
+    row = get_brand_settings(db)
+    row.hero_image_data = image_data
+    row.hero_image_mime = image_mime
+    row.hero_image_version += 1
+    row.updated_by_user_id = _actor_id(actor)
+    record_event(
+        db, "branding.hero_image_updated", "brand_settings", "1",
+        actor_user_id=_actor_id(actor),
+    )
+    db.commit()
+    return _settings(db)
+
+
+@router.delete("/admin/settings/branding/hero-image")
+def reset_brand_hero_image(actor=Depends(manage), db: Session = Depends(get_db)):
+    row = get_brand_settings(db)
+    row.hero_image_data = None
+    row.hero_image_mime = None
+    row.hero_image_version += 1
+    row.updated_by_user_id = _actor_id(actor)
+    record_event(
+        db, "branding.hero_image_reset", "brand_settings", "1",
         actor_user_id=_actor_id(actor),
     )
     db.commit()

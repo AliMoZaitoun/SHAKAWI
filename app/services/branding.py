@@ -27,6 +27,11 @@ LOGO_MAX_BYTES = 2 * 1024 * 1024
 LOGO_MAX_PIXELS = 4_000_000
 LOGO_MAX_EDGE = 4096
 ALLOWED_LOGO_FORMATS = {"JPEG", "PNG", "WEBP"}
+HERO_IMAGE_MAX_BYTES = 8 * 1024 * 1024
+HERO_IMAGE_MAX_PIXELS = 16_000_000
+HERO_IMAGE_MAX_EDGE = 5000
+HERO_IMAGE_OUTPUT_MAX_BYTES = 8 * 1024 * 1024
+ALLOWED_HERO_IMAGE_FORMATS = {"JPEG", "PNG", "WEBP"}
 BRANDING_DIR = UPLOAD_DIR / "branding"
 
 
@@ -56,6 +61,10 @@ def branding_data(row: BrandSettings) -> dict:
     return {
         "colors": color_data(row),
         "hero_art_style": row.hero_art_style or DEFAULT_HERO_ART_STYLE,
+        "hero_image_url": (
+            f"/api/v1/branding/hero-image?v={row.hero_image_version}"
+            if row.hero_image_data else None
+        ),
         "logo_url": (
             f"/api/v1/branding/logo?v={row.logo_version}"
             if logo_path else None
@@ -128,6 +137,61 @@ def sanitize_logo(raw: bytes, declared_mime: str | None) -> bytes:
     if len(sanitized) > 5 * 1024 * 1024:
         raise ValueError("حجم الشعار بعد التحقق أكبر من الحد المسموح")
     return sanitized
+
+
+def sanitize_hero_image(raw: bytes, declared_mime: str | None) -> tuple[bytes, str]:
+    """Validate and re-encode a public homepage photo without retaining metadata."""
+    if not raw:
+        raise ValueError("ملف الصورة فارغ")
+    if len(raw) > HERO_IMAGE_MAX_BYTES:
+        raise ValueError("حجم الصورة يجب ألا يتجاوز 8 ميغابايت")
+    if declared_mime not in {"image/jpeg", "image/png", "image/webp"}:
+        raise ValueError("يُقبل JPEG أو PNG أو WebP فقط")
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", Image.DecompressionBombWarning)
+            with Image.open(io.BytesIO(raw)) as image:
+                if image.format not in ALLOWED_HERO_IMAGE_FORMATS:
+                    raise ValueError("محتوى الصورة غير مدعوم")
+                if (
+                    image.width < 1 or image.height < 1
+                    or image.width > HERO_IMAGE_MAX_EDGE
+                    or image.height > HERO_IMAGE_MAX_EDGE
+                    or image.width * image.height > HERO_IMAGE_MAX_PIXELS
+                ):
+                    raise ValueError("أبعاد الصورة أكبر من الحد المسموح")
+                expected_mime = {
+                    "JPEG": "image/jpeg",
+                    "PNG": "image/png",
+                    "WEBP": "image/webp",
+                }[image.format]
+                if declared_mime != expected_mime:
+                    raise ValueError("امتداد الصورة ونوع محتواها غير متطابقين")
+                if getattr(image, "is_animated", False):
+                    raise ValueError("ارفع صورة ثابتة، لا صورة متحركة")
+                image.verify()
+            with Image.open(io.BytesIO(raw)) as image:
+                image.load()
+                clean_image = ImageOps.exif_transpose(image)
+                clean_image.thumbnail((2400, 2400), Image.Resampling.LANCZOS)
+                keep_alpha = "A" in clean_image.getbands() or "transparency" in clean_image.info
+                output = io.BytesIO()
+                if keep_alpha:
+                    clean_image.convert("RGBA").save(output, format="PNG", optimize=True)
+                    sanitized_mime = "image/png"
+                else:
+                    clean_image.convert("RGB").save(
+                        output, format="JPEG", quality=88, optimize=True, progressive=True,
+                    )
+                    sanitized_mime = "image/jpeg"
+    except ValueError:
+        raise
+    except Exception:
+        raise ValueError("تعذر قراءة الصورة؛ ارفع ملف JPEG أو PNG أو WebP صالحًا")
+    sanitized = output.getvalue()
+    if len(sanitized) > HERO_IMAGE_OUTPUT_MAX_BYTES:
+        raise ValueError("حجم الصورة بعد التجهيز يتجاوز الحد المسموح")
+    return sanitized, sanitized_mime
 
 
 def remove_logo(storage_key: str | None):

@@ -88,7 +88,12 @@ async def security_headers(request: Request, call_next):
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Referrer-Policy"] = "same-origin"
-    response.headers["Cache-Control"] = "no-store"
+    public_branding_images = {
+        "/api/v1/branding/logo",
+        "/api/v1/branding/hero-image",
+    }
+    if request.method not in {"GET", "HEAD"} or request.url.path not in public_branding_images:
+        response.headers["Cache-Control"] = "no-store"
     return response
 
 

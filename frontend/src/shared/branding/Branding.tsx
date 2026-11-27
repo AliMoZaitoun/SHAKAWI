@@ -19,6 +19,7 @@ export type HeroArtStyle = "flowing_lines" | "architectural" | "none";
 export type BrandingData = {
   colors: BrandColors;
   hero_art_style: HeroArtStyle;
+  hero_image_url: string | null;
   logo_url: string | null;
   logo_version: number;
   updated_at: string | null;

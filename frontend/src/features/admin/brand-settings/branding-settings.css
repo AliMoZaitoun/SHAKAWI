@@ -118,6 +118,53 @@
   background: #fbfcf9;
 }
 
+.branding-hero-image-manager {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 1.15fr);
+  align-items: center;
+  gap: 20px;
+  padding: 16px;
+  border: 1px solid #e6eae1;
+  border-radius: 13px;
+  background: #fbfcf9;
+}
+
+.branding-hero-image-preview {
+  position: relative;
+  min-width: 0;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1px solid #e0e5da;
+  border-radius: 11px;
+  background: #edf1e8;
+}
+
+.branding-hero-image-preview > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.branding-hero-image-controls {
+  min-width: 0;
+}
+
+.branding-hero-image-public-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 14px;
+  color: #536746;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.branding-hero-image-public-note svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
 .branding-logo-tile {
   position: relative;
   display: grid;
@@ -1054,6 +1101,10 @@
   }
 
   .branding-logo-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .branding-hero-image-manager {
     grid-template-columns: 1fr;
   }
 
