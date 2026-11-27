@@ -42,6 +42,7 @@ def bootstrap_brand_settings(db: Session) -> BrandSettings:
             id=1,
             **DEFAULT_BRAND_COLORS,
             hero_art_style=DEFAULT_HERO_ART_STYLE,
+            hero_image_opacity=85,
         )
         db.add(row)
         db.flush()
@@ -61,6 +62,7 @@ def branding_data(row: BrandSettings) -> dict:
     return {
         "colors": color_data(row),
         "hero_art_style": row.hero_art_style or DEFAULT_HERO_ART_STYLE,
+        "hero_image_opacity": row.hero_image_opacity if row.hero_image_opacity is not None else 85,
         "hero_image_url": (
             f"/api/v1/branding/hero-image?v={row.hero_image_version}"
             if row.hero_image_data else None

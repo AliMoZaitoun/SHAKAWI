@@ -888,6 +888,7 @@ def test_brand_settings_are_public_but_admin_changes_are_permission_gated(system
     assert public.json()["colors"]["brand_dark"] == "#3b4b32"
     assert public.json()["colors"]["sidebar_item_bg"] == "#edf1e8"
     assert public.json()["hero_art_style"] == "flowing_lines"
+    assert public.json()["hero_image_opacity"] == 85
     assert public.json()["hero_image_url"] is None
     assert public.json()["logo_url"] is None
     assert "logo_path" not in public.json()
@@ -905,18 +906,21 @@ def test_brand_settings_are_public_but_admin_changes_are_permission_gated(system
     colors["sidebar_item_bg"] = "#172c44"
     updated = client.put(
         "/api/v1/admin/settings/branding",
-        json={"colors": colors, "hero_art_style": "architectural"},
+        json={"colors": colors, "hero_art_style": "architectural", "hero_image_opacity": 62},
     )
     assert updated.status_code == 200, updated.text
     assert updated.json()["colors"]["brand_dark"] == "#263724"
     assert updated.json()["colors"]["sidebar_item_bg"] == "#172c44"
     assert updated.json()["hero_art_style"] == "architectural"
+    assert updated.json()["hero_image_opacity"] == 62
     public_after_update = client.get("/api/v1/branding").json()
     assert public_after_update["colors"]["sidebar_item_bg"] == "#172c44"
     assert public_after_update["hero_art_style"] == "architectural"
+    assert public_after_update["hero_image_opacity"] == 62
     with factory() as db:
         assert db.get(BrandSettings, 1).brand_dark == "#263724"
         assert db.get(BrandSettings, 1).hero_art_style == "architectural"
+    assert db.get(BrandSettings, 1).hero_image_opacity == 62
 
     updated_colors_only = client.put(
         "/api/v1/admin/settings/branding",
@@ -924,6 +928,7 @@ def test_brand_settings_are_public_but_admin_changes_are_permission_gated(system
     )
     assert updated_colors_only.status_code == 200, updated_colors_only.text
     assert updated_colors_only.json()["hero_art_style"] == "architectural"
+    assert updated_colors_only.json()["hero_image_opacity"] == 62
 
     updated_without_art = client.put(
         "/api/v1/admin/settings/branding",
@@ -931,6 +936,7 @@ def test_brand_settings_are_public_but_admin_changes_are_permission_gated(system
     )
     assert updated_without_art.status_code == 200, updated_without_art.text
     assert updated_without_art.json()["hero_art_style"] == "none"
+    assert updated_without_art.json()["hero_image_opacity"] == 62
     assert client.get("/api/v1/branding").json()["hero_art_style"] == "none"
 
     unsafe = {**colors, "brand_primary": "red; color: black"}
@@ -940,6 +946,14 @@ def test_brand_settings_are_public_but_admin_changes_are_permission_gated(system
     assert client.put(
         "/api/v1/admin/settings/branding",
         json={"colors": colors, "hero_art_style": "unknown"},
+    ).status_code == 422
+    assert client.put(
+        "/api/v1/admin/settings/branding",
+        json={"colors": colors, "hero_image_opacity": 101},
+    ).status_code == 422
+    assert client.put(
+        "/api/v1/admin/settings/branding",
+        json={"colors": colors, "hero_image_opacity": -1},
     ).status_code == 422
 
 

@@ -15,6 +15,9 @@ export const english: Record<string, string> = {
   "بدون زخرفة": "No decoration",
   "عرض الصورة كما هي من دون خطوط.": "Show the photo without line art.",
   "صورة الصفحة الرئيسية": "Homepage photo",
+  "درجة ظهور الصورة": "Photo visibility",
+  "100% تعني ظهور الصورة بالكامل، والقيمة الأقل تجعلها أكثر شفافية.":
+    "100% shows the photo fully; lower values make it more transparent.",
   "اختر صورة الموقع التي ستظهر للمواطنين في الواجهة الرئيسية.":
     "Choose the image visitors will see on the citizen homepage.",
   "الملفات المدعومة JPEG وPNG وWebP، بحد أقصى 8 ميغابايت.":

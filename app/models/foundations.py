@@ -104,6 +104,7 @@ class BrandSettings(Base):
     hero_image_data = Column(LargeBinary, nullable=True)
     hero_image_mime = Column(String(32), nullable=True)
     hero_image_version = Column(Integer, nullable=False, default=0, server_default="0")
+    hero_image_opacity = Column(Integer, nullable=False, default=85, server_default="85")
     logo_path = Column(String(500), nullable=True)
     logo_version = Column(Integer, nullable=False, default=0, server_default="0")
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

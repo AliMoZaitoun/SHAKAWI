@@ -23,6 +23,7 @@ type BrandColors = {
 type BrandingSettingsResponse = {
   colors: BrandColors;
   hero_art_style: HeroArtStyle;
+  hero_image_opacity: number;
   hero_image_url: string | null;
   logo_url: string | null;
   logo_version: number;
@@ -79,6 +80,7 @@ const HERO_ART_OPTIONS: Array<{
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 const MAX_HERO_IMAGE_BYTES = 8 * 1024 * 1024;
+const DEFAULT_HERO_IMAGE_OPACITY = 85;
 const DEFAULT_HERO_IMAGE_URL = "/static/images/citizen-home-syria-flag.jpg";
 
 function isBrandColors(value: BrandColors): boolean {
@@ -148,6 +150,7 @@ export function BrandingSettings() {
   const save = useAdminSave();
   const [colors, setColors] = useState<BrandColors>(DEFAULT_COLORS);
   const [heroArtStyle, setHeroArtStyle] = useState<HeroArtStyle>("flowing_lines");
+  const [heroImageOpacity, setHeroImageOpacity] = useState(DEFAULT_HERO_IMAGE_OPACITY);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoError, setLogoError] = useState("");
@@ -166,6 +169,7 @@ export function BrandingSettings() {
     if (query.data && !hasLocalEdits) {
       setColors(query.data.colors);
       setHeroArtStyle(query.data.hero_art_style);
+      setHeroImageOpacity(query.data.hero_image_opacity ?? DEFAULT_HERO_IMAGE_OPACITY);
     }
   }, [query.data, hasLocalEdits]);
 
@@ -200,8 +204,16 @@ export function BrandingSettings() {
     [colors, query.data],
   );
   const changedHeroArtStyle = query.data && heroArtStyle !== query.data.hero_art_style;
+  const changedHeroImageOpacity =
+    query.data &&
+    heroImageOpacity !== (query.data.hero_image_opacity ?? DEFAULT_HERO_IMAGE_OPACITY);
   const hasChanges = Boolean(
-    changedColors || changedHeroArtStyle || logoFile || resetLogoOnSave || heroImageFile,
+    changedColors ||
+      changedHeroArtStyle ||
+      changedHeroImageOpacity ||
+      logoFile ||
+      resetLogoOnSave ||
+      heroImageFile,
   );
   const heroImageSource =
     heroImagePreview ?? query.data?.hero_image_url ?? DEFAULT_HERO_IMAGE_URL;
@@ -228,6 +240,13 @@ export function BrandingSettings() {
     "--brand-bg": colors.brand_bg,
     "--brand-card": colors.brand_card,
   } as CSSProperties;
+  const heroImagePreviewStyles = { opacity: heroImageOpacity / 100 } as CSSProperties;
+
+  function updateHeroImageOpacity(value: number) {
+    setHeroImageOpacity(value);
+    setHasLocalEdits(true);
+    save.setMessage("");
+  }
 
   function updateColor(key: keyof BrandColors, value: string) {
     setHasLocalEdits(true);
@@ -354,11 +373,15 @@ export function BrandingSettings() {
 
     let latestResponse = query.data;
     const ok = await save.run(async () => {
-      if (changedColors || changedHeroArtStyle) {
+      if (changedColors || changedHeroArtStyle || changedHeroImageOpacity) {
         latestResponse = await api<BrandingSettingsResponse>("/admin/settings/branding", {
           method: "PUT",
           language: lang,
-          body: { colors, hero_art_style: heroArtStyle },
+          body: {
+            colors,
+            hero_art_style: heroArtStyle,
+            hero_image_opacity: heroImageOpacity,
+          },
         });
       }
       if (heroImageFile) {
@@ -385,6 +408,7 @@ export function BrandingSettings() {
     if (ok && latestResponse) {
       setColors(latestResponse.colors);
       setHeroArtStyle(latestResponse.hero_art_style);
+      setHeroImageOpacity(latestResponse.hero_image_opacity ?? DEFAULT_HERO_IMAGE_OPACITY);
       clearHeroImageDraft();
       setLogoFile(null);
       setResetLogoOnSave(false);
@@ -578,7 +602,11 @@ export function BrandingSettings() {
             </div>
             <div className="branding-hero-image-manager">
               <div className="branding-hero-image-preview">
-                <img src={heroImageSource} alt={tText("معاينة الصورة الرئيسية")} />
+                <img
+                  src={heroImageSource}
+                  alt={tText("معاينة الصورة الرئيسية")}
+                  style={heroImagePreviewStyles}
+                />
                 {heroImageFile && save.busy && (
                   <span className="branding-preview-tag" role="status">
                     <UiText source="جارٍ حفظ الصورة..." />
@@ -593,6 +621,31 @@ export function BrandingSettings() {
                   <ShieldCheck size={15} aria-hidden="true" />
                   <UiText source="ستُحفظ الصورة فور اختيارها وتظهر مباشرة لجميع زوار الموقع." />
                 </p>
+                <div className="branding-hero-opacity-control">
+                  <div className="branding-hero-opacity-heading">
+                    <label htmlFor="branding-hero-image-opacity">
+                      <UiText source="درجة ظهور الصورة" />
+                    </label>
+                    <output htmlFor="branding-hero-image-opacity">
+                      <bdi>{heroImageOpacity}%</bdi>
+                    </output>
+                  </div>
+                  <input
+                    id="branding-hero-image-opacity"
+                    className="branding-hero-opacity-range"
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={heroImageOpacity}
+                    aria-valuetext={`${heroImageOpacity}%`}
+                    onChange={(event) => updateHeroImageOpacity(Number(event.target.value))}
+                    disabled={save.busy}
+                  />
+                  <p>
+                    <UiText source="100% تعني ظهور الصورة بالكامل، والقيمة الأقل تجعلها أكثر شفافية." />
+                  </p>
+                </div>
                 <input
                   ref={heroImageInputRef}
                   className="branding-file-input"
@@ -673,7 +726,7 @@ export function BrandingSettings() {
                     style={heroArtPreviewStyles}
                     aria-hidden="true"
                   >
-                    <img src={heroImageSource} alt="" />
+                    <img src={heroImageSource} alt="" style={heroImagePreviewStyles} />
                     <HeroDecoration style={option.value} />
                   </span>
                   <span className="branding-art-option-copy">
@@ -693,6 +746,7 @@ export function BrandingSettings() {
                   className="branding-art-preview-photo"
                   src={heroImageSource}
                   alt=""
+                  style={heroImagePreviewStyles}
                 />
                 <div className="branding-art-preview-actions" aria-hidden="true">
                   <span className="branding-art-preview-primary"><UiText source="تقديم شكوى" /></span>

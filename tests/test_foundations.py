@@ -449,12 +449,18 @@ def legacy_database(tmp_path):
 
 
 def test_versioned_legacy_migration_backups_repeat_and_restore(tmp_path, monkeypatch):
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+    from app.db.upgrade import ROOT
     from app.db.backup import verify_backup, restore_to_new_directory
     monkeypatch.chdir(tmp_path)
     Path("uploads").mkdir()
     Path("uploads/identity.png").write_bytes(png())
     Path("uploads/evidence.png").write_bytes(png())
     engine = legacy_database(tmp_path)
+    expected_head = ScriptDirectory.from_config(
+        Config(str(ROOT / "alembic.ini"))
+    ).get_current_head()
     with engine.connect() as conn:
         old_hash = conn.execute(text("SELECT hashed_password FROM employees WHERE id=17")).scalar()
     upgrade_database(engine)
@@ -473,7 +479,7 @@ def test_versioned_legacy_migration_backups_repeat_and_restore(tmp_path, monkeyp
         assert not db.execute(text("PRAGMA foreign_key_check")).all()
         assert (
             db.execute(text("SELECT version_num FROM alembic_version")).scalar()
-                    == "0009_sidebar_item_background"
+                        == expected_head
         )
         assert {"complaint_type_id", "sla_duration_minutes"}.issubset(
             {column["name"] for column in inspect(engine).get_columns("complaints")}
@@ -567,6 +573,12 @@ def test_fresh_schema_foreign_keys_and_missing_legacy_bytes(tmp_path, monkeypatc
     with engine.connect() as conn:
         assert not conn.exec_driver_sql("PRAGMA foreign_key_check").all()
         assert conn.execute(text("SELECT COUNT(*) FROM languages")).scalar() == 2
+        brand_columns = {column["name"] for column in inspect(conn).get_columns("brand_settings")}
+        assert "hero_image_opacity" in brand_columns
+        conn.execute(text("INSERT INTO brand_settings(id) VALUES(1)"))
+        assert conn.execute(
+            text("SELECT hero_image_opacity FROM brand_settings WHERE id=1")
+        ).scalar() == 85
     from sqlalchemy.exc import IntegrityError
     with pytest.raises(IntegrityError), engine.begin() as conn:
         conn.execute(text("INSERT INTO complaint_files(file_id,complaint_id) VALUES(999,999)"))

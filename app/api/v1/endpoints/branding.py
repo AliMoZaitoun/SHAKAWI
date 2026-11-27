@@ -83,6 +83,8 @@ def save_branding(
         setattr(row, key, value)
     if data.hero_art_style is not None:
         row.hero_art_style = data.hero_art_style
+    if data.hero_image_opacity is not None:
+        row.hero_image_opacity = data.hero_image_opacity
     row.updated_by_user_id = _actor_id(actor)
     record_event(
         db, "branding.colors_updated", "brand_settings", "1",

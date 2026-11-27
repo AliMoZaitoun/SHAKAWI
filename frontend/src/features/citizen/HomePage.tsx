@@ -17,6 +17,7 @@ export function HomePage() {
   const { tText, lang } = useI18n();
   const branding = useBranding();
   const heroArtStyle = branding?.hero_art_style ?? "flowing_lines";
+  const heroImageOpacity = (branding?.hero_image_opacity ?? 85) / 100;
   const heroImageUrl = branding?.hero_image_url ?? "/static/images/citizen-home-syria-flag.jpg";
 
   return (
@@ -58,6 +59,7 @@ export function HomePage() {
             src={heroImageUrl}
             alt={tText("علم سوريا فوق مبنى أثري")}
             fetchPriority="high"
+            style={{ opacity: heroImageOpacity }}
           />
           <div className="citizen-image-wash" aria-hidden="true" />
           <HeroDecoration style={heroArtStyle} />

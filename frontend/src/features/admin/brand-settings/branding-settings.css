@@ -165,6 +165,53 @@
   margin-top: 2px;
 }
 
+.branding-hero-opacity-control {
+  margin: 15px 0 16px;
+  padding: 13px 14px;
+  border: 1px solid #e4e9df;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.branding-hero-opacity-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.branding-hero-opacity-heading label {
+  color: #43503d;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.branding-hero-opacity-heading output {
+  min-width: 48px;
+  padding: 4px 7px;
+  border-radius: 6px;
+  background: #f1f4ec;
+  color: #405139;
+  font: 700 12px ui-monospace, SFMono-Regular, monospace;
+  text-align: center;
+}
+
+.branding-hero-opacity-range {
+  display: block;
+  width: 100%;
+  margin: 12px 0 5px;
+  accent-color: #52653e;
+  cursor: pointer;
+  direction: ltr;
+}
+
+.branding-hero-opacity-control p {
+  margin: 0;
+  color: #788075;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
 .branding-logo-tile {
   position: relative;
   display: grid;

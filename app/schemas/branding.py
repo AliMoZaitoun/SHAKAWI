@@ -56,3 +56,4 @@ class BrandColors(BaseModel):
 class BrandingInput(BaseModel):
     colors: BrandColors
     hero_art_style: Literal["flowing_lines", "architectural", "none"] | None = None
+    hero_image_opacity: int | None = Field(default=None, ge=0, le=100)
